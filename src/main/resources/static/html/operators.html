@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Driver Route — Scheduling App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>.cursor-wait{cursor:wait;}</style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+  <div class="container-fluid">
+    <span class="navbar-brand">🚚 Driver Route</span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Info / global messages -->
+  <div id="globalMsg" class="mb-3"></div>
+
+  <!-- Route header -->
+  <div id="routeHeader" class="card shadow-sm mb-3 d-none">
+    <div class="card-body">
+      <h5 class="card-title mb-1">
+        Route <span id="rh-routeId"></span>
+        <span class="badge bg-secondary" id="rh-status"></span>
+      </h5>
+      <div class="text-muted">
+        <span>Operator: <strong id="rh-operatorName"></strong> (<span id="rh-operatorId"></span>)</span>
+        <span class="ms-3">Scheduled: <strong id="rh-date"></strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deliveries table -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <strong>Deliveries</strong>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table align-middle" id="deliveriesTable">
+          <thead>
+            <tr>
+              <th style="width: 110px;">Delivery ID</th>
+              <th>Client</th>
+              <th style="width: 180px;">Travel</th> <!-- NEW -->
+              <th style="width: 160px;">Status</th>
+              <th style="width: 280px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="deliveriesBody">
+            <tr class="text-muted">
+              <td colspan="5">Loading route…</td> <!-- colspan updated -->
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="routeMsg"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recipient Details Modal -->
+<div class="modal fade" id="recipientModal" tabindex="-1" aria-labelledby="recipientModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="recipientModalLabel">Recipient Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="recipientLoading" class="text-muted">Loading…</div>
+        <div id="recipientError" class="text-danger d-none"></div>
+        <div id="recipientDetails" class="d-none">
+          <p class="mb-1"><strong>Name:</strong> <span id="recName"></span></p>
+          <p class="mb-1"><strong>Address:</strong> <span id="recAddress"></span></p>
+          <p class="mb-0"><strong>Contact:</strong> <span id="recContact"></span></p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p class="mb-1">📦 Scheduling App — Streamline your deliveries with ease</p>
+            <small>&copy; 2025 Scheduling App. All rights reserved.</small>
+        </div>
+    </footer>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="../js/operators.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
