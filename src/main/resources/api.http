@@ -1,0 +1,19 @@
+### GET request to example server
+GET http://localhost:8080/api/v1/scheduling-app/warehouses
+
+###
+
+POST http://localhost:8080/api/v1/scheduling-app
+Content-Type: application/json
+
+{
+  "name": "Mitchel Ani",
+  "phoneNumber": "+447123456789",
+  "email": "mitchel.ani@example.com",
+  "vehicleType": "Van",
+  "maxCapacity": 25.0,
+  "currentLatitude": 53.4808,
+  "currentLongitude": -2.2426
+}
+
+###
