@@ -25,9 +25,6 @@ public class DeliveryApiController {
     @GetMapping
     public ResponseEntity<List<DeliveryResponseDTO>> getAllDeliveries() {
         List<DeliveryResponseDTO> deliveries = deliveryService.getAllDeliveries();
-        if (deliveries.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(deliveries);
     }
 
