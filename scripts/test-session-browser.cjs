@@ -78,6 +78,43 @@ const assert = require("node:assert/strict");
         assert.equal(await page.locator("#routeSelector").isDisabled(), true);
         await page.locator("#logoutButton").click();
         await page.waitForURL("**/html/login.html?loggedOut");
+        // Administrator API creates temporary credentials; onboarding is enforced server-side.
+        await page.locator("#username").fill("smoke.admin");
+        await page.locator("#password").fill("smoke test administrator passphrase");
+        await page.locator("#loginButton").click();
+        await page.waitForURL("**/html/admin.html");
+        await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
+        const operators = await (await context.request.get(`${target.origin}/api/v1/scheduling-app/operators`)).json();
+        const operator = operators.find(item => item.name === "Onboarding operator");
+        assert.ok(operator);
+        const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        const created = await context.request.post(`${target.origin}/api/admin/accounts/drivers`, {
+            headers: { [csrf.headerName]: csrf.token },
+            data: { username: "onboarding.driver", operatorId: operator.operatorId, currentPassword: "smoke test administrator passphrase" }
+        });
+        assert.equal(created.status(), 201);
+        assert.ok(created.headers()["cache-control"].includes("no-store"));
+        const credential = await created.json();
+        await page.locator("#logoutButton").click();
+        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.locator("#username").fill("onboarding.driver");
+        await page.locator("#password").fill(credential.temporaryPassword);
+        await page.locator("#loginButton").click();
+        await page.waitForURL("**/html/change-password.html");
+        assert.equal((await context.request.get(`${target.origin}/api/driver/routes`)).status(), 403);
+        await page.locator("#currentPassword").fill(credential.temporaryPassword);
+        await page.locator("#newPassword").fill("browser permanent driver passphrase");
+        await page.locator("#confirmPassword").fill("browser permanent driver passphrase");
+        await page.locator("#passwordButton").click();
+        await page.waitForURL("**/html/login.html?passwordChanged");
+        assert.equal((await context.request.get(`${target.origin}/api/auth/me`)).status(), 401);
+        await page.locator("#username").fill("onboarding.driver");
+        await page.locator("#password").fill("browser permanent driver passphrase");
+        await page.locator("#loginButton").click();
+        await page.waitForURL("**/html/operators.html");
+        await page.locator("#globalMsg").filter({ hasText: "No assigned routes available." }).waitFor();
+        await page.locator("#logoutButton").click();
+        await page.waitForURL("**/html/login.html?loggedOut");
         assert.deepEqual(errors, []);
         console.log("Browser admin/driver login, ownership, route selection, status updates, CSRF, safe rendering and logout passed.");
     } finally { await browser.close(); }

@@ -43,10 +43,10 @@ class DriverMySqlIntegrationTest {
         });
     }
     @Test void nativeOwnershipQueriesAndAtomicStatusWorkOnMySql() {
-        assertThat(service.routes(accountId)).hasSize(1);
-        assertThat(service.recipient(accountId,deliveryId).address()).isEqualTo("Address");
-        assertThat(service.status(accountId,deliveryId,"COMPLETED").getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.COMPLETED);
-        assertThatThrownBy(() -> service.status(accountId,deliveryId,"CANCELLED")).isInstanceOf(ResponseStatusException.class)
+        assertThat(service.routes(accountId,0L)).hasSize(1);
+        assertThat(service.recipient(accountId,0L,deliveryId).address()).isEqualTo("Address");
+        assertThat(service.status(accountId,0L,deliveryId,"COMPLETED").getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.COMPLETED);
+        assertThatThrownBy(() -> service.status(accountId,0L,deliveryId,"CANCELLED")).isInstanceOf(ResponseStatusException.class)
                 .satisfies(failure -> assertThat(((ResponseStatusException)failure).getStatusCode().value()).isEqualTo(409));
     }
     @Test void ambiguousLegacyMembershipIsHiddenAndCannotBeUpdated() throws Exception {
@@ -71,8 +71,8 @@ class DriverMySqlIntegrationTest {
                 }
             }
         }
-        assertThat(service.routes(accountId)).isEmpty();
-        assertThatThrownBy(() -> service.recipient(accountId,deliveryId)).isInstanceOf(ResponseStatusException.class);
+        assertThat(service.routes(accountId,0L)).isEmpty();
+        assertThatThrownBy(() -> service.recipient(accountId,0L,deliveryId)).isInstanceOf(ResponseStatusException.class);
         assertThat(update("COMPLETED")).isEqualTo(404);
         assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS);
     }
@@ -92,7 +92,7 @@ class DriverMySqlIntegrationTest {
         raceWithAdministrator("UPDATE deliveries SET operator_id=NULL,delivery_status='PENDING' WHERE delivery_id="+deliveryId,
                 "DELETE FROM route_deliveries WHERE route_id="+routeId, "DELETE FROM routes WHERE route_id="+routeId);
         assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.PENDING);
-        assertThat(service.routes(accountId)).isEmpty();
+        assertThat(service.routes(accountId,0L)).isEmpty();
     }
     @Test void deletedDeliveryCannotBeResurrectedByPendingDriverUpdate() throws Exception {
         raceWithAdministrator("UPDATE deliveries SET operator_id=NULL WHERE delivery_id="+deliveryId,
@@ -112,7 +112,7 @@ class DriverMySqlIntegrationTest {
         }
     }
     int update(String status) {
-        try { service.status(accountId,deliveryId,status); return 200; }
+        try { service.status(accountId,0L,deliveryId,status); return 200; }
         catch(ResponseStatusException failure) { return failure.getStatusCode().value(); }
     }
     static void await(CountDownLatch start) {

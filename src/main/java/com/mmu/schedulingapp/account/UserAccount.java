@@ -9,6 +9,8 @@ import org.hibernate.annotations.Check;
 @Table(name = "user_accounts")
 @Check(name = "ck_account_role_link", constraints = "(role = 'ADMIN' AND operator_id IS NULL) OR (role = 'DRIVER' AND operator_id IS NOT NULL)")
 @Check(name = "ck_account_bootstrap", constraints = "bootstrap_slot IS NULL OR (bootstrap_slot = 1 AND role = 'ADMIN')")
+@Check(name = "ck_account_revision", constraints = "auth_revision >= 0")
+@Check(name = "ck_account_password_setup", constraints = "(password_change_required = TRUE AND temporary_password_expires_at IS NOT NULL) OR (password_change_required = FALSE AND temporary_password_expires_at IS NULL)")
 public class UserAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,6 +39,17 @@ public class UserAccount {
     @Column(name = "bootstrap_slot", unique = true)
     private Integer bootstrapSlot;
 
+    @JsonIgnore
+    @Column(name = "auth_revision", nullable = false)
+    private long authenticationRevision;
+
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired;
+
+    @JsonIgnore
+    @Column(name = "temporary_password_expires_at", columnDefinition = "datetime(6)")
+    private java.time.Instant temporaryPasswordExpiresAt;
+
     protected UserAccount() {
     }
 
@@ -61,9 +74,30 @@ public class UserAccount {
         if (role == null || (role == AccountRole.DRIVER) != (operator != null)) {
             throw new IllegalArgumentException("Account role and operator link do not match.");
         }
+        if (authenticationRevision < 0 || passwordChangeRequired != (temporaryPasswordExpiresAt != null)) {
+            throw new IllegalArgumentException("Account credential state is invalid.");
+        }
         if (bootstrapSlot != null && (bootstrapSlot != 1 || role != AccountRole.ADMIN)) {
             throw new IllegalArgumentException("Initial administrator marker is invalid.");
         }
+    }
+
+    @JsonIgnore
+    public long getAuthenticationRevision() { return authenticationRevision; }
+    public boolean isPasswordChangeRequired() { return passwordChangeRequired; }
+    @JsonIgnore
+    public java.time.Instant getTemporaryPasswordExpiresAt() { return temporaryPasswordExpiresAt; }
+
+    void changeEnabled(boolean value) {
+        if (enabled != value) { authenticationRevision = Math.incrementExact(authenticationRevision); enabled = value; }
+    }
+    void setTemporaryPassword(String hash, java.time.Instant expiry) {
+        authenticationRevision = Math.incrementExact(authenticationRevision);
+        passwordHash = hash; passwordChangeRequired = true; temporaryPasswordExpiresAt = expiry;
+    }
+    void replacePassword(String hash) {
+        authenticationRevision = Math.incrementExact(authenticationRevision);
+        passwordHash = hash; passwordChangeRequired = false; temporaryPasswordExpiresAt = null;
     }
 
     public Long getId() { return id; }

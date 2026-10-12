@@ -26,7 +26,6 @@ public class AuthenticationController {
     @Transactional(readOnly = true)
     public AccountSummary identity(@AuthenticationPrincipal AccountPrincipal principal) {
         var account = accounts.findById(principal.getAccountId()).orElseThrow();
-        return new AccountSummary(account.getId(), account.getUsername(), account.getRole(),
-                account.getOperator() == null ? null : account.getOperator().getOperatorId(), account.isEnabled());
+        return AccountSummary.from(account);
     }
 }

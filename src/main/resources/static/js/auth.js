@@ -35,6 +35,7 @@ window.SchedulingAuth = (() => {
             if (response.status === 401) { window.location.assign("/html/login.html"); return; }
             if (!response.ok) throw new Error("Unable to check your session.");
             const account = await response.json();
+            if (account.passwordChangeRequired) { window.location.assign("/html/change-password.html"); return; }
             if (!allowedRoles.includes(account.role)) throw new Error("You do not have access to this page.");
             document.getElementById("sessionAccount").textContent = account.username;
             document.getElementById("logoutButton").addEventListener("click", () => logout().catch(showError));
