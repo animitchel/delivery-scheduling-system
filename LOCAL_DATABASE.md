@@ -1,6 +1,6 @@
 # Local MySQL with Docker
 
-This setup runs only the development database. Run Spring Boot from IntelliJ with Java 21.
+This setup runs only the development database. Run Spring Boot from IntelliJ with Java 25.
 
 ## Prerequisites
 
@@ -34,11 +34,13 @@ On the first start of an empty volume, the image creates `scheduling_dev` and gr
 
 MySQL is exposed only on `127.0.0.1:3307`. Container data persists in a project-specific named volume.
 
+See [JAVA_SETUP.md](JAVA_SETUP.md) for the complete JDK/Maven setup.
+
 ## IntelliJ run configuration
 
 Configure `SchedulingAppApplication` as follows:
 
-- JDK: Java 21.
+- JDK: Java 25.
 - Working directory: the repository root.
 - VM options: `-Dspring.profiles.active=local`.
 - Environment variables: `DB_PASSWORD` matching `.env.mysql.local`; also set `DB_USER`, `DB_NAME` or `DB_PORT` if you changed their defaults.
