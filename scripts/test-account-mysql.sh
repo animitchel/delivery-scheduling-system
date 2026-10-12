@@ -13,4 +13,4 @@ for attempt in $(seq 1 90); do
 done
 if [[ "$ready" != true ]]; then echo "Disposable MySQL did not become ready." >&2; exit 1; fi
 port=$(docker port "$container" 3306/tcp | awk -F: '{print $NF}')
-mvn -B verify "-Daccount.mysql.url=jdbc:mysql://127.0.0.1:$port/account_foundation_test"
+mvn -B verify "-Daccount.mysql.url=jdbc:mysql://127.0.0.1:$port/account_foundation_test" "$@"
