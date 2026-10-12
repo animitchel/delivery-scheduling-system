@@ -28,14 +28,14 @@ window.SchedulingAuth = (() => {
         window.location.assign("/html/login.html?loggedOut");
     }
 
-    async function initializePage(start) {
+    async function initializePage(start, allowedRoles = ["ADMIN"]) {
         try {
             await refreshCsrf();
             const response = await request("/api/auth/me");
             if (response.status === 401) { window.location.assign("/html/login.html"); return; }
             if (!response.ok) throw new Error("Unable to check your session.");
             const account = await response.json();
-            if (account.role !== "ADMIN") throw new Error("Administrator access is required.");
+            if (!allowedRoles.includes(account.role)) throw new Error("You do not have access to this page.");
             document.getElementById("sessionAccount").textContent = account.username;
             document.getElementById("logoutButton").addEventListener("click", () => logout().catch(showError));
             // Only same-origin unsafe jQuery requests receive a CSRF token.
@@ -49,7 +49,7 @@ window.SchedulingAuth = (() => {
             $(document).ajaxError((event, xhr) => {
                 if (xhr.status === 401) window.location.assign("/html/login.html");
             });
-            start();
+            start(account);
         } catch (error) { showError(error); }
     }
 

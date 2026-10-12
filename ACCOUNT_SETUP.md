@@ -1,6 +1,6 @@
 # Account foundation
 
-Account persistence and controlled initial administrator provisioning are now connected to session authentication. Existing scheduling endpoints and both application pages require an administrator. Driver access remains blocked until backend ownership checks are implemented. See `SESSION_SETUP.md` for the authentication contract and deployment requirements.
+Account persistence and controlled initial administrator provisioning are now connected to session authentication. Existing scheduling endpoints and both application pages require an administrator. Driver access uses dedicated ownership-checked endpoints; see `DRIVER_ACCESS.md`. See `SESSION_SETUP.md` for the authentication contract and deployment requirements.
 
 ## Account rules
 
@@ -41,8 +41,7 @@ This starts a disposable MySQL 8.4.11 container on a random localhost port, test
 
 ## Next dependent PRs
 
-1. Implement driver ownership in the backend and add negative access tests before enabling driver access.
-2. Add authenticated administrator account management.
-3. Introduce the React + TypeScript + Vite frontend incrementally.
+1. Add authenticated administrator account management.
+2. Introduce the React + TypeScript + Vite frontend incrementally.
 
-The session-authentication PR closes anonymous scheduling access and restricts the current broad APIs to administrators. Driver ownership and the wider production-readiness roadmap remain pending.
+The session-authentication PR closes anonymous scheduling access and restricts the current broad APIs to administrators. Driver ownership now protects the dedicated driver API; the wider production-readiness roadmap remains pending.

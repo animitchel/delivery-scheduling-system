@@ -1,6 +1,6 @@
 # Session authentication and administrator access
 
-The application now authenticates persisted accounts and restricts all existing `/api/v1/scheduling-app/**` endpoints, `/html/admin.html`, and `/html/operators.html` to administrators. DRIVER accounts can sign in and read their own safe identity, but cannot access scheduling data or either application page. Driver ownership checks are the next dependent change.
+The application now authenticates persisted accounts and restricts all existing `/api/v1/scheduling-app/**` endpoints, `/html/admin.html`, and `/html/operators.html` to administrators. DRIVER accounts can sign in, use `/html/operators.html`, and access the ownership-checked `/api/driver/**` endpoints. The existing management API and administrator page remain administrator-only. See `DRIVER_ACCESS.md` for the driver contract.
 
 ## HTTP contract
 
@@ -12,7 +12,7 @@ The application now authenticates persisted accounts and restricts all existing 
 | GET `/api/auth/me` | Signed-in account summary: ID, username, role, operator ID and enabled flag; no credentials |
 | POST `/api/auth/logout` | Requires CSRF; invalidates session, clears authentication/cookie; 204 |
 | Scheduling API | ADMIN required; anonymous reads return JSON 401, authenticated drivers return JSON 403 |
-| Protected HTML | Anonymous visitors redirect to sign-in; drivers receive 403 |
+| Protected HTML | Anonymous visitors redirect to sign-in; drivers can access only the driver page |
 
 Unsafe requests with a missing or invalid CSRF token return 403, including login and logout. GET never signs in or signs out. Fetch a token before login and fetch a fresh token after successful login because Spring clears the pre-login token. Do not automatically retry writes after a failure. Unknown resources are denied by default. HTTP Basic, remember-me and public registration are not enabled.
 
@@ -24,7 +24,7 @@ Spring's form-login filter handles authentication, session context persistence a
 2. Serve the frontend and backend through the same origin over HTTPS. Relative frontend URLs replace hardcoded localhost addresses. Wildcard CORS has been removed. A future Vite development server should proxy `/api` to Spring rather than opening a broad credentialed CORS policy.
 3. Outside the explicit `local` profile, session cookies are `Secure`, `HttpOnly`, `SameSite=Lax`, and use `/` as their path. The `local` profile allows HTTP cookies for development; never activate it on a public deployment. Sessions expire after 30 minutes of inactivity and use cookies only, not URL session IDs.
 4. Run one application instance for now. Sessions are held in memory and restart invalidates them. Horizontal scaling needs a deliberately configured shared session store or suitable routing before rollout.
-5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, driver access, password recovery, account-management UI, frontend migration and the wider audit items remain separate work.
+5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, password recovery, account-management UI, frontend migration and the wider audit items remain separate work.
 
 For local development with your existing local database configuration, start the built application explicitly in the local profile and open `/html/login.html`:
 
@@ -33,7 +33,7 @@ java -jar target/schedulingApp-0.0.1-SNAPSHOT.jar \
   --spring.profiles.active=local --server.address=127.0.0.1
 ```
 
-The existing administrator/route pages share `auth.js` for identity, CSRF and logout. Dynamic API values/errors are rendered as text or escaped before insertion into HTML. The driver-labelled legacy route page remains administrator-only and still has its old route-selection logic; it must not be enabled for drivers before ownership checks replace that logic.
+The existing administrator/route pages share `auth.js` for identity, CSRF and logout. Dynamic API values/errors are rendered as text or escaped before insertion into HTML. The route page uses dedicated ownership-checked endpoints for drivers and existing management endpoints for administrators. It no longer contains a hardcoded operator ID or a fallback to another driver's route.
 
 ## Verification
 

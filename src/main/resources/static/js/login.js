@@ -26,10 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!identity.ok) throw new Error("Unable to check your session. Please try again.");
             const account = await identity.json();
             if (account.role === "ADMIN") window.location.assign("/html/admin.html");
-            else {
-                message.textContent = "You are signed in. Driver access will be available after assignment permissions are implemented.";
-                logoutButton.hidden = false;
-            }
+            else if (account.role === "DRIVER") window.location.assign("/html/operators.html");
+            else throw new Error("Unsupported account role.");
         } catch (error) { message.textContent = error.message; }
         finally { form.elements.password.value = ""; button.disabled = false; }
     });
