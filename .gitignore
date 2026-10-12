@@ -35,6 +35,8 @@ build/
 ### Spring Boot ###
 application.properties
 src/main/resources/application.properties
+.env.mysql.local
+application-local.properties
 
 
 # Mac system files
