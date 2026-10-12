@@ -28,9 +28,6 @@ public class RouteApiController {
     @GetMapping
     public ResponseEntity<List<RouteResponseDTO>> getAllRoutes() {
         List<RouteResponseDTO> routes = routeService.getAllRoutes();
-        if (routes.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(routes);
     }
 

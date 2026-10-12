@@ -26,9 +26,6 @@ public class RecipientApiController {
     public ResponseEntity<List<RecipientResponseDTO>> getRecipients() {
         List<RecipientResponseDTO> recipients = recipientService.getAllRecipientDTOs();
 
-        if (recipients.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
 
         return ResponseEntity.ok(recipients);
     }
