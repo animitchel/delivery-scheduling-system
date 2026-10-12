@@ -25,6 +25,8 @@ public class SecurityConfiguration {
                                 "/css/login.css", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers("/api/driver/**").hasRole("DRIVER")
+                        .requestMatchers(HttpMethod.GET, "/html/operators.html", "/js/operators.js").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/v1/scheduling-app/**", "/html/**", "/js/admin.js",
                                 "/js/operators.js").hasRole("ADMIN")
                         .anyRequest().denyAll())

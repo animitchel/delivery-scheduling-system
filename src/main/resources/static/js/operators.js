@@ -1,11 +1,11 @@
-// ======= CONFIG =======
-const BASE_URL = "/api/v1/scheduling-app";
-const OPERATOR_ID = 1; // single operator
-const DELIVERIES_BASE = `${BASE_URL}/deliveries`;
-const RECIPIENTS_BASE = `${BASE_URL}/recipients`;
+// Driver requests use dedicated ownership-checked endpoints; administrators retain their APIs.
+let BASE_URL;
+let DELIVERIES_BASE;
+let isDriver;
+let routesById = new Map();
+let recipientRequestSequence = 0;
 
 // ======= Cache =======
-const recipientCache = {}; // { [recipientId]: RecipientResponseDTO }
 
 // ======= UI helpers =======
 function alertHtml(type, text) {
@@ -45,7 +45,7 @@ function renderDeliveries(deliveries) {
   }
 
   deliveries.forEach(d => {
-    const terminal = ["COMPLETED","CANCELLED"].includes((d.status || "").toUpperCase());
+    const terminal = (d.status || "").toUpperCase() !== "IN_PROGRESS";
 
     const clientCellHtml = `
       <a href="#" class="client-link"
@@ -84,72 +84,43 @@ function renderDeliveries(deliveries) {
 
 
 // ======= Data loading =======
-function loadDefaultRoute() {
-  $("body").addClass("cursor-wait");
-  $("#globalMsg").html("");
-  $("#deliveriesBody").html(`<tr><td colspan="4" class="text-muted">Loading routes…</td></tr>`);
-
+function loadRoutes() {
+  $("#routeHeader").addClass("d-none");
+  $("#globalMsg").empty();
+  $("#routeSelector").prop("disabled", true).empty().append($('<option>').val('').text('Loading routes…'));
+  renderDeliveries([]);
   $.ajax({
-    url: `${BASE_URL}/routes`,
-    method: "GET",
+    url: `${BASE_URL}/routes`, method: "GET",
     success: function (routes) {
-      // Expect an array of RouteResponseDTO; pick operatorId=1 or first.
-      let selected = null;
-      if (Array.isArray(routes) && routes.length > 0) {
-        selected = routes.find(r => r.operatorId === OPERATOR_ID) || routes[0];
-      }
+      routesById = new Map((routes || []).map(route => [String(route.routeId), route]));
+      const selector = $("#routeSelector").empty().append($('<option>').val('').text('Select an assigned route'));
+      routesById.forEach(route => selector.append($('<option>').val(route.routeId).text(`Route #${route.routeId} · ${route.scheduledDate}`)));
+      selector.prop("disabled", routesById.size === 0);
+      if (routesById.size === 0) $("#globalMsg").html(alertHtml("info", "No assigned routes available."));
+      if (routesById.size === 1) { selector.val([...routesById.keys()][0]); selectRoute(); }
+    },
+    error: function (xhr) { $("#globalMsg").html(alertHtml("danger", xhr.responseText || "Failed to load routes.")); }
+  });
+}
 
-      if (!selected) {
-        $("#globalMsg").html(alertHtml("warning", "No routes available."));
-        $("#deliveriesBody").html(`<tr><td colspan="4" class="text-muted">—</td></tr>`);
-        return;
-      }
-
-      renderRouteHeader(selected);
-      renderDeliveries(selected.deliveries || []);
-
-      // Preload all recipients by IDs from summaries for instant modal
-      preloadRecipientsById(selected.deliveries || []);
+function selectRoute() {
+  const id = $("#routeSelector").val();
+  $("#routeHeader").addClass("d-none");
+  renderDeliveries([]);
+  if (!id) return;
+  // Reload the selected route so reassignment/deletion is rechecked by the backend.
+  $.ajax({
+    url: `${BASE_URL}/routes/${encodeURIComponent(id)}`, method: "GET",
+    success: function (route) {
+      if ($("#routeSelector").val() !== String(route.routeId)) return;
+      renderRouteHeader(route); renderDeliveries(route.deliveries || []);
     },
     error: function (xhr) {
-      const msg = xhr.responseText || "Failed to load routes.";
-      $("#globalMsg").html(alertHtml("danger", `❌ ${msg}`));
-      $("#deliveriesBody").html(`<tr><td colspan="4" class="text-muted">—</td></tr>`);
-    },
-    complete: function () {
-      $("body").removeClass("cursor-wait");
+      if ($("#routeSelector").val() === id) $("#globalMsg").html(alertHtml("danger", xhr.responseText || "Route is unavailable. Reload your routes."));
     }
   });
 }
-
-// ======= Preload recipients (batch by query param) =======
-function preloadRecipientsById(deliveries) {
-  const ids = [...new Set((deliveries || []).map(d => d.recipientId).filter(Boolean))];
-  if (ids.length === 0) return;
-
-
-  $.ajax({
-    url: `${RECIPIENTS_BASE}?ids=${ids.join(",")}`,
-    method: "GET",
-    success: function (list) {
-      (list || []).forEach(rec => {
-
-        recipientCache[rec.recipientId] = rec;
-      });
-    },
-    error: function () {
-      // Fallback: if batch fails, fetch individually
-      ids.forEach(id => {
-        if (recipientCache[id]) return;
-        $.ajax({
-          url: `${RECIPIENTS_BASE}/${id}`,
-          method: "GET",
-          success: function (rec) { recipientCache[id] = rec; }
-        });
-      });
-    }
-  });
-}
+$("#routeSelector").on("change", selectRoute);
 
 // ======= PATCH delivery status =======
 function patchDeliveryStatus(deliveryId, newStatus, $row) {
@@ -164,7 +135,7 @@ function patchDeliveryStatus(deliveryId, newStatus, $row) {
   $cancelBtn.prop("disabled", true);
 
   $.ajax({
-    url: `${DELIVERIES_BASE}/${deliveryId}`,
+    url: `${DELIVERIES_BASE}/${encodeURIComponent(deliveryId)}${isDriver ? "/status" : ""}`,
     method: "PATCH",
     contentType: "application/json",
     data: JSON.stringify({ deliveryStatus: newStatus }), // backend expects deliveryStatus
@@ -176,7 +147,7 @@ function patchDeliveryStatus(deliveryId, newStatus, $row) {
       const msg = xhr.responseText || "Update failed.";
       $msg.text(msg);
       const current = $row.find(".d-status").text().trim().toUpperCase();
-      if (!["COMPLETED","CANCELLED"].includes(current)) {
+      if (current === "IN_PROGRESS" && xhr.status !== 404 && xhr.status !== 409) {
         $completeBtn.prop("disabled", false);
         $cancelBtn.prop("disabled", false);
       }
@@ -187,42 +158,24 @@ function patchDeliveryStatus(deliveryId, newStatus, $row) {
   });
 }
 
-// ======= Recipient modal flow  =======
+// Recipient details are fetched through an owned delivery on every modal open.
 $("#deliveriesTable").on("click", ".client-link", function (e) {
   e.preventDefault();
-  const recipientId = $(this).data("recipient-id");
-  openRecipientModal(recipientId);
+  openRecipientModal($(this).data("delivery-id"), $(this).data("recipient-id"));
 });
 
-function openRecipientModal(recipientId) {
-  // Reset modal state
+function openRecipientModal(deliveryId, recipientId) {
+  const sequence = ++recipientRequestSequence;
   $("#recipientLoading").removeClass("d-none").text("Loading…");
   $("#recipientError").addClass("d-none").text("");
   $("#recipientDetails").addClass("d-none");
-
-  const modalEl = document.getElementById("recipientModal");
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
-
-  if (!recipientId) {
-    return showRecipientError("Recipient information is unavailable for this delivery.");
-  }
-
-  // Instant from cache
-  const cached = recipientCache[recipientId];
-  if (cached) return fillRecipientModal(cached);
-
-  // Fallback
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("recipientModal")).show();
+  const url = isDriver ? `${DELIVERIES_BASE}/${encodeURIComponent(deliveryId)}/recipient`
+    : `/api/v1/scheduling-app/recipients/${encodeURIComponent(recipientId)}`;
   $.ajax({
-    url: `${RECIPIENTS_BASE}/${recipientId}`,
-    method: "GET",
-    success: function (recipient) {
-      recipientCache[recipientId] = recipient;
-      fillRecipientModal(recipient);
-    },
-    error: function (xhr) {
-      showRecipientError(xhr.responseText || "Failed to load recipient.");
-    }
+    url, method: "GET",
+    success: recipient => { if (sequence === recipientRequestSequence) fillRecipientModal(recipient); },
+    error: xhr => { if (sequence === recipientRequestSequence) showRecipientError(xhr.responseText || "Recipient information is unavailable."); }
   });
 }
 
@@ -258,5 +211,10 @@ $("#deliveriesTable").on("click", ".btn-cancel", function () {
 
 // ======= Boot =======
 $(function () {
-  SchedulingAuth.initializePage(loadDefaultRoute);
+  SchedulingAuth.initializePage(account => {
+    isDriver = account.role === "DRIVER";
+    BASE_URL = isDriver ? "/api/driver" : "/api/v1/scheduling-app";
+    DELIVERIES_BASE = `${BASE_URL}/deliveries`;
+    loadRoutes();
+  }, ["ADMIN", "DRIVER"]);
 });
