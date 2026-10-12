@@ -32,6 +32,7 @@ class Java25ApplicationSmokeTest {
     @Autowired AccountService accounts;
     @Autowired ObjectMapper json;
     @Autowired com.mmu.schedulingapp.repository.RecipientRepository recipients;
+    @Autowired org.springframework.context.ConfigurableApplicationContext context;
     @LocalServerPort int port;
     private HttpClient http;
     private String base;
@@ -81,18 +82,58 @@ class Java25ApplicationSmokeTest {
         recipient.setLastName("Test"); recipient.setAddress("Test address");
         recipient.setLatitude(java.math.BigDecimal.ZERO); recipient.setLongitude(java.math.BigDecimal.ZERO);
         recipients.saveAndFlush(recipient);
+        var driverFixtures = seedDriverFixtures(recipient);
         try {
             var builder = new ProcessBuilder(System.getProperty("session.browser.node"), "scripts/test-session-browser.cjs", base);
             builder.environment().put("NODE_PATH", System.getProperty("session.browser.modules"));
             builder.environment().put("SESSION_BROWSER_EXECUTABLE", System.getProperty("session.browser.executable"));
-            builder.inheritIO();
+            builder.environment().put("DRIVER_TEST_OTHER_ROUTE", String.valueOf(driverFixtures.otherRoute()));
+            builder.environment().put("DRIVER_TEST_OTHER_DELIVERY", String.valueOf(driverFixtures.otherDelivery()));
+            builder.redirectErrorStream(true);
             var process = builder.start();
             if (!process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS)) {
                 process.destroyForcibly();
                 throw new AssertionError("Browser verification timed out.");
             }
-            assertThat(process.exitValue()).isZero();
-        } finally { recipients.deleteById(recipient.getRecipientId()); }
+            String output=new String(process.getInputStream().readAllBytes(),StandardCharsets.UTF_8);
+            assertThat(process.exitValue()).withFailMessage("Browser verification failed: %s",output).isZero();
+        } finally { clearDriverFixtures(); }
+    }
+
+    record DriverBrowserFixtures(Integer otherRoute, Integer otherDelivery) { }
+    DriverBrowserFixtures seedDriverFixtures(com.mmu.schedulingapp.model.Recipient recipient) {
+        return new org.springframework.transaction.support.TransactionTemplate(context.getBean(org.springframework.transaction.PlatformTransactionManager.class)).execute(transaction -> {
+            var operators = context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class);
+            var deliveries = context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class);
+            var routes = context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class);
+            Integer otherRoute = null, otherDelivery = null;
+            for (int index = 0; index < 3; index++) {
+                var operator = new com.mmu.schedulingapp.model.Operator();
+                operator.setName("Browser driver " + index); operator.setEmail("browser" + index + "@example.test"); operator.setPhoneNumber("123"); operators.saveAndFlush(operator);
+                String username = index == 0 ? "smoke.driver" : index == 1 ? "other.driver" : "empty.driver";
+                accounts.createDriver(username, "smoke test administrator passphrase", operator.getOperatorId());
+                for (int routeIndex = 0; routeIndex < (index == 0 ? 2 : index == 1 ? 1 : 0); routeIndex++) {
+                    var delivery = new com.mmu.schedulingapp.model.Delivery();
+                    delivery.setRecipientId(recipients.findById(recipient.getRecipientId()).orElseThrow()); delivery.setOperatorId(operator);
+                    delivery.setDeliveryStatus(com.mmu.schedulingapp.model.Delivery.DeliveryStatus.IN_PROGRESS); delivery.setPriorityLevel(com.mmu.schedulingapp.model.Delivery.PriorityLevel.MEDIUM); deliveries.saveAndFlush(delivery);
+                    var route = new com.mmu.schedulingapp.model.Route(); route.setOperator(operator); route.setScheduledDate(java.time.LocalDate.now().plusDays(routeIndex));
+                    route.setRouteStatus(com.mmu.schedulingapp.model.Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route);
+                    if (index == 1) { otherRoute = route.getRouteId(); otherDelivery = delivery.getDeliveryId(); }
+                }
+            }
+            return new DriverBrowserFixtures(otherRoute, otherDelivery);
+        });
+    }
+    void clearDriverFixtures() {
+        new org.springframework.transaction.support.TransactionTemplate(context.getBean(org.springframework.transaction.PlatformTransactionManager.class)).executeWithoutResult(transaction -> {
+            var routes=context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class); routes.deleteAll(); routes.flush();
+            var deliveries=context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class); deliveries.deleteAll(); deliveries.flush();
+            var repository=context.getBean(com.mmu.schedulingapp.account.AccountRepository.class);
+            for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver")) repository.delete(repository.findByUsername(name).orElseThrow());
+            repository.flush();
+            var operators=context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class); operators.deleteAll(); operators.flush();
+            recipients.deleteAll(); recipients.flush();
+        });
     }
 
 }
