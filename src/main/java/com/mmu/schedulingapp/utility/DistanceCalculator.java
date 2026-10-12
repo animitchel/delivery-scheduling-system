@@ -3,56 +3,33 @@ package com.mmu.schedulingapp.utility;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-
-
+import java.io.IOException;
+import java.util.Map;
 
 public class DistanceCalculator {
-
-    private static final String API_KEY = "AIzaSyA1PamDFTkEQdWZIYglm8moI0UsqVvq3GE";
-
     public static DistanceResult getGoogleMapsDistance(double originLat, double originLng,
                                                        double destLat, double destLng) throws Exception {
-        String origin = originLat + "," + originLng;
-        String destination = destLat + "," + destLng;
+        return getGoogleMapsDistance(originLat, originLng, destLat, destLng, GoogleMapsClient::get);
+    }
 
-        String urlStr = "https://maps.googleapis.com/maps/api/distancematrix/json" +
-                "?origins=" + URLEncoder.encode(origin, StandardCharsets.UTF_8) +
-                "&destinations=" + URLEncoder.encode(destination, StandardCharsets.UTF_8) +
-                "&units=metric&key=" + API_KEY;
-
-        URL url = new URL(urlStr);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("GET");
-
-        try (InputStreamReader reader = new InputStreamReader(conn.getInputStream())) {
-            JsonObject jsonResponse = JsonParser.parseReader(reader).getAsJsonObject();
-
-            int statusCode = conn.getResponseCode();
-            if (statusCode != 200) {
-                throw new RuntimeException("Failed to call API. HTTP code: " + statusCode);
-            }
-
-            JsonObject element = jsonResponse.getAsJsonArray("rows")
-                    .get(0).getAsJsonObject()
-                    .getAsJsonArray("elements")
-                    .get(0).getAsJsonObject();
-
-            // Distance
-            JsonObject distanceObject = element.getAsJsonObject("distance");
-            int meters = distanceObject.get("value").getAsInt();
-            double distanceKm = meters / 1000.0;
-
-            // Duration
-            JsonObject durationObject = element.getAsJsonObject("duration");
-            String durationText = durationObject.get("text").getAsString();
-            int durationSeconds = durationObject.get("value").getAsInt();
-
-            return new DistanceResult(distanceKm, durationText, durationSeconds);
+    static DistanceResult getGoogleMapsDistance(double originLat, double originLng,
+                                                double destLat, double destLng, GoogleMapsClient.Request request)
+            throws IOException {
+        try {
+            String response = request.get(GoogleMapsClient.Api.DISTANCE_MATRIX, Map.of(
+                    "origins", originLat + "," + originLng,
+                    "destinations", destLat + "," + destLng,
+                    "units", "metric"));
+            JsonObject element = JsonParser.parseString(response).getAsJsonObject()
+                    .getAsJsonArray("rows").get(0).getAsJsonObject()
+                    .getAsJsonArray("elements").get(0).getAsJsonObject();
+            double distanceKm = element.getAsJsonObject("distance").get("value").getAsInt() / 1000.0;
+            JsonObject duration = element.getAsJsonObject("duration");
+            return new DistanceResult(distanceKm, duration.get("text").getAsString(),
+                    duration.get("value").getAsInt());
+        } catch (Exception exception) {
+            // Preserve the existing route fallback without exposing transport or parser details.
+            throw new IOException("Google Maps distance request failed.");
         }
     }
 }
