@@ -34,7 +34,7 @@ public class OperatorRequestDTO {
     @NotBlank(message = "Warehouse name is required")
     private String warehouseName;
 
-    @NotBlank
+    @NotNull(message = "Availability status is required")
     private Operator.AvailabilityStatus availabilityStatus;
 
 }
