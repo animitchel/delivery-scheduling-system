@@ -28,6 +28,11 @@ final class AccountSessionFilter extends OncePerRequestFilter {
             }
             var account = accounts.findById(principal.getAccountId());
             boolean current = account.isPresent() && account.get().isEnabled()
+                    && account.get().getAuthenticationRevision() >= 0
+                    && account.get().getAuthenticationRevision() == principal.getAuthenticationRevision()
+                    && account.get().isPasswordChangeRequired() == principal.isPasswordChangeRequired()
+                    && (!account.get().isPasswordChangeRequired()
+                        || (account.get().getTemporaryPasswordExpiresAt() != null && account.get().getTemporaryPasswordExpiresAt().isAfter(java.time.Instant.now())))
                     && account.get().getUsername().equals(principal.getUsername())
                     && authentication.getAuthorities().stream().anyMatch(authority ->
                     authority.getAuthority().equals("ROLE_" + account.get().getRole().name()));
@@ -35,8 +40,21 @@ final class AccountSessionFilter extends OncePerRequestFilter {
                 revoke(request, response);
                 return;
             }
+            if (account.get().isPasswordChangeRequired() && !allowedDuringPasswordSetup(request)) {
+                if (request.getRequestURI().startsWith(request.getContextPath() + "/api/")) {
+                    SecurityResponses.json(response, 403, "{\"error\":\"Password change required.\",\"passwordChangeRequired\":true}");
+                } else response.sendRedirect(request.getContextPath() + "/html/change-password.html");
+                return;
+            }
         }
         chain.doFilter(request, response);
+    }
+
+    private static boolean allowedDuringPasswordSetup(HttpServletRequest request) {
+        String path = request.getRequestURI().substring(request.getContextPath().length());
+        if ("POST".equals(request.getMethod())) return "/api/auth/password".equals(path);
+        return "GET".equals(request.getMethod()) && java.util.Set.of("/api/auth/me", "/api/auth/csrf",
+                "/html/change-password.html", "/js/password.js", "/js/auth.js", "/css/login.css").contains(path);
     }
 
     private static void revoke(HttpServletRequest request, HttpServletResponse response) throws IOException {

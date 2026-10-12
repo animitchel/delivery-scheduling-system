@@ -16,7 +16,7 @@ The application now authenticates persisted accounts and restricts all existing 
 
 Unsafe requests with a missing or invalid CSRF token return 403, including login and logout. GET never signs in or signs out. Fetch a token before login and fetch a fresh token after successful login because Spring clears the pre-login token. Do not automatically retry writes after a failure. Unknown resources are denied by default. HTTP Basic, remember-me and public registration are not enabled.
 
-Spring's form-login filter handles authentication, session context persistence and session-ID rotation. bcrypt matching uses the same Unicode and 72-byte limits as account provisioning. The session stores a detached account-ID principal with credentials erased. Each authenticated request rechecks the persisted account ID, enabled status, username and role; deletion, disablement or a role/username change invalidates the session. Password changes are not exposed in this release; a future password-reset feature must revoke existing sessions too.
+Spring's form-login filter handles authentication, session context persistence and session-ID rotation. bcrypt matching uses the same Unicode and 72-byte limits as account provisioning. The session stores a detached account-ID principal with credentials erased. Each authenticated request rechecks the persisted account ID, authentication revision, credential setup/expiry state, enabled status, username and role; deletion, disablement or a role/username change invalidates the session. Account disable/re-enable and password reset/change permanently revoke prior sessions through authentication revisions. Forced-password sessions are restricted server-side. See `ACCOUNT_MANAGEMENT.md`.
 
 ## Deployment and local setup
 
@@ -24,7 +24,7 @@ Spring's form-login filter handles authentication, session context persistence a
 2. Serve the frontend and backend through the same origin over HTTPS. Relative frontend URLs replace hardcoded localhost addresses. Wildcard CORS has been removed. A future Vite development server should proxy `/api` to Spring rather than opening a broad credentialed CORS policy.
 3. Outside the explicit `local` profile, session cookies are `Secure`, `HttpOnly`, `SameSite=Lax`, and use `/` as their path. The `local` profile allows HTTP cookies for development; never activate it on a public deployment. Sessions expire after 30 minutes of inactivity and use cookies only, not URL session IDs.
 4. Run one application instance for now. Sessions are held in memory and restart invalidates them. Horizontal scaling needs a deliberately configured shared session store or suitable routing before rollout.
-5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, password recovery, account-management UI, frontend migration and the wider audit items remain separate work.
+5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, email password recovery, administrator account-management UI, frontend migration and the wider audit items remain separate work.
 
 For local development with your existing local database configuration, start the built application explicitly in the local profile and open `/html/login.html`:
 

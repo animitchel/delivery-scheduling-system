@@ -205,7 +205,7 @@ class DriverOwnershipIntegrationTest {
         assertThat(results).containsExactlyInAnyOrder(200,409);
     }
     int updateAfter(java.util.concurrent.CountDownLatch start,String status) {
-        try { start.await(); assignments.status(accountA,deliveryA,status); return 200; }
+        try { start.await(); assignments.status(accountA,0L,deliveryA,status); return 200; }
         catch(org.springframework.web.server.ResponseStatusException failure) { return failure.getStatusCode().value(); }
         catch(InterruptedException failure) { Thread.currentThread().interrupt(); throw new RuntimeException(failure); }
     }
