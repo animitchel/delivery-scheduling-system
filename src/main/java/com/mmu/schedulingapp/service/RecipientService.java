@@ -8,19 +8,29 @@ import com.mmu.schedulingapp.model.Recipient;
 import com.mmu.schedulingapp.repository.RecipientRepository;
 import com.mmu.schedulingapp.utility.GeocodingService;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 @Service
 public class RecipientService {
 
     private final RecipientRepository recipientRepository;
+    private final Function<String, Optional<GeocodingService.Coordinate>> coordinateLookup;
 
+    @Autowired
     public RecipientService(RecipientRepository recipientRepository) {
+        this(recipientRepository, GeocodingService::getCoordinates);
+    }
+
+    RecipientService(RecipientRepository recipientRepository,
+                     Function<String, Optional<GeocodingService.Coordinate>> coordinateLookup) {
         this.recipientRepository = recipientRepository;
+        this.coordinateLookup = coordinateLookup;
     }
 
     public List<RecipientResponseDTO> getAllRecipientDTOs() {
@@ -46,7 +56,7 @@ public class RecipientService {
     public RecipientResponseDTO createRecipient(RecipientRequestDTO dto) {
 
         // This sets the latitude and longitude in the db once
-        Optional<GeocodingService.Coordinate> coord = GeocodingService.getCoordinates(dto.getAddress());
+        Optional<GeocodingService.Coordinate> coord = coordinateLookup.apply(dto.getAddress());
 
 
         coord.ifPresentOrElse(
@@ -55,11 +65,10 @@ public class RecipientService {
                 BigDecimal longitude = BigDecimal.valueOf(c.getLongitude());
                 dto.setLatitude(latitude);
                 dto.setLongitude(longitude);
-                System.out.println("Coordinates set: " + latitude + ", " + longitude);
             },
 
             () -> {
-                throw new IllegalArgumentException("No coordinates found for address: " + dto.getAddress());
+                throw new IllegalArgumentException("Unable to determine coordinates for the recipient address.");
             }
 
         );
