@@ -26,9 +26,6 @@ public class OperatorApiController {
     public ResponseEntity<List<OperatorResponseDTO>> getDrivers() {
         List<OperatorResponseDTO> drivers = operatorService.getAllDriverDTOs();
 
-        if (drivers.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
 
         return ResponseEntity.ok(drivers);
     }

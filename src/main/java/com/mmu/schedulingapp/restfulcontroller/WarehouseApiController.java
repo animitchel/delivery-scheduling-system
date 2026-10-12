@@ -24,9 +24,6 @@ public class WarehouseApiController {
     @GetMapping
     public ResponseEntity<List<WarehouseResponseDTO>> getAllWarehouses() {
         List<WarehouseResponseDTO> warehouses = warehouseService.getAllWarehouses();
-        if (warehouses.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
         return ResponseEntity.ok(warehouses);
     }
 
