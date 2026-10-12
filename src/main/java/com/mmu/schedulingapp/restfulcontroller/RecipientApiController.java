@@ -42,7 +42,7 @@ public class RecipientApiController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/recipients")
+    @GetMapping(value = {"", "/recipients"}, params = "ids")
     public List<RecipientResponseDTO> getRecipientsByIds(@RequestParam List<Integer> ids) {
         return recipientService.findByIds(ids); // return in any order
     }
