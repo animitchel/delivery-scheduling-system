@@ -107,9 +107,10 @@ class Java25ApplicationSmokeTest {
             var deliveries = context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class);
             var routes = context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class);
             Integer otherRoute = null, otherDelivery = null;
-            for (int index = 0; index < 3; index++) {
+            for (int index = 0; index < 4; index++) {
                 var operator = new com.mmu.schedulingapp.model.Operator();
                 operator.setName("Browser driver " + index); operator.setEmail("browser" + index + "@example.test"); operator.setPhoneNumber("123"); operators.saveAndFlush(operator);
+                if (index == 3) { operator.setName("Onboarding operator"); operators.saveAndFlush(operator); continue; }
                 String username = index == 0 ? "smoke.driver" : index == 1 ? "other.driver" : "empty.driver";
                 accounts.createDriver(username, "smoke test administrator passphrase", operator.getOperatorId());
                 for (int routeIndex = 0; routeIndex < (index == 0 ? 2 : index == 1 ? 1 : 0); routeIndex++) {
@@ -129,7 +130,7 @@ class Java25ApplicationSmokeTest {
             var routes=context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class); routes.deleteAll(); routes.flush();
             var deliveries=context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class); deliveries.deleteAll(); deliveries.flush();
             var repository=context.getBean(com.mmu.schedulingapp.account.AccountRepository.class);
-            for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver")) repository.delete(repository.findByUsername(name).orElseThrow());
+            for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver","onboarding.driver")) repository.findByUsername(name).ifPresent(repository::delete);
             repository.flush();
             var operators=context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class); operators.deleteAll(); operators.flush();
             recipients.deleteAll(); recipients.flush();

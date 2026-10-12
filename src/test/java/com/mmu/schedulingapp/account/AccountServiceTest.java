@@ -59,9 +59,9 @@ class AccountServiceTest {
         var summary = service.createAdministrator("private.admin", PASSWORD);
         var account = accounts.findById(summary.id()).orElseThrow();
         String json = new ObjectMapper().writeValueAsString(account);
-        assertThat(json).doesNotContain("password", "bcrypt", "bootstrap", "operator", PASSWORD);
+        assertThat(json).doesNotContain("\"password\"", "passwordHash", "password_hash", "bcrypt", "bootstrap", "operator", PASSWORD);
         assertThat(account.toString()).doesNotContain(account.getPasswordHash(), PASSWORD, "private.admin");
-        assertThat(new ObjectMapper().writeValueAsString(summary)).doesNotContain("password", "bcrypt", PASSWORD);
+        assertThat(new ObjectMapper().writeValueAsString(summary)).doesNotContain("\"password\"", "passwordHash", "password_hash", "bcrypt", PASSWORD);
     }
     @ParameterizedTest @NullAndEmptySource @ValueSource(strings={"ab", "bad user", "éadmin", "-admin", "admin@example.test"})
     void rejectsInvalidUsernames(String username) { assertThatThrownBy(() -> service.createAdministrator(username, PASSWORD)).isInstanceOf(IllegalArgumentException.class); assertThat(accounts.count()).isZero(); }

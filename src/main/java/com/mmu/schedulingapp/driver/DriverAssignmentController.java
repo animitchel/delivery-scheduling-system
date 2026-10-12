@@ -42,27 +42,27 @@ public class DriverAssignmentController {
 
     @GetMapping("/routes")
     public List<RouteResponseDTO> routes(@AuthenticationPrincipal AccountPrincipal account) {
-        return assignments.routes(account.getAccountId());
+        return assignments.routes(account.getAccountId(), account.getAuthenticationRevision());
     }
 
     @GetMapping("/routes/{routeId}")
     public RouteResponseDTO route(@AuthenticationPrincipal AccountPrincipal account, @PathVariable Integer routeId) {
-        return assignments.route(account.getAccountId(), routeId);
+        return assignments.route(account.getAccountId(), account.getAuthenticationRevision(), routeId);
     }
 
     @GetMapping("/deliveries/{deliveryId}")
     public DeliveryResponseDTO delivery(@AuthenticationPrincipal AccountPrincipal account, @PathVariable Integer deliveryId) {
-        return assignments.delivery(account.getAccountId(), deliveryId);
+        return assignments.delivery(account.getAccountId(), account.getAuthenticationRevision(), deliveryId);
     }
 
     @GetMapping("/deliveries/{deliveryId}/recipient")
     public DriverAssignmentService.RecipientDetails recipient(@AuthenticationPrincipal AccountPrincipal account, @PathVariable Integer deliveryId) {
-        return assignments.recipient(account.getAccountId(), deliveryId);
+        return assignments.recipient(account.getAccountId(), account.getAuthenticationRevision(), deliveryId);
     }
 
     @PatchMapping("/deliveries/{deliveryId}/status")
     public DeliveryResponseDTO status(@AuthenticationPrincipal AccountPrincipal account, @PathVariable Integer deliveryId,
                                       @Valid @RequestBody StatusRequest request) {
-        return assignments.status(account.getAccountId(), deliveryId, request.deliveryStatus());
+        return assignments.status(account.getAccountId(), account.getAuthenticationRevision(), deliveryId, request.deliveryStatus());
     }
 }

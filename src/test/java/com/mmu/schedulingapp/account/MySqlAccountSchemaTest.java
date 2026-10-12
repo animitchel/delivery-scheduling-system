@@ -41,6 +41,10 @@ class MySqlAccountSchemaTest {
              var statement = connection.createStatement()) {
             statement.execute("DROP TABLE user_accounts");
             statement.execute(Files.readString(Path.of("db/changes/001-create-user-accounts.sql")));
+            statement.execute("INSERT INTO user_accounts(username,password_hash,role,enabled) VALUES ('legacy.admin','{bcrypt}$2a$12$" + "a".repeat(53) + "','ADMIN',TRUE)");
+            statement.execute("DROP TABLE account_audit_events");
+            String migration=Files.readString(Path.of("db/changes/002-account-management.sql"));
+            for(String change:migration.split(";")) if(!change.isBlank()) statement.execute(change);
         }
         try (var context = application(url, "validate")) {
             var service = context.getBean(AccountService.class);
@@ -49,10 +53,15 @@ class MySqlAccountSchemaTest {
             var operator = new com.mmu.schedulingapp.model.Operator();
             operator.setName("Test driver"); operator.setPhoneNumber("123"); operator.setEmail("mysql@example.test");
             operators.saveAndFlush(operator);
-            var admin = service.provisionInitialAdministrator("mysql.admin", "mysql private test passphrase").orElseThrow();
+            var legacy = accounts.findByUsername("legacy.admin").orElseThrow();
+            assertThat(legacy.getAuthenticationRevision()).isZero();
+            assertThat(legacy.isPasswordChangeRequired()).isFalse();
+            assertThat(legacy.getTemporaryPasswordExpiresAt()).isNull();
+            assertThat(legacy.isEnabled()).isTrue();
+            var admin = service.createAdministrator("mysql.admin", "mysql private test passphrase");
             var driver = service.createDriver("mysql.driver", "mysql driver test passphrase", operator.getOperatorId());
             assertThat(driver.operatorId()).isEqualTo(operator.getOperatorId());
-            assertThat(accounts.count()).isEqualTo(2);
+            assertThat(accounts.count()).isEqualTo(3);
             var encoder = context.getBean(org.springframework.security.crypto.password.PasswordEncoder.class);
             assertThat(encoder.matches("mysql private test passphrase", accounts.findById(admin.id()).orElseThrow().getPasswordHash())).isTrue();
             assertThat(service.provisionInitialAdministrator(null, null)).isEmpty();
