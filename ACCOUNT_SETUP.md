@@ -1,6 +1,6 @@
 # Account foundation
 
-This change adds account persistence and controlled initial administrator provisioning. It does **not** introduce login, protect the existing API, or enforce ownership. The application must not be exposed as a secured production system yet.
+Account persistence and controlled initial administrator provisioning are now connected to session authentication. Existing scheduling endpoints and both application pages require an administrator. Driver access remains blocked until backend ownership checks are implemented. See `SESSION_SETUP.md` for the authentication contract and deployment requirements.
 
 ## Account rules
 
@@ -41,8 +41,8 @@ This starts a disposable MySQL 8.4.11 container on a random localhost port, test
 
 ## Next dependent PRs
 
-1. Introduce Spring Security login, logout, server sessions and CSRF with a deliberate frontend/API contract.
-2. Enforce administrator permissions and driver ownership in the backend; add negative access tests.
-3. Add authenticated administrator account management and the React + TypeScript + Vite frontend incrementally.
+1. Implement driver ownership in the backend and add negative access tests before enabling driver access.
+2. Add authenticated administrator account management.
+3. Introduce the React + TypeScript + Vite frontend incrementally.
 
-The original missing-authentication finding remains open until login and backend authorization are enforced.
+The session-authentication PR closes anonymous scheduling access and restricts the current broad APIs to administrators. Driver ownership and the wider production-readiness roadmap remain pending.
