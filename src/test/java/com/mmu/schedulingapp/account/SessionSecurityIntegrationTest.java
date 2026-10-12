@@ -119,12 +119,12 @@ class SessionSecurityIntegrationTest {
     void driverCannotReadSchedulingResources(String resource) throws Exception {
         mvc.perform(get("/api/v1/scheduling-app/"+resource).session(login("test.driver"))).andExpect(status().isForbidden());
     }
-    @Test void driverIdentityIsAvailableButPagesAndMutationsAreDenied() throws Exception {
+    @Test void driverIdentityAndDriverPageAvailableButManagementAccessDenied() throws Exception {
         var session = login("test.driver"); var token = token(session);
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("DRIVER"))
                 .andExpect(jsonPath("$.operatorId").isNumber());
         mvc.perform(get("/html/admin.html").session(session)).andExpect(status().isForbidden());
-        mvc.perform(get("/html/operators.html").session(session)).andExpect(status().isForbidden());
+        mvc.perform(get("/html/operators.html").session(session)).andExpect(status().isOk());
         mvc.perform(post("/api/v1/scheduling-app/operators").session(session).header(token.header(),token.value())
                 .contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isForbidden());
         mvc.perform(delete("/api/v1/scheduling-app/routes").session(session).header(token.header(),token.value())).andExpect(status().isForbidden());
