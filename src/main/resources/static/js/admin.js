@@ -1,5 +1,5 @@
 
-$(document).ready(function () {
+$(document).ready(() => SchedulingAuth.initializePage(function () {
     // Date pickers
     flatpickr("#routeDate", {
         dateFormat: "Y-m-d"
@@ -27,10 +27,10 @@ $(document).ready(function () {
     // Function to reload Recipients dropdown
     function loadRecipients() {
         $('#recipientId').empty();
-        $.get("http://localhost:8080/api/v1/scheduling-app/recipients", function (data) {
+        $.get("/api/v1/scheduling-app/recipients", function (data) {
             data.forEach(rcp => {
                 const fullName = `${rcp.firstName} ${rcp.lastName}`;
-                $('#recipientId').append(`<option value="${rcp.recipientId}">${fullName}</option>`);
+                $('#recipientId').append($('<option>').val(rcp.recipientId).text(fullName));
             });
         }).fail(function () {
             alert("Failed to load recipients.");
@@ -38,9 +38,9 @@ $(document).ready(function () {
     }
 
     // Fetch and populate Operators
-    $.get("http://localhost:8080/api/v1/scheduling-app/operators", function (data) {
+    $.get("/api/v1/scheduling-app/operators", function (data) {
         data.forEach(op => {
-            $('#operatorId').append(`<option value="${op.operatorId}">${op.name}</option>`);
+            $('#operatorId').append($('<option>').val(op.operatorId).text(op.name));
         });
     }).fail(function () {
         alert("Failed to load operators.");
@@ -67,7 +67,7 @@ $(document).ready(function () {
 
 
         $.ajax({
-        url: "http://localhost:8080/api/v1/scheduling-app/routes",
+        url: "/api/v1/scheduling-app/routes",
         type: "POST",
         contentType: "application/json",
         data: JSON.stringify(routeData),
@@ -79,7 +79,7 @@ $(document).ready(function () {
             $('#routeForm')[0].reset();
         },
         error: function (xhr) {
-            $('#routeResponse').html('<div class="alert alert-danger mt-3">❌ Failed to generate routes. ' + xhr.responseText + '</div>');
+            $('#routeResponse').empty().append($('<div class="alert alert-danger mt-3">').text('Failed to generate routes. ' + xhr.responseText));
         },
         complete: function () {
             // Re-enable button
@@ -101,7 +101,7 @@ $(document).ready(function () {
         };
 
         $.ajax({
-            url: "http://localhost:8080/api/v1/scheduling-app/recipients",
+            url: "/api/v1/scheduling-app/recipients",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(recipientData),
@@ -111,7 +111,7 @@ $(document).ready(function () {
                 loadRecipients();
             },
             error: function (xhr) {
-                $('#recipientResponse').html('<div class="alert alert-danger">Failed to create recipient. ' + xhr.responseText + '</div>');
+                $('#recipientResponse').empty().append($('<div class="alert alert-danger">').text('Failed to create recipient. ' + xhr.responseText));
             }
         });
     });
@@ -131,7 +131,7 @@ $(document).ready(function () {
         };
 
         $.ajax({
-            url: "http://localhost:8080/api/v1/scheduling-app/deliveries",
+            url: "/api/v1/scheduling-app/deliveries",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(deliveryData),
@@ -140,8 +140,8 @@ $(document).ready(function () {
                 $('#deliveryForm')[0].reset();
             },
             error: function (xhr) {
-                $('#responseMessage').html('<div class="alert alert-danger">Failed to create delivery. ' + xhr.responseText + '</div>');
+                $('#responseMessage').empty().append($('<div class="alert alert-danger">').text('Failed to create delivery. ' + xhr.responseText));
             }
         });
     });
-});
+}));

@@ -1,5 +1,5 @@
 // ======= CONFIG =======
-const BASE_URL = "http://localhost:8080/api/v1/scheduling-app";
+const BASE_URL = "/api/v1/scheduling-app";
 const OPERATOR_ID = 1; // single operator
 const DELIVERIES_BASE = `${BASE_URL}/deliveries`;
 const RECIPIENTS_BASE = `${BASE_URL}/recipients`;
@@ -10,7 +10,7 @@ const recipientCache = {}; // { [recipientId]: RecipientResponseDTO }
 // ======= UI helpers =======
 function alertHtml(type, text) {
   return `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${text}
+            ${SchedulingAuth.escapeHtml(text)}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>`;
 }
@@ -22,13 +22,13 @@ function statusBadge(status) {
   else if (s === "IN_PROGRESS") cls = "bg-info text-dark";
   else if (s === "COMPLETED") cls = "bg-success";
   else if (s === "CANCELLED") cls = "bg-danger";
-  return `<span class="badge ${cls}">${s || "UNKNOWN"}</span>`;
+  return `<span class="badge ${cls}">${SchedulingAuth.escapeHtml(s || "UNKNOWN")}</span>`;
 }
 
 function renderRouteHeader(route) {
   $("#routeHeader").removeClass("d-none");
   $("#rh-routeId").text(`#${route.routeId}`);
-  $("#rh-status").html(route.routeStatus ? route.routeStatus : "UNKNOWN");
+  $("#rh-status").text(route.routeStatus ? route.routeStatus : "UNKNOWN");
   $("#rh-operatorName").text(route.operatorName || "");
   $("#rh-operatorId").text(route.operatorId ?? "");
   $("#rh-date").text(route.scheduledDate || "");
@@ -49,10 +49,10 @@ function renderDeliveries(deliveries) {
 
     const clientCellHtml = `
       <a href="#" class="client-link"
-         data-delivery-id="${d.deliveryId}"
-         data-recipient-id="${d.recipientId || ''}"
+         data-delivery-id="${SchedulingAuth.escapeHtml(d.deliveryId)}"
+         data-recipient-id="${SchedulingAuth.escapeHtml(d.recipientId || '')}"
          title="View recipient details">
-        ${d.clientName || "View recipient"}
+        ${SchedulingAuth.escapeHtml(d.clientName || "View recipient")}
       </a>
     `;
 
@@ -62,10 +62,10 @@ function renderDeliveries(deliveries) {
       : "—";
 
     const row = `
-      <tr data-delivery-id="${d.deliveryId}">
-        <td><code>${d.deliveryId}</code></td>
+      <tr data-delivery-id="${SchedulingAuth.escapeHtml(d.deliveryId)}">
+        <td><code>${SchedulingAuth.escapeHtml(d.deliveryId)}</code></td>
         <td>${clientCellHtml}</td>
-        <td>${travelText}</td> <!-- NEW -->
+        <td>${SchedulingAuth.escapeHtml(travelText)}</td> <!-- NEW -->
         <td class="d-status">${statusBadge(d.status)}</td>
         <td>
           <div class="btn-group">
@@ -258,5 +258,5 @@ $("#deliveriesTable").on("click", ".btn-cancel", function () {
 
 // ======= Boot =======
 $(function () {
-  loadDefaultRoute(); // always load the single operator's route
+  SchedulingAuth.initializePage(loadDefaultRoute);
 });
