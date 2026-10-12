@@ -24,7 +24,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/html/login.html", "/js/login.js", "/js/auth.js",
                                 "/css/login.css", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/html/change-password.html", "/js/password.js").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/password").authenticated()
+                        .requestMatchers("/api/admin/accounts/**").hasRole("ADMIN")
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.GET, "/html/operators.html", "/js/operators.js").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/v1/scheduling-app/**", "/html/**", "/js/admin.js",

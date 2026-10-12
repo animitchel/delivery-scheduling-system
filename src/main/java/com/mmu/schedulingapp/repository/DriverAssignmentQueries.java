@@ -22,14 +22,14 @@ public final class DriverAssignmentQueries {
             """;
     public static final String OWNED_ROUTES = """
             SELECT r.* FROM routes r JOIN user_accounts a ON a.operator_id = r.operator_id
-            WHERE a.id = :accountId AND a.enabled = TRUE AND a.role = 'DRIVER' AND
+            WHERE a.id = :accountId AND a.enabled = TRUE AND a.role = 'DRIVER' AND a.auth_revision = :authRevision AND a.password_change_required = FALSE AND
             """ + VALID_ROUTE;
     public static final String OWNED_DELIVERY = """
             EXISTS (
                 SELECT 1 FROM route_deliveries rd JOIN routes r ON r.route_id = rd.route_id
                 JOIN user_accounts a ON a.operator_id = r.operator_id
                 WHERE rd.delivery_id = d.delivery_id AND d.operator_id = r.operator_id
-                    AND a.id = :accountId AND a.enabled = TRUE AND a.role = 'DRIVER'
+                    AND a.id = :accountId AND a.enabled = TRUE AND a.role = 'DRIVER' AND a.auth_revision = :authRevision AND a.password_change_required = FALSE
                     AND (SELECT COUNT(*) FROM route_deliveries memberships
                          WHERE memberships.delivery_id = d.delivery_id) = 1 AND
             """ + VALID_ROUTE + ")";

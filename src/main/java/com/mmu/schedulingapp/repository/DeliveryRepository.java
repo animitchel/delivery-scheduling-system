@@ -12,11 +12,11 @@ import java.util.List;
 
 public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
     @Query(value = DriverAssignmentQueries.SELECT_DELIVERY, nativeQuery = true)
-    java.util.Optional<Delivery> findOwnedDelivery(@Param("accountId") Long accountId, @Param("deliveryId") Integer deliveryId);
+    java.util.Optional<Delivery> findOwnedDelivery(@Param("accountId") Long accountId, @Param("authRevision") long authRevision, @Param("deliveryId") Integer deliveryId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = DriverAssignmentQueries.UPDATE_STATUS, nativeQuery = true)
-    int updateOwnedDeliveryStatus(@Param("accountId") Long accountId, @Param("deliveryId") Integer deliveryId,
+    int updateOwnedDeliveryStatus(@Param("accountId") Long accountId, @Param("authRevision") long authRevision, @Param("deliveryId") Integer deliveryId,
                                   @Param("status") String status);
 
     List<Delivery> findByScheduledDateLessThanEqualAndDeliveryStatus(

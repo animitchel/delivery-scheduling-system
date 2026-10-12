@@ -9,7 +9,7 @@ Account persistence and controlled initial administrator provisioning are now co
 - Usernames are stripped, lowercased with `Locale.ROOT`, and restricted to 3–64 ASCII letters, digits, dots, underscores and hyphens, beginning with a letter or digit.
 - Passwords require at least 15 Unicode characters and at most 72 UTF-8 bytes. Malformed Unicode is rejected. Passwords are not trimmed or truncated. bcrypt cost 12 stores salted hashes with a `{bcrypt}` prefix; plaintext matching is unsupported.
 - Account summaries and entity JSON exclude password hashes. Accounts do not cascade changes or deletion to operators. Deleting a linked operator is restricted.
-- No HTTP provisioning endpoint or public registration is added. Additional account creation is currently an internal service operation, for a future authenticated administrator workflow.
+- There is no public registration. Administrator driver-account creation is now available through the protected API documented in `ACCOUNT_MANAGEMENT.md`; additional administrator creation remains an internal provisioning operation.
 
 ## Schema rollout
 
@@ -41,7 +41,7 @@ This starts a disposable MySQL 8.4.11 container on a random localhost port, test
 
 ## Next dependent PRs
 
-1. Add authenticated administrator account management.
+1. Add the administrator Accounts interface for the tested account-management API.
 2. Introduce the React + TypeScript + Vite frontend incrementally.
 
 The session-authentication PR closes anonymous scheduling access and restricts the current broad APIs to administrators. Driver ownership now protects the dedicated driver API; the wider production-readiness roadmap remains pending.
