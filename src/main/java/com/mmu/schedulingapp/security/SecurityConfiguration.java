@@ -30,7 +30,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.GET, "/html/operators.html", "/js/operators.js").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/v1/scheduling-app/**", "/html/**", "/js/admin.js",
-                                "/js/operators.js").hasRole("ADMIN")
+                                "/js/operators.js", "/js/accounts.js", "/css/accounts.css").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .formLogin(form -> form.loginPage("/html/login.html").loginProcessingUrl("/api/auth/login")
                         .successHandler((request, response, authentication) ->
