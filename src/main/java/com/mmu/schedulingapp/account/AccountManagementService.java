@@ -42,6 +42,18 @@ public class AccountManagementService {
         return accounts.findAll(PageRequest.of(page, size, Sort.by("id"))).map(AccountSummary::from);
     }
 
+    public record EligibleOperator(Integer operatorId, String name) { }
+
+    @Transactional(readOnly = true)
+    public Page<EligibleOperator> eligibleOperators(AccountPrincipal actor, int page, int size, String search) {
+        requireAdministrator(current(actor, false));
+        if (page < 0 || size < 1 || size > 100 || search == null || search.length() > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid operator search bounds.");
+        }
+        return operators.findEligibleForAccount(search.strip(), PageRequest.of(page, size, Sort.by("name", "operatorId")))
+                .map(operator -> new EligibleOperator(operator.getOperatorId(), operator.getName()));
+    }
+
     @Transactional
     public TemporaryCredential createDriver(AccountPrincipal actor, String currentPassword, String username, Integer operatorId) {
         administrator(actor, currentPassword);

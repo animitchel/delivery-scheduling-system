@@ -28,7 +28,7 @@ As with ordinary database snapshots, an already authorized read can finish while
 
 ## Setup and tests
 
-No schema migration or new configuration is required. Drivers need an enabled account linked to an existing operator, provisioned through the existing internal account service. There is still no public signup or administrator account-management UI; the protected onboarding/reset API and required password setup are documented in `ACCOUNT_MANAGEMENT.md`. Route generation assigns deliveries and starts them as `IN_PROGRESS`, ready for the driver's terminal updates.
+No schema migration or new configuration is required. Drivers need an enabled account linked to an existing operator, provisioned through the existing internal account service. There is no public signup; administrators can use the Accounts interface in `ACCOUNTS_UI.md`, and the protected onboarding/reset API and required password setup are documented in `ACCOUNT_MANAGEMENT.md`. Route generation assigns deliveries and starts them as `IN_PROGRESS`, ready for the driver's terminal updates.
 
 Use Java 25. `mvn -B verify` runs H2 ownership/filter tests, the full status-transition matrix, and existing regression checks. `./scripts/test-account-mysql.sh` additionally runs the disposable MySQL ownership/concurrency tests. Browser verification uses the opt-in Maven arguments documented in `SESSION_SETUP.md` and tests administrator and driver login, multiple route selection, recipient details, completing/cancelling deliveries, cross-driver access rejection, empty assignments and logout.
 

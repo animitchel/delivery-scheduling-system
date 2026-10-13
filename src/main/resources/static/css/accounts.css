@@ -1,0 +1,7 @@
+dialog { width: min(94vw, 34rem); max-height: 90vh; overflow: auto; border: 1px solid #ced4da; border-radius: .75rem; padding: 1.5rem; box-shadow: 0 1rem 3rem #0003; }
+dialog::backdrop { background: #17223880; }
+.credential-value { font-family: ui-monospace, monospace; }
+table td { overflow-wrap: anywhere; }
+button:focus-visible, a:focus-visible { outline: 3px solid #759cf4; outline-offset: 3px; }
+
+#sessionAccount, dialog { overflow-wrap: anywhere; }

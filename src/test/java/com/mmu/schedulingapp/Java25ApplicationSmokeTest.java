@@ -107,9 +107,10 @@ class Java25ApplicationSmokeTest {
             var deliveries = context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class);
             var routes = context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class);
             Integer otherRoute = null, otherDelivery = null;
-            for (int index = 0; index < 4; index++) {
+            for (int index = 0; index < 5; index++) {
                 var operator = new com.mmu.schedulingapp.model.Operator();
                 operator.setName("Browser driver " + index); operator.setEmail("browser" + index + "@example.test"); operator.setPhoneNumber("123"); operators.saveAndFlush(operator);
+                if (index == 4) { operator.setName("<img src=x onerror=window.__injected=true>"); operators.saveAndFlush(operator); continue; }
                 if (index == 3) { operator.setName("Onboarding operator"); operators.saveAndFlush(operator); continue; }
                 String username = index == 0 ? "smoke.driver" : index == 1 ? "other.driver" : "empty.driver";
                 accounts.createDriver(username, "smoke test administrator passphrase", operator.getOperatorId());
@@ -122,6 +123,7 @@ class Java25ApplicationSmokeTest {
                     if (index == 1) { otherRoute = route.getRouteId(); otherDelivery = delivery.getDeliveryId(); }
                 }
             }
+            for (int index=0; index<21; index++) accounts.createAdministrator("pagination.admin"+index,"smoke test administrator passphrase");
             return new DriverBrowserFixtures(otherRoute, otherDelivery);
         });
     }
@@ -131,7 +133,9 @@ class Java25ApplicationSmokeTest {
             var deliveries=context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class); deliveries.deleteAll(); deliveries.flush();
             var repository=context.getBean(com.mmu.schedulingapp.account.AccountRepository.class);
             for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver","onboarding.driver")) repository.findByUsername(name).ifPresent(repository::delete);
+            for (var account: repository.findAll()) if (account.getUsername().startsWith("pagination.admin")) repository.delete(account);
             repository.flush();
+            context.getBean(com.mmu.schedulingapp.account.AccountAuditRepository.class).deleteAll();
             var operators=context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class); operators.deleteAll(); operators.flush();
             recipients.deleteAll(); recipients.flush();
         });

@@ -41,7 +41,7 @@ This starts a disposable MySQL 8.4.11 container on a random localhost port, test
 
 ## Next dependent PRs
 
-1. Add the administrator Accounts interface for the tested account-management API.
+1. Complete scheduling lifecycle consistency, including route completion and operator availability.
 2. Introduce the React + TypeScript + Vite frontend incrementally.
 
 The session-authentication PR closes anonymous scheduling access and restricts the current broad APIs to administrators. Driver ownership now protects the dedicated driver API; the wider production-readiness roadmap remains pending.
