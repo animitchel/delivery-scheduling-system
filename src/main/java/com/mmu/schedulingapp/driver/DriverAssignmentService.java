@@ -18,9 +18,11 @@ import java.util.List;
 public class DriverAssignmentService {
     private final RouteRepository routes;
     private final DeliveryRepository deliveries;
+    private final com.mmu.schedulingapp.service.DeliveryLifecycleService lifecycle;
 
-    public DriverAssignmentService(RouteRepository routes, DeliveryRepository deliveries) {
-        this.routes = routes; this.deliveries = deliveries;
+    public DriverAssignmentService(RouteRepository routes, DeliveryRepository deliveries,
+                                   com.mmu.schedulingapp.service.DeliveryLifecycleService lifecycle) {
+        this.routes = routes; this.deliveries = deliveries; this.lifecycle = lifecycle;
     }
 
     public List<RouteResponseDTO> routes(Long accountId, long authRevision) {
@@ -52,9 +54,12 @@ public class DriverAssignmentService {
         }
         // One database statement uses current persisted account/assignment and source status.
         // Never save an entity that could overwrite a concurrent administrator assignment change.
+        var lockedIds = lifecycle.lockOperators(deliveryId);
+        if (lockedIds.isEmpty()) throw notFound();
         int updated = deliveries.updateOwnedDeliveryStatus(accountId, authRevision, deliveryId, status);
         var delivery = deliveries.findOwnedDelivery(accountId, authRevision, deliveryId).orElseThrow(DriverAssignmentService::notFound);
         if (updated != 1) throw new ResponseStatusException(HttpStatus.CONFLICT, "Delivery is no longer in progress.");
+        lifecycle.finalizeRoutes(deliveryId);
         return DeliveryMapper.toResponseDTO(delivery);
     }
 

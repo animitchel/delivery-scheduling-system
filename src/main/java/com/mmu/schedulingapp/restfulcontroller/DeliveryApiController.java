@@ -64,18 +64,16 @@ public class DeliveryApiController {
         Delivery.DeliveryStatus newStatus = request.getDeliveryStatus();
 
         if (newStatus != Delivery.DeliveryStatus.COMPLETED &&
-                newStatus != Delivery.DeliveryStatus.CANCELLED &&
-                newStatus != Delivery.DeliveryStatus.IN_PROGRESS
+                newStatus != Delivery.DeliveryStatus.CANCELLED
         ) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Status can only be updated to IN_PROGRESS, COMPLETED or CANCELLED.");
+                    .body("Status can only be updated to COMPLETED or CANCELLED.");
         }
 
         Optional<DeliveryResponseDTO> result = deliveryService.updateDeliveryStatus(id, newStatus);
 
         if (result.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Only deliveries that are IN_PROGRESS can be updated to COMPLETED or CANCELLED.");
+            return ResponseEntity.notFound().build();
         }
 
         return ResponseEntity.ok(result.get());

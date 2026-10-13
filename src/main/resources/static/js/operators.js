@@ -4,6 +4,7 @@ let DELIVERIES_BASE;
 let isDriver;
 let routesById = new Map();
 let recipientRequestSequence = 0;
+let routeHeaderRequestSequence = 0;
 
 // ======= Cache =======
 
@@ -104,6 +105,7 @@ function loadRoutes() {
 }
 
 function selectRoute() {
+  const sequence = ++routeHeaderRequestSequence;
   const id = $("#routeSelector").val();
   $("#routeHeader").addClass("d-none");
   renderDeliveries([]);
@@ -112,11 +114,11 @@ function selectRoute() {
   $.ajax({
     url: `${BASE_URL}/routes/${encodeURIComponent(id)}`, method: "GET",
     success: function (route) {
-      if ($("#routeSelector").val() !== String(route.routeId)) return;
+      if (sequence !== routeHeaderRequestSequence || $("#routeSelector").val() !== String(route.routeId)) return;
       renderRouteHeader(route); renderDeliveries(route.deliveries || []);
     },
     error: function (xhr) {
-      if ($("#routeSelector").val() === id) $("#globalMsg").html(alertHtml("danger", xhr.responseText || "Route is unavailable. Reload your routes."));
+      if (sequence === routeHeaderRequestSequence && $("#routeSelector").val() === id) $("#globalMsg").html(alertHtml("danger", xhr.responseText || "Route is unavailable. Reload your routes."));
     }
   });
 }
@@ -124,6 +126,7 @@ $("#routeSelector").on("change", selectRoute);
 
 // ======= PATCH delivery status =======
 function patchDeliveryStatus(deliveryId, newStatus, $row) {
+  const selectedRoute = $("#routeSelector").val();
   const $spinner = $row.find(".d-spinner");
   const $msg = $row.find(".d-msg");
   const $completeBtn = $row.find(".btn-complete");
@@ -142,6 +145,20 @@ function patchDeliveryStatus(deliveryId, newStatus, $row) {
     success: function (updated /* DeliveryResponseDTO */) {
       $row.find(".d-status").html(statusBadge(updated.deliveryStatus));
       $msg.text("Saved.");
+      if ($("#routeSelector").val() !== selectedRoute) return;
+      const sequence = ++routeHeaderRequestSequence;
+      $.ajax({
+        url: `${BASE_URL}/routes/${encodeURIComponent(selectedRoute)}`, method: "GET",
+        success: function (route) {
+          if (sequence !== routeHeaderRequestSequence || $("#routeSelector").val() !== selectedRoute) return;
+          renderRouteHeader(route);
+        },
+        error: function () {
+          if (sequence === routeHeaderRequestSequence && $("#routeSelector").val() === selectedRoute) {
+            $("#globalMsg").html(alertHtml("warning", "Delivery saved. Reload the route to see its latest status."));
+          }
+        }
+      });
     },
     error: function (xhr) {
       const msg = xhr.responseText || "Update failed.";
