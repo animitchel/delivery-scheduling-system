@@ -105,6 +105,22 @@ class DriverOwnershipIntegrationTest {
         return (MockHttpSession) result.getRequest().getSession();
     }
 
+    @Test void administratorLifecycleApiRejectsDeletionAndInvalidTransitions() throws Exception {
+        var session=login("test.admin"); var csrf=token(session);
+        mvc.perform(delete("/api/v1/scheduling-app/routes/"+routeA).session(session).header(csrf.header(),csrf.value())).andExpect(status().isConflict());
+        mvc.perform(delete("/api/v1/scheduling-app/routes").session(session).header(csrf.header(),csrf.value())).andExpect(status().isConflict());
+        mvc.perform(delete("/api/v1/scheduling-app/deliveries/"+deliveryA).session(session).header(csrf.header(),csrf.value())).andExpect(status().isConflict());
+        mvc.perform(patch("/api/v1/scheduling-app/deliveries/"+deliveryA).session(session).header(csrf.header(),csrf.value())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"deliveryStatus\":\"IN_PROGRESS\"}")).andExpect(status().isBadRequest());
+        mvc.perform(patch("/api/v1/scheduling-app/deliveries/"+deliveryA).session(session).header(csrf.header(),csrf.value())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"deliveryStatus\":\"COMPLETED\"}")).andExpect(status().isOk());
+        assertThat(routes.findById(routeA).orElseThrow().getRouteStatus()).isEqualTo(com.mmu.schedulingapp.model.Route.RouteStatus.COMPLETED);
+        mvc.perform(patch("/api/v1/scheduling-app/deliveries/"+deliveryA).session(session).header(csrf.header(),csrf.value())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"deliveryStatus\":\"CANCELLED\"}")).andExpect(status().isConflict());
+        mvc.perform(patch("/api/v1/scheduling-app/deliveries/2147483647").session(session).header(csrf.header(),csrf.value())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"deliveryStatus\":\"COMPLETED\"}")).andExpect(status().isNotFound());
+    }
+
     @Test void driverSeesOnlyOwnRoutesDeliveryAndNecessaryRecipientData() throws Exception {
         var session=login("test.driver");
         mvc.perform(get("/api/driver/routes").session(session)).andExpect(status().isOk())

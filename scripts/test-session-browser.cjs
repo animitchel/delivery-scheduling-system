@@ -64,6 +64,7 @@ const assert = require("node:assert/strict");
         await page.locator(".btn-complete").click();
         await page.locator(".d-status").filter({ hasText: "COMPLETED" }).waitFor();
         assert.equal(await page.locator(".btn-complete").isDisabled(), true);
+        await page.locator("#rh-status").filter({ hasText: "COMPLETED" }).waitFor();
         await page.locator("#routeSelector").selectOption(String(owned[1].routeId));
         await page.locator("#rh-routeId").filter({ hasText: `#${owned[1].routeId}` }).waitFor();
         await page.locator(".btn-cancel").click();

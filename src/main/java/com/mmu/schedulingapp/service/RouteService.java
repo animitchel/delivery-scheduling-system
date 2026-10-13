@@ -11,7 +11,8 @@ import com.mmu.schedulingapp.repository.DeliveryRepository;
 import com.mmu.schedulingapp.repository.OperatorRepository;
 import com.mmu.schedulingapp.repository.RouteRepository;
 import com.mmu.schedulingapp.service.autorouting.RouteBuilder;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -49,27 +50,28 @@ public class RouteService {
         return routeRepository.findByOperator(operator).stream().map(RouteMapper::toResponseDTO).toList();
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<RouteResponseDTO> createRoutes(RouteRequestDTO dto) {
-        List<RouteResponseDTO> responses = new ArrayList<>();
-        List<Delivery> pendingDueDeliveries = deliveryRepository
-                .findByScheduledDateLessThanEqualAndDeliveryStatus(
-                        dto.getScheduledDate(), Delivery.DeliveryStatus.PENDING
-                );
+        List<Operator> operators = operatorRepository.findAvailableIds().stream()
+                .map(operatorRepository::lockById).flatMap(Optional::stream)
+                .filter(o -> o.getAvailabilityStatus() == Operator.AvailabilityStatus.AVAILABLE)
+                .filter(o -> !routeRepository.existsByOperatorAndRouteStatusNot(o, Route.RouteStatus.COMPLETED))
+                .toList();
+        if (operators.isEmpty()) throw DeliveryLifecycleService.conflict("No available operators without active routes.");
+        List<Integer> pendingIds = deliveryRepository.findPendingIds(dto.getScheduledDate());
 
-        if (pendingDueDeliveries.isEmpty()) {
-            throw new IllegalStateException(
-                    "Error creating Route, No pending deliveries found for today or earlier."
-            );
+        if (pendingIds.isEmpty()) {
+            throw DeliveryLifecycleService.conflict("No pending deliveries for the requested date or earlier.");
         }
 
-        // Get all available drivers
-        List<Operator> operators = operatorRepository.findAllByAvailabilityStatus(
-                Operator.AvailabilityStatus.AVAILABLE);
-
-        if (operators.isEmpty()) {
-            throw new IllegalStateException("No Drivers found, please create driver(s).");
-        }
+        // Lock deliveries in stable order and recheck after any pending edit/delete commits.
+        List<Delivery> pendingDueDeliveries = pendingIds.stream()
+                .map(deliveryRepository::lockById).flatMap(Optional::stream)
+                .filter(d -> d.getDeliveryStatus() == Delivery.DeliveryStatus.PENDING)
+                .filter(d -> d.getScheduledDate() != null && !d.getScheduledDate().isAfter(dto.getScheduledDate()))
+                .filter(d -> routeRepository.findContainingDelivery(d.getDeliveryId()).isEmpty())
+                .toList();
+        if (pendingDueDeliveries.isEmpty()) throw DeliveryLifecycleService.conflict("No unrouted pending deliveries.");
 
 
         return distributeDeliveriesAndCreateRoutes(dto, operators, pendingDueDeliveries);
@@ -79,42 +81,32 @@ public class RouteService {
 
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<RouteResponseDTO> deleteRoute(int id) {
         return routeRepository.findById(id).map(route -> {
-            updateDeliveryOperatorStatusAndDeleteRoute(route);
-            return RouteMapper.toResponseDTO(route);
+            requireDeletable(route);
+            var response = RouteMapper.toResponseDTO(route);
+            routeRepository.delete(route);
+            return response;
         });
     }
 
-    private void updateDeliveryOperatorStatusAndDeleteRoute(Route route) {
-        route.getDeliveries().forEach(delivery -> {
-            delivery.setOperatorId(null);
-            delivery.setDeliveryStatus(Delivery.DeliveryStatus.PENDING);
-            delivery.setFromPrevDistanceKm(null);
-            delivery.setFromPrevDurationSeconds(null);
-            delivery.setFromPrevDurationText(null);
-
-        });
-        deliveryRepository.saveAll(route.getDeliveries());
-        Operator operator = route.getOperator();
-        operator.setAvailabilityStatus(Operator.AvailabilityStatus.AVAILABLE);
-        operatorRepository.save(operator);
-        routeRepository.delete(route);
+    private void requireDeletable(Route route) {
+        if (route.getRouteStatus() != Route.RouteStatus.PLANNED || !route.getDeliveries().isEmpty()) {
+            throw DeliveryLifecycleService.conflict("Only empty planned routes can be deleted; active and historical routes are preserved.");
+        }
     }
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<RouteResponseDTO> deleteAllRoutes() {
         List<Route> routes = routeRepository.findAll();
+        // Preflight the whole batch before deleting anything.
+        routes.forEach(this::requireDeletable);
         List<RouteResponseDTO> deletedRoutes = new ArrayList<>();
-
         for (Route route : routes) {
-            // Reset deliveries
-            updateDeliveryOperatorStatusAndDeleteRoute(route);
-
-            // Collect DTO for response
             deletedRoutes.add(RouteMapper.toResponseDTO(route));
+            routeRepository.delete(route);
         }
 
         return deletedRoutes;

@@ -60,7 +60,7 @@ class CollectionApiControllerTest {
                 Arguments.of("/api/v1/scheduling-app/warehouses", new WarehouseApiController(
                         new WarehouseService(repository(WarehouseRepository.class, populated, warehouse)))),
                 Arguments.of("/api/v1/scheduling-app/deliveries", new DeliveryApiController(
-                        new DeliveryService(repository(DeliveryRepository.class, populated, delivery), null, null))),
+                        new DeliveryService(repository(DeliveryRepository.class, populated, delivery), null, null, null, null))),
                 Arguments.of("/api/v1/scheduling-app/routes", new RouteApiController(
                         new RouteService(repository(RouteRepository.class, populated, route), null, null))));
     }
