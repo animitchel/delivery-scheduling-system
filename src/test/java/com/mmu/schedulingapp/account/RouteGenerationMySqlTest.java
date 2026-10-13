@@ -24,6 +24,8 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfSystemProperty(named="account.mysql.url", matches="jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/account_foundation_test")
 class RouteGenerationMySqlTest {
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final TestWorkers workers = new TestWorkers();
     static ConfigurableApplicationContext context;
     RouteService service; DeliveryService lifecycle;
     RouteRepository routes; DeliveryRepository deliveries; OperatorRepository operators;
@@ -66,12 +68,12 @@ class RouteGenerationMySqlTest {
     }
     @Test void concurrentPlansHaveOnlyOneCommitOnMySql() throws Exception {
         var entered=new CountDownLatch(2); var release=new CountDownLatch(1); barrier(entered,release);
-        var first=CompletableFuture.supplyAsync(this::generate); var second=CompletableFuture.supplyAsync(this::generate);
+        var first=workers.supplyAsync(this::generate); var second=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); } finally { release.countDown(); }
         assertThat(List.of(first.get(5,TimeUnit.SECONDS),second.get(5,TimeUnit.SECONDS))).containsExactlyInAnyOrder(201,409); assertThat(routes.count()).isEqualTo(1);
     }
     @Test void editedPlanningInputsRejectCommitOnMySql() throws Exception {
-        var entered=new CountDownLatch(1); var release=new CountDownLatch(1); barrier(entered,release); var pending=CompletableFuture.supplyAsync(this::generate);
+        var entered=new CountDownLatch(1); var release=new CountDownLatch(1); barrier(entered,release); var pending=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); tx(() -> recipients.findById(recipientId).orElseThrow().setAddress("Changed after snapshot")); } finally { release.countDown(); }
         assertThat(pending.get(5,TimeUnit.SECONDS)).isEqualTo(409); unassigned();
     }

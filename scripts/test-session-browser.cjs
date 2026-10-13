@@ -6,6 +6,14 @@ const artifactRoot = path.resolve(process.env.SESSION_BROWSER_ARTIFACTS_DIR || "
 fs.mkdirSync(artifactRoot, { recursive: true });
 const artifact = name => path.join(artifactRoot, name);
 
+// Resize events and React layout effects must settle before measuring overflow.
+async function assertFitsViewport(page) {
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const dimensions = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+    assert.ok(dimensions.content <= dimensions.viewport,
+        `Horizontal overflow at ${new URL(page.url()).pathname}: ${dimensions.content}px content / ${dimensions.viewport}px viewport`);
+}
+
 (async () => {
     const target = new URL(process.argv[2]);
     assert.equal(target.protocol, "http:");
@@ -41,7 +49,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.screenshot({ path: artifact("react-workspace-desktop.png"), clip: { x: 0, y: 0, width: 1440, height: 900 } });
         for (const width of [320,375,768]) {
             await page.setViewportSize({ width, height: 900 });
-            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+            await assertFitsViewport(page);
         }
         await page.setViewportSize({ width: 375, height: 900 });
         await page.evaluate(() => window.scrollTo(0,0));
@@ -100,7 +108,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByLabel("First name",{exact:true}).waitFor();
         for(const width of [320,375,768]) {
             await page.setViewportSize({width,height:900});
-            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+            await assertFitsViewport(page);
         }
         await page.setViewportSize({width:1440,height:1000});
         await page.evaluate(() => window.scrollTo(0,0));
@@ -148,7 +156,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.screenshot({path:artifact("react-deliveries-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
         for(const width of [320,375,768]) {
             await page.setViewportSize({width,height:900});
-            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+            await assertFitsViewport(page);
         }
         await page.setViewportSize({width:375,height:900});
         await page.locator("#delivery-create").evaluate(node=>node.scrollIntoView({block:"start"}));
@@ -186,7 +194,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByText("Review this uncertain creation",{exact:true}).waitFor();
         assert.equal(deliveryPosts,2);
         await page.setViewportSize({width:320,height:900});
-        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+        await assertFitsViewport(page);
         await page.setViewportSize({width:1280,height:900});
         await page.getByRole("button",{name:"I reviewed results; allow another submission",exact:true}).click();
         assert.equal(await page.getByRole("button",{name:"Create delivery",exact:true}).isEnabled(),true); assert.equal(deliveryPosts,2);
@@ -224,7 +232,7 @@ const artifact = name => path.join(artifactRoot, name);
         assert.equal(await page.locator(".stop-card").first().getByRole("button",{name:"Stop details",exact:true}).evaluate(el=>el===document.activeElement),true);
         for(const width of [320,375,768,1440]) {
             await page.setViewportSize({width,height:1000});
-            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+            await assertFitsViewport(page);
         }
         await page.evaluate(()=>window.scrollTo(0,0));
         await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -320,7 +328,7 @@ const artifact = name => path.join(artifactRoot, name);
         for (const width of [320,375,768,1440]) {
             await page.setViewportSize({width,height:900});
             await page.evaluate(() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+            await assertFitsViewport(page);
         }
         await page.screenshot({path:artifact("react-driver-desktop.png"),clip:{x:0,y:0,width:1440,height:850}});
         await page.setViewportSize({width:375,height:900});
@@ -405,7 +413,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.screenshot({ path: artifact("react-accounts-desktop.png"), clip:{x:0,y:0,width:1440,height:900} });
         for (const width of [320,375,768]) {
             await page.setViewportSize({width,height:900});
-            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+            await assertFitsViewport(page);
         }
         await page.setViewportSize({ width: 390, height: 844 });
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -413,7 +421,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.screenshot({ path: artifact("react-accounts-mobile.png") });
         await page.getByRole("heading",{name:"Account directory",exact:true}).scrollIntoViewIfNeeded();
         await page.screenshot({ path: artifact("react-accounts-mobile-directory.png") });
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await assertFitsViewport(page);
         await page.getByRole("region",{name:"Account directory table",exact:true}).focus();
         await page.keyboard.press("ArrowRight");
         await page.waitForFunction(()=>document.querySelector(".accounts-table").scrollLeft>0);
@@ -543,7 +551,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByRole("dialog", { name: "Generate and assign routes?" }).waitFor();
         for (const width of [320, 375, 768, 1440]) {
             await page.setViewportSize({ width, height: 1000 });
-            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+            await assertFitsViewport(page);
         }
         await page.screenshot({ path: artifact("react-generation-confirmation.png"), clip: { x: 0, y: 0, width: 1440, height: 900 } });
         await page.keyboard.press("Escape");
@@ -576,7 +584,7 @@ const artifact = name => path.join(artifactRoot, name);
         assert.equal(await page.locator(".generation-stops img").count(), 0);
         await page.setViewportSize({ width: 375, height: 900 });
         await page.screenshot({ path: artifact("react-generation-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await assertFitsViewport(page);
         await page.getByRole("button", { name: "I reviewed results; allow another request", exact: true }).click();
         assert.equal(generationPosts, 2);
         await page.getByRole("link", { name: `Open route #${committedRouteId}`, exact: true }).click();
@@ -590,7 +598,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByLabel("Longitude", { exact: true }).fill("-2.5");
         for (const width of [320, 375, 768, 1440]) {
             await page.setViewportSize({ width, height: 1000 });
-            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+            await assertFitsViewport(page);
         }
         await page.locator("#warehouse-editor").evaluate(node => node.scrollIntoView({ block: "start" }));
         await page.screenshot({ path: artifact("react-warehouses-desktop.png"), clip: { x: 0, y: 0, width: 1440, height: 900 } });
@@ -612,7 +620,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.setViewportSize({ width: 375, height: 900 });
         await page.locator("#warehouse-recovery").evaluate(node => node.scrollIntoView({ block: "start" }));
         await page.screenshot({ path: artifact("react-warehouses-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await assertFitsViewport(page);
         await page.getByRole("button", { name: "I compared details; continue with latest version", exact: true }).click();
         await page.getByRole("button", { name: "Save warehouse", exact: true }).click();
         await page.getByText("Warehouse saved.", { exact: true }).waitFor();
@@ -653,7 +661,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByRole("button", { name: `Choose warehouse #${assignedWarehouseId}`, exact: true }).click();
         for (const width of [320, 375, 768, 1440]) {
             await page.setViewportSize({ width, height: 1000 });
-            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+            await assertFitsViewport(page);
         }
         await page.locator("#operator-editor").evaluate(node => node.scrollIntoView({ block: "start" }));
         await page.screenshot({ path: artifact("react-operators-desktop.png"), clip: { x: 0, y: 0, width: 1440, height: 900 } });
@@ -689,7 +697,7 @@ const artifact = name => path.join(artifactRoot, name);
         await page.getByRole("link", { name: "Operators", exact: true }).click(); await page.getByRole("button", { name: `Edit operator #${chromeOperatorId}`, exact: true }).click(); await page.getByLabel("Operator name", { exact: true }).waitFor();
         assert.equal(await page.getByLabel("Availability", { exact: true }).isDisabled(), true); assert.equal(await page.getByLabel("Vehicle type", { exact: true }).isDisabled(), true);
         await page.setViewportSize({ width: 375, height: 900 }); await page.locator("#operator-editor").evaluate(node => node.scrollIntoView({ block: "start" })); await page.screenshot({ path: artifact("react-operators-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
-        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await assertFitsViewport(page);
         await operatorPage.getByRole("button", { name: "Reload routes", exact: true }).click(); await operatorPage.getByRole("button", { name: "Mark completed", exact: true }).click(); await operatorPage.getByRole("status").filter({ hasText: "1 of 1 stops finished" }).waitFor();
         assert.equal((await (await context.request.get(`${target.origin}/api/admin/operators/${chromeOperatorId}`)).json()).availabilityStatus, "AVAILABLE");
         await operatorPage.goto(`${target.origin}/app/admin/operators`); await operatorPage.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor(); await operatorContext.close();
@@ -709,4 +717,4 @@ const artifact = name => path.join(artifactRoot, name);
         if (page && !page.isClosed()) { try { await page.screenshot({ path: artifact("failure.png"), fullPage: false }); } catch { /* Preserve the original error. */ } }
         throw error;
     } finally { await browser.close(); }
-})().catch(error => { console.error(error.message); process.exitCode = 1; });
+})().catch(error => { console.error(error.stack ?? error.message); process.exitCode = 1; });

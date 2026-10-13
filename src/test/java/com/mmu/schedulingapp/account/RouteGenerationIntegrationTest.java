@@ -32,6 +32,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @AutoConfigureMockMvc
 @SpringBootTest(properties={"spring.datasource.url=jdbc:h2:mem:route-generation;MODE=MySQL;DB_CLOSE_DELAY=-1","spring.datasource.driver-class-name=org.h2.Driver","spring.datasource.username=sa","spring.datasource.password=","spring.jpa.database-platform=org.hibernate.dialect.H2Dialect","spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.open-in-view=false","logging.level.org.hibernate.engine.internal.StatisticalLoggingSessionEventListener=OFF"})
 class RouteGenerationIntegrationTest {
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final TestWorkers workers = new TestWorkers();
     @Autowired RouteService service;
     @Autowired RouteRepository routes;
     @Autowired DeliveryRepository deliveries;
@@ -148,14 +150,14 @@ class RouteGenerationIntegrationTest {
     }
     @Test void concurrentGenerationRequestsHaveOnlyOneWinningCommit() throws Exception {
         var entered=new CountDownLatch(2); var release=new CountDownLatch(1); barrier(entered,release);
-        var first=CompletableFuture.supplyAsync(this::generate); var second=CompletableFuture.supplyAsync(this::generate);
+        var first=workers.supplyAsync(this::generate); var second=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); } finally { release.countDown(); }
         assertThat(List.of(first.get(5,TimeUnit.SECONDS),second.get(5,TimeUnit.SECONDS))).containsExactlyInAnyOrder(201,409);
         assertThat(routes.count()).isEqualTo(1); assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS);
     }
     @Test void changesDuringCalculationInvalidateThePlanBeforeWriting() throws Exception {
         var entered=new CountDownLatch(1); var release=new CountDownLatch(1); barrier(entered,release);
-        var pending=CompletableFuture.supplyAsync(this::generate);
+        var pending=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); tx(() -> recipients.findById(recipientId).orElseThrow().setAddress("Concurrent edit")); }
         finally { release.countDown(); }
         assertThat(pending.get(5,TimeUnit.SECONDS)).isEqualTo(409); unassigned();

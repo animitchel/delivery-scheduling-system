@@ -32,6 +32,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect","spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureMockMvc
 class RoutePlanningTransactionsIntegrationTest {
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final TestWorkers workers = new TestWorkers();
     @Autowired AccountRepository accounts;
     @Autowired RouteService service;
     @Autowired RouteRepository routes;
@@ -79,11 +81,11 @@ class RoutePlanningTransactionsIntegrationTest {
     }
     @Test void mapsPauseHoldsNeitherTransactionConnectionNorAssignmentLocks() throws Exception {
         var entered=new CountDownLatch(1); var release=new CountDownLatch(1); providerBarrier(entered,release);
-        var planning=CompletableFuture.supplyAsync(this::generate);
+        var planning=workers.supplyAsync(this::generate);
         try {
             assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
             assertThat(pool.getHikariPoolMXBean().getActiveConnections()).isZero();
-            var edit=CompletableFuture.runAsync(() -> tx(() -> deliveries.findById(deliveryId).orElseThrow().setSpecialInstructions("New instructions")));
+            var edit=workers.runAsync(() -> tx(() -> deliveries.findById(deliveryId).orElseThrow().setSpecialInstructions("New instructions")));
             edit.get(1,TimeUnit.SECONDS);
         } finally { release.countDown(); }
         assertThat(planning.get(5,TimeUnit.SECONDS)).isEqualTo(409); unassigned();
@@ -92,7 +94,7 @@ class RoutePlanningTransactionsIntegrationTest {
     @ParameterizedTest @ValueSource(strings={"date","startWindow","endWindow","priority","recipientAddress","recipientCoordinates","recipientPriority","operatorAvailability","operatorCapacity","warehouseCoordinates","warehouseChange"})
     void changedInputsRejectWholePlan(String change) throws Exception {
         var entered=new CountDownLatch(1); var release=new CountDownLatch(1); providerBarrier(entered,release);
-        var planning=CompletableFuture.supplyAsync(this::generate);
+        var planning=workers.supplyAsync(this::generate);
         try {
             assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
             tx(() -> {
@@ -117,7 +119,7 @@ class RoutePlanningTransactionsIntegrationTest {
     }
     @Test void deletedDeliveryRejectsPlanWithoutResurrectingIt() throws Exception {
         var entered=new CountDownLatch(1); var release=new CountDownLatch(1); providerBarrier(entered,release);
-        var planning=CompletableFuture.supplyAsync(this::generate);
+        var planning=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); assertThat(editing.deleteDelivery(deliveryId)).isPresent(); }
         finally { release.countDown(); }
         assertThat(planning.get(5,TimeUnit.SECONDS)).isEqualTo(409);
@@ -125,14 +127,14 @@ class RoutePlanningTransactionsIntegrationTest {
     }
     @Test void deletedOperatorRejectsPlanWithoutResurrectingIt() throws Exception {
         var entered=new CountDownLatch(1); var release=new CountDownLatch(1); providerBarrier(entered,release);
-        var planning=CompletableFuture.supplyAsync(this::generate);
+        var planning=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); tx(() -> operators.deleteById(operatorId)); }
         finally { release.countDown(); }
         assertThat(planning.get(5,TimeUnit.SECONDS)).isEqualTo(409); unassigned();
     }
     @Test void twoPlannersCalculateTogetherButOnlyOneCommits() throws Exception {
         var entered=new CountDownLatch(2); var release=new CountDownLatch(1); providerBarrier(entered,release);
-        var first=CompletableFuture.supplyAsync(this::generate); var second=CompletableFuture.supplyAsync(this::generate);
+        var first=workers.supplyAsync(this::generate); var second=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); assertThat(pool.getHikariPoolMXBean().getActiveConnections()).isZero(); }
         finally { release.countDown(); }
         assertThat(java.util.List.of(first.get(5,TimeUnit.SECONDS),second.get(5,TimeUnit.SECONDS))).containsExactlyInAnyOrder(201,409);
@@ -159,7 +161,7 @@ class RoutePlanningTransactionsIntegrationTest {
     @Test void requestScopedEntityManagerCannotReuseSnapshotEraFields() throws Exception {
         when(provider.distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any())).thenAnswer(call -> {
             assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
-            CompletableFuture.runAsync(() -> tx(() -> recipients.findById(recipientId).orElseThrow().setAddress("Changed during HTTP request"))).get(1,TimeUnit.SECONDS);
+            workers.runAsync(() -> tx(() -> recipients.findById(recipientId).orElseThrow().setAddress("Changed during HTTP request"))).get(1,TimeUnit.SECONDS);
             return new DistanceResult(1,"1 min",60);
         });
         var account=accounts.saveAndFlush(new UserAccount("planning.admin","{bcrypt}$2a$12$"+"a".repeat(53),AccountRole.ADMIN,null,false));
