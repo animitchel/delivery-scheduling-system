@@ -32,7 +32,12 @@ public class GeocodingService {
                 return Optional.empty();
             }
             JsonNode location = results.get(0).path("geometry").path("location");
-            return Optional.of(new Coordinate(location.path("lat").asDouble(), location.path("lng").asDouble()));
+            JsonNode latitude=location.path("lat"),longitude=location.path("lng");
+            if(!latitude.isNumber() || !longitude.isNumber() || !Double.isFinite(latitude.asDouble()) || !Double.isFinite(longitude.asDouble())
+                    || latitude.asDouble() < -90 || latitude.asDouble() > 90 || longitude.asDouble() < -180 || longitude.asDouble() > 180) {
+                log.warn("Geocoding returned invalid coordinates."); return Optional.empty();
+            }
+            return Optional.of(new Coordinate(latitude.asDouble(),longitude.asDouble()));
         } catch (Exception exception) {
             // Do not log provider text, addresses, exception messages or stack traces.
             log.warn("Geocoding failed; check provider availability and GOOGLE_MAPS_API_KEY configuration.");

@@ -36,8 +36,8 @@ class RecipientServiceSecurityTest {
         var saved = new AtomicReference<Recipient>();
         var service = new RecipientService(repository(saved), address -> Optional.empty());
         assertThatThrownBy(() -> service.createRecipient(request()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Unable to determine coordinates for the recipient address.");
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .satisfies(error -> { var status=(org.springframework.web.server.ResponseStatusException)error; assertThat(status.getStatusCode().value()).isEqualTo(503); assertThat(status.getReason()).isEqualTo("Address lookup is unavailable. No recipient change was saved."); });
         assertThat(saved.get()).isNull();
         assertThat(output.getAll()).doesNotContain("private-address-sentinel");
     }
