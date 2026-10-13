@@ -13,9 +13,10 @@ The React + TypeScript + Vite workspace is in `frontend/`. Spring remains respon
 | Password setup | `/html/change-password.html` | Existing required password-change workflow |
 | Scheduling | `/html/admin.html` | Existing recipient/delivery forms and route generation |
 | Accounts | `/html/accounts.html` | Existing protected account creation, enable/disable and password reset |
-| Route execution/review | `/html/operators.html` | Existing role-authorized route selection and delivery updates |
+| Driver route execution | `/app/driver/routes` | React assigned routes, on-demand stop details and terminal delivery actions |
+| Administrator route review / driver rollback | `/html/operators.html` | Existing role-authorized route page |
 
-The existing administrator and driver pages now link to Workspace. Login entry points retain their existing destinations. This PR establishes the authenticated shell and build rather than migrating operational forms. The next screen-sized migration is the driver route journey, with its ownership and completion regression tests retained.
+Driver sign-in now opens `/app/driver/routes`. Administrator sign-in and operational pages retain their existing destinations. The driver journey is documented in `REACT_DRIVER_ROUTES.md`; the legacy route page remains available for rollback.
 
 ## Session and API contracts
 
@@ -25,7 +26,7 @@ The existing administrator and driver pages now link to Workspace. Login entry p
 
 The typed API boundary accepts only the current origin's `/api/` paths, forces same-origin credentials/no-store, and rejects fetch redirects. Fixed client messages replace raw server error bodies. A 401 removes authenticated content and offers sign-in. Required-password-change responses use the existing protected setup page; ordinary forbidden responses have a separate classification. CSRF failures clear the in-memory token for the next explicit request.
 
-Session loading is cancellable and ignores superseded responses. Focus, visibility restoration and an explicit Refresh session action recheck persisted identity. Expiry, role guards and malformed responses are covered by component tests. Client role guards determine navigation only: Spring continues enforcing every API permission. There is no customer or account-directory data embedded in public shell HTML/assets.
+Session loading is cancellable and ignores superseded responses. Focus, visibility restoration and an explicit Refresh session action recheck persisted identity. These refreshes, shell navigation and sign-out are paused while a driver update is pending so the active operation is not discarded by the shell. Expiry, role guards and malformed responses are covered by component tests. Client role guards determine navigation only: Spring continues enforcing every API permission. There is no customer or account-directory data embedded in public shell HTML/assets.
 
 ## Development
 
@@ -50,7 +51,7 @@ Dependencies and transitive resolutions are locked in package-lock.json. npm lif
 
 There are no committed generated bundles or node_modules. Build/runtime application secrets must not be placed in frontend files or VITE-prefixed variables.
 
-Only `/app`, `/app/`, `/app/admin` and `/app/driver` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
+Only `/app`, `/app/`, `/app/admin`, `/app/driver` and `/app/driver/routes` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
 
 Shell HTML and session responses are not cached. Vite assets have content-hashed names, and `/app/assets/**` receives public immutable caching for one year. Deploy the complete jar as one artifact so its HTML and assets remain matched; avoid caching shell HTML at a proxy/CDN. Deploying this jar adds Workspace alongside existing pages; reverting the artifact restores the prior entry points without changing database records.
 
