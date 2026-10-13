@@ -133,13 +133,13 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
   return <>
     <section className="page-intro"><p className="eyebrow">Delivery preparation</p><h1>Prepare the next delivery.</h1><p className="intro-text">Choose a recipient, set the delivery window and review saved work.</p></section>
     {message && <p role="status">{message}</p>}{saveError && <p className="error-message" role="alert">{saveError}</p>}
-    {uncertain && <section className="recipient-panel delivery-recovery" aria-labelledby="save-review"><h2 id="save-review">Check before submitting again</h2>
+    {uncertain && <section className="recipient-panel delivery-panel delivery-recovery" aria-labelledby="save-review"><h2 id="save-review">Check before submitting again</h2>
       <p>Review deliveries for {uncertain.name} on {uncertain.scheduledDate}, across all statuses. Work may already have been assigned.</p>
       <p>An empty list or a matching delivery cannot prove which request saved it. Inspect details and additional pages before deciding whether another creation is needed.</p>
       <button className="button" disabled={pending} onClick={reviewUncertain}>Review possible saved deliveries</button>
       <button className="button secondary" disabled={!reviewReady || directoryLoading} onClick={() => { setUncertain(null); setReviewReady(false); setSaveError('Review completed. Another submission will create a new delivery.'); }}>I reviewed results; allow another submission</button>
     </section>}
-    <section className="recipient-panel" aria-labelledby="choose-recipient"><h2 id="choose-recipient">Choose a recipient</h2>
+    <section className="recipient-panel delivery-panel" aria-labelledby="choose-recipient"><h2 id="choose-recipient">Choose a recipient</h2>
       <form className="recipient-toolbar" onSubmit={event => { event.preventDefault(); if (frozen) return; setQuery(search.trim()); recipientSearch(0, search.trim()); }}>
         <label htmlFor="delivery-recipient-search">Search recipient name or address<input id="delivery-recipient-search" type="search" maxLength={100} value={search} disabled={frozen} onChange={event => setSearch(event.target.value)} /></label>
         <button className="button secondary" disabled={frozen}>Search recipients</button><button type="button" className="text-button" disabled={frozen} onClick={() => recipientSearch()}>Reload recipients</button>
@@ -153,7 +153,7 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
         <Pagination page={recipients.page} total={recipients.totalPages} disabled={frozen || selecting} label="recipients" change={recipientSearch} />
       </>}{selecting && <p role="status">Loading current recipient details…</p>}
     </section>
-    <section className="recipient-panel" aria-labelledby="delivery-create"><h2 id="delivery-create" tabIndex={-1} ref={createHeading}>Create delivery</h2>
+    <section className="recipient-panel delivery-panel" aria-labelledby="delivery-create"><h2 id="delivery-create" tabIndex={-1} ref={createHeading}>Create delivery</h2>
       {selected ? <div className="recipient-notice"><strong>Selected recipient: {selected.firstName} {selected.lastName}</strong><p>{selected.address}</p><span>Recipient #{selected.recipientId}</span></div> : <p>Choose a recipient from the search results above.</p>}
       <p>New deliveries are pending and unassigned. Route generation assigns operators. Past dates remain available for overdue work.</p>
       <form onSubmit={event => { event.preventDefault(); void save(); }}>
@@ -168,7 +168,7 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
         {pending && <p role="status">Saving delivery…</p>}
       </form>
     </section>
-    <section className="recipient-panel" aria-labelledby="delivery-directory"><h2 id="delivery-directory" tabIndex={-1} ref={directoryHeading}>Delivery directory</h2>
+    <section className="recipient-panel delivery-panel" aria-labelledby="delivery-directory"><h2 id="delivery-directory" tabIndex={-1} ref={directoryHeading}>Delivery directory</h2>
       <form className="recipient-toolbar" onSubmit={event => { event.preventDefault(); if (frozen) return; if (filterDate && !validDate(filterDate)) { setDirectoryError('Enter a valid filter date.'); return; } applyFilters({ ...filters, scheduledDate: filterDate, status: filterStatus }, filterName); }}>
         <label htmlFor="delivery-filter-date">Filter scheduled date<input id="delivery-filter-date" type="date" min="1000-01-01" max="9999-12-31" value={filterDate} disabled={frozen} onChange={event => setFilterDate(event.target.value)} /></label>
         <label htmlFor="delivery-filter-status">Filter status<select id="delivery-filter-status" value={filterStatus} disabled={frozen} onChange={event => setFilterStatus(event.target.value as DeliveryFilters['status'])}><option value="">All statuses</option>{deliveryStatuses.map(status => <option value={status} key={status}>{label(status)}</option>)}</select></label>
@@ -189,7 +189,7 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
       </>}
     </section>
     {detailsLoading && <p role="status">Loading delivery details…</p>}{detailsError && <p className="error-message" role="alert">{detailsError}</p>}
-    {details && <section className="recipient-panel" aria-labelledby="delivery-details"><h2 id="delivery-details" ref={detailsHeading} tabIndex={-1}>Delivery #{details.deliveryId}</h2>
+    {details && <section className="recipient-panel delivery-panel" aria-labelledby="delivery-details"><h2 id="delivery-details" ref={detailsHeading} tabIndex={-1}>Delivery #{details.deliveryId}</h2>
       <dl className="delivery-details"><dt>Recipient</dt><dd>{details.clientName} (#{details.recipientId})</dd><dt>Scheduled date</dt><dd>{details.scheduledDate ?? 'Not provided'}</dd><dt>Delivery window</dt><dd>{details.startTimeWindow ?? 'Not provided'} – {details.endTimeWindow ?? 'Not provided'}</dd><dt>Priority</dt><dd>{label(details.priorityLevel)}</dd><dt>Status</dt><dd>{label(details.deliveryStatus)}</dd><dt>Operator</dt><dd>{details.operatorId === null ? 'Unassigned' : `${details.operatorName ?? 'Operator'} (#${details.operatorId})`}</dd><dt>Instructions</dt><dd>{details.specialInstructions || 'Not provided'}</dd></dl>
       <div className="recipient-toolbar"><button className="button secondary" disabled={pending} onClick={() => openDetails(details.deliveryId)}>Refresh delivery details</button><button className="text-button" disabled={pending} onClick={() => { cancel('details'); setDetails(null); directoryHeading.current?.focus(); }}>Close details</button></div>
     </section>}
