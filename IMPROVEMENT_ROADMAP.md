@@ -196,15 +196,16 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | Delivery preparation API: strict unassigned creation, shared legacy validation and bounded directory | PR #21 | Merged |
 | React delivery preparation: bounded recipient selection, creation, filtered directory/details and explicit uncertain-save review | PR #22 | Merged |
 | Route generation API: strict date-only generation, compact acknowledgement and date-filtered all-status review | PR #23 | Merged |
-| React route generation: assignment confirmation, bounded waiting, all-status recovery and exact-route links | `aniM/react-admin-route-generation` | Implemented in this branch; merge pending |
+| React route generation: assignment confirmation, bounded waiting, all-status recovery and exact-route links | PR #24 | Merged |
+| Warehouse management API: bounded scalar reads, strict coordinates, conditional edits/deletion and legacy safeguards | `aniM/warehouse-management-api` | Implemented in this branch; merge pending |
 
 ### Next implementation sequence
 
 1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
 2. Delivery preparation API merged in PR #21; strict creation and bounded reads are documented in [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
-3. React delivery preparation merged in PR #22; see [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Route-generation API foundation merged in PR #23. Review and merge `aniM/react-admin-route-generation` for explicit assignment confirmation, configured timeout handling and all-status reconciliation after uncertainty. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) and [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md).
-4. Add missing setup/history workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
+3. React delivery preparation merged in PR #22; see [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Route-generation API foundation merged in PR #23. React route generation merged in PR #24 with explicit assignment confirmation, configured timeout handling and all-status reconciliation after uncertainty. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) and [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md).
+4. Review and merge the warehouse API foundation in `aniM/warehouse-management-api`; see [WAREHOUSE_MANAGEMENT_API.md](WAREHOUSE_MANAGEMENT_API.md). Then implement operator management with warehouse IDs and guarded availability/account relationships, followed by React setup screens. Add history/archive workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
-6. Establish CI (no checked-in workflow currently exists), then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
+6. Establish CI as a near-term focused PR (no checked-in workflow currently exists) to enforce backend, frontend and browser checks on subsequent changes; then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
 
 The deployed schema, provider-account restrictions, operational monitoring, backup/restore and live release behavior remain unverified by local/disposable tests. Production approval requires those gates as well as the remaining domain and UI acceptance checks.
