@@ -1,0 +1,55 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Verify application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: '25.0.4+101.0.LTS' # Temurin 25.0.4.1+1, using Adoptium's SemVer identifier
+          cache: maven
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+      - name: Install locked browser tooling and Chromium
+        run: |
+          npm ci --prefix tests/browser --ignore-scripts --no-audit --no-fund
+          node tests/browser/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Verify application and required test coverage
+        run: ./scripts/run-ci.sh
+      - name: Upload test reports and browser diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/surefire-reports/
+            target/frontend-reports/
+            .ci-artifacts/browser/
+            .ci-artifacts/coverage-summary.json
+          retention-days: 7
+          include-hidden-files: true
+          if-no-files-found: warn
+      - name: Upload verified application
+        if: ${{ success() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: application-${{ github.sha }}-${{ github.run_attempt }}
+          path: target/schedulingApp-0.0.1-SNAPSHOT.jar
+          retention-days: 7
+          if-no-files-found: error
