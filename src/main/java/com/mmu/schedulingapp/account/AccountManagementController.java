@@ -21,6 +21,17 @@ public class AccountManagementController {
         var result = management.list(actor, page, size);
         return new AccountPage(result.getContent(), result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
     }
+    public record OperatorPage(java.util.List<AccountManagementService.EligibleOperator> operators,
+                               int page, int size, long totalElements, int totalPages) { }
+    @GetMapping("/eligible-operators")
+    public OperatorPage eligible(@AuthenticationPrincipal AccountPrincipal actor,
+                                 @RequestParam(defaultValue = "0") int page,
+                                 @RequestParam(defaultValue = "50") int size,
+                                 @RequestParam(defaultValue = "") String search) {
+        var result = management.eligibleOperators(actor, page, size, search);
+        return new OperatorPage(result.getContent(), result.getNumber(), result.getSize(), result.getTotalElements(), result.getTotalPages());
+    }
+
     @PostMapping("/drivers")
     public ResponseEntity<AccountManagementService.TemporaryCredential> create(@AuthenticationPrincipal AccountPrincipal actor,
                                                                               @Valid @RequestBody AccountRequests.CreateDriver request) {
