@@ -1,6 +1,6 @@
 # Administrator Accounts interface
 
-Open `/html/accounts.html` from the Accounts link on the administrator dashboard. The page uses the existing Bootstrap frontend and the account-management API. Roles, password verification, CSRF and revocation remain enforced by the backend. The page, JavaScript and stylesheet are administrator-only.
+Open `/app/admin/accounts` from Accounts on the administrator dashboard or React workspace. The primary screen now uses React + TypeScript and the existing account-management API. `/html/accounts.html` remains the protected legacy rollback page. Roles, password verification, CSRF and revocation remain enforced by the backend. Spring protects the APIs and legacy page/assets. The public React shell contains no account data; only authenticated administrators mount the Accounts screen and can access its APIs.
 
 ## Workflow
 
@@ -9,16 +9,16 @@ Open `/html/accounts.html` from the Accounts link on the administrator dashboard
 - Eligible operators are searchable by name and paginated 50 at a time through GET `/api/admin/accounts/eligible-operators`. The API allows page sizes 1–100 and search text up to 100 characters. It returns only IDs and names. Database uniqueness still decides concurrent creation conflicts; a picker result is not a reservation.
 - Disable, enable and reset each open an action dialog explaining the effect and requiring the administrator's password again. Actual access changes revoke prior sessions. Reset leaves disabled accounts disabled.
 - Creation/reset show the generated temporary password, username and local expiry time in a one-time dialog. Copy is an explicit user action; when clipboard access is unavailable the password can be selected manually. Done/Escape, navigation and session expiry clear the dialog. Closing does not retrieve or regenerate the password. Clipboard contents explicitly copied by the user are not automatically erased.
-- Administrator password fields clear on every attempt. No credentials are placed in URLs, browser storage, row attributes or logs. Writes are disabled while pending and are never automatically retried. After an uncertain network outcome, refresh the directory; if an account was created without a received credential, use reset to issue a new one.
+- Administrator password fields clear on every attempt. No credentials are placed in URLs, browser storage, row attributes or logs. Writes are disabled while pending and are never automatically retried. All failed writes block further changes until Reload accounts succeeds. Write requests have a 15-second abort budget and reads have a 30-second budget. After an uncertain network outcome, reload the directory; if an account was created without a received credential, use reset to issue a new one.
 - Invalid credentials, duplicate usernames/operator links, stale targets and read failures show fixed text messages. Session expiry clears sensitive UI state and redirects to sign-in. Forced-password sessions route to password setup.
 
-The page renders API data through text nodes/DOM properties, not dynamic HTML. Request-generation guards prevent older list/search responses from replacing newer results. Native dialogs provide focus trapping and Escape support; form labels, table headings, live status regions and keyboard focus styles are included. The directory can scroll horizontally on small screens.
+The React page renders API data as text, with runtime validation of account summaries, pagination and temporary credential acknowledgements. Request-generation guards prevent older list/search responses from replacing newer results. Native dialogs provide focus trapping and Escape support; form labels, table headings, live status regions and keyboard focus styles are included. The directory can scroll horizontally on small screens.
 
 ## Rollout
 
 This PR needs no new migration. The prior `002-account-management.sql` migration remains a prerequisite for the account-management backend. Confirm it has been applied to the intended database before using the screen. Implementation tests validate disposable schemas, not your live schema; no live migration, account creation or reset is performed here.
 
-See `ACCOUNT_MANAGEMENT.md` for the API, temporary-password policy, onboarding and deployment requirements. The React + TypeScript + Vite target remains on the roadmap; this focused screen completes the existing operational workflow.
+See `REACT_ACCOUNTS.md` for migration-specific behavior and tests, and `ACCOUNT_MANAGEMENT.md` for the API, temporary-password policy, onboarding and deployment requirements. The migration adds `/app/admin/accounts` to explicit Spring deep links and updates administrator navigation. Existing login and scheduling destinations remain unchanged. Revert the artifact or restore the Accounts link to `/html/accounts.html` for rollback.
 
 ## Verification
 

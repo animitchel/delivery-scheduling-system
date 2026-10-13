@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError } from './api';
+import { accountsApi } from './accounts-api';
 import { driverApi } from './driver-api';
+import type { Credential } from './accounts-api';
 import type { DriverRoute } from './driver-api';
 import type { Account, SessionClient } from './api';
 const admin: Account = { id: 1, username: 'admin', role: 'ADMIN', operatorId: null, enabled: true, passwordChangeRequired: false };
@@ -18,7 +20,7 @@ describe('authenticated workspace', () => {
   it('shows loading before administrator tools and links to working pages', async () => {
     mount(clientFor()); expect(screen.getByRole('status')).toHaveTextContent('Preparing');
     expect(await screen.findByRole('heading', { name: 'Keep deliveries moving.' })).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Open accounts' })).toHaveAttribute('href', '/html/accounts.html');
+    expect(screen.getByRole('link', { name: 'Open accounts' })).toHaveAttribute('href', '/app/admin/accounts');
     expect(screen.getByRole('link', { name: 'Open scheduling' })).toHaveAttribute('href', '/html/admin.html');
   });
   it('shows driver tools without administrator navigation', async () => {
@@ -76,6 +78,22 @@ describe('authenticated workspace', () => {
     await screen.findByRole('button', { name: 'Sign out' }); await userEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Sign out failed');
     expect(screen.queryByText('private details')).not.toBeInTheDocument(); expect(client.logout).toHaveBeenCalledTimes(1);
+  });
+  it('denies the React account directory to a driver without calling its API', async () => {
+    const requests = vi.spyOn(accountsApi, 'accounts'); mount(clientFor(driver), '/admin/accounts');
+    await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' }); expect(requests).not.toHaveBeenCalled();
+  });
+  it('keeps account mutations mounted during focus and clears credentials when navigation resumes', async () => {
+    const target = {...driver,id:2,username:'test.driver',operatorId:4};
+    vi.spyOn(accountsApi,'accounts').mockResolvedValue({items:[admin,target],page:0,size:20,totalElements:2,totalPages:1}); vi.spyOn(accountsApi,'operators').mockResolvedValue({items:[{operatorId:4,name:'Operator'}],page:0,size:50,totalElements:1,totalPages:1});
+    const pending = deferred<Credential>(); const create = vi.spyOn(accountsApi,'create').mockReturnValue(pending.promise); const client = clientFor(); mount(client,'/admin/accounts');
+    await screen.findByText('test.driver'); await waitFor(()=>expect(screen.getByLabelText('Eligible operator')).toBeEnabled());
+    fireEvent.change(screen.getByLabelText('Driver username'),{target:{value:'test.driver'}}); fireEvent.change(screen.getByLabelText('Eligible operator'),{target:{value:'4'}}); fireEvent.change(screen.getByLabelText('Your administrator password',{selector:'#create-current-password'}),{target:{value:'test password'}});
+    fireEvent.submit(screen.getByRole('button',{name:'Create driver account'}).closest('form')!); act(()=>{window.dispatchEvent(new Event('focus'));}); await userEvent.click(screen.getByRole('link',{name:'Overview'}));
+    expect(client.session).toHaveBeenCalledTimes(1); expect(create).toHaveBeenCalledTimes(1); expect(screen.getByRole('button',{name:'Sign out'})).toBeDisabled();
+    await act(async()=>{pending.resolve({account:{...target,passwordChangeRequired:true},temporaryPassword:'A'.repeat(32),expiresAt:'2026-10-14T12:00:00Z'});await pending.promise;}); await screen.findByRole('dialog',{name:'Temporary driver password'});
+    expect(screen.getByLabelText('Temporary password')).toHaveValue('A'.repeat(32));
+    await userEvent.click(screen.getByRole('button',{name:'Done'})); await userEvent.click(screen.getByRole('link',{name:'Overview'})); await screen.findByRole('heading',{name:'Keep deliveries moving.'}); expect(document.querySelector('#temporary-driver-password')).toBeNull();
   });
   it('does not mount driver endpoints for an administrator deep link', async () => {
     const requests = vi.spyOn(driverApi, 'routes'); mount(clientFor(), '/driver/routes');
