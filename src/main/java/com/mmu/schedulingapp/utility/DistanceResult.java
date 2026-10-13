@@ -6,9 +6,9 @@ import lombok.Getter;
 public class DistanceResult {
     private final double distanceKm;
     private final String durationText;
-    private final int durationSeconds;
+    private final Integer durationSeconds;
 
-    public DistanceResult(double distanceKm, String durationText, int durationSeconds) {
+    public DistanceResult(double distanceKm, String durationText, Integer durationSeconds) {
         this.distanceKm = distanceKm;
         this.durationText = durationText;
         this.durationSeconds = durationSeconds;

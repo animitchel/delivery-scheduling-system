@@ -1,9 +1,6 @@
 package com.mmu.schedulingapp.utility;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -11,11 +8,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /** Shared credential and transport boundary for the server-side Maps utilities. */
-final class GoogleMapsClient {
+public final class GoogleMapsClient {
     private GoogleMapsClient() {
     }
 
-    enum Api {
+    public enum Api {
         GEOCODING("geocode"), DISTANCE_MATRIX("distancematrix");
 
         private final String path;
@@ -26,7 +23,7 @@ final class GoogleMapsClient {
     }
 
     @FunctionalInterface
-    interface Request {
+    public interface Request {
         String get(Api api, Map<String, String> parameters) throws IOException;
     }
 
@@ -36,7 +33,9 @@ final class GoogleMapsClient {
     }
 
     static String get(Api api, Map<String, String> parameters) throws IOException {
-        return get(api, parameters, System.getenv("GOOGLE_MAPS_API_KEY"), GoogleMapsClient::send);
+        try (var transport = new MapsHttpTransport(new MapsLimits())) {
+            return get(api, parameters, System.getenv("GOOGLE_MAPS_API_KEY"), uri -> transport.get(uri, Long.MAX_VALUE));
+        }
     }
 
     static String get(Api api, Map<String, String> parameters, String apiKey, Transport transport)
@@ -49,6 +48,8 @@ final class GoogleMapsClient {
                 + query + "&key=" + encode(key));
         try {
             return transport.get(uri);
+        } catch (MapsFailure failure) {
+            throw failure;
         } catch (IOException exception) {
             // Transport errors can contain the credential-bearing URL or a response body.
             // Neither the original message nor its cause may cross this boundary.
@@ -67,20 +68,4 @@ final class GoogleMapsClient {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    private static String send(URI uri) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
-        try {
-            connection.setRequestMethod("GET");
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new IOException("Google Maps returned a non-success HTTP status.");
-            }
-            try (var reader = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8)) {
-                var body = new StringWriter();
-                reader.transferTo(body);
-                return body.toString();
-            }
-        } finally {
-            connection.disconnect();
-        }
-    }
 }

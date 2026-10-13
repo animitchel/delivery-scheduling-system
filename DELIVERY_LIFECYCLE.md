@@ -20,7 +20,7 @@ Status changes, route completion and operator release share a READ_COMMITTED tra
 
 Route creation locks available operators in ID order, rechecks availability and excludes operators with existing non-completed routes. It then locks candidate pending deliveries in ID order and rechecks their status and membership. Work cannot be claimed twice by overlapping route-generation requests through this API.
 
-Route computation still occurs inside the write transaction. Moving provider calls outside that transaction with a reservation design remains a separate roadmap item. Direct SQL or future assignment writers must respect these invariants; these locks are not a replacement for the planned schema-integrity work.
+Provider I/O, candidate delivery count, shared planning deadlines/call budgets and per-instance admission are now bounded as documented in `MAPS_REQUEST_BOUNDS.md`. Route computation still occurs inside the write transaction. Moving provider calls outside that transaction with a reservation design remains a separate roadmap item. Direct SQL or future assignment writers must respect these invariants; these locks are not a replacement for the planned schema-integrity work.
 
 ## Deployment and verification
 
