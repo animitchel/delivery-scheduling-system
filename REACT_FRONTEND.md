@@ -14,7 +14,8 @@ The React + TypeScript + Vite workspace is in `frontend/`. Spring remains respon
 | Scheduling | `/html/admin.html` | Existing recipient/delivery forms and route generation |
 | Accounts | `/app/admin/accounts` | React paginated account directory, eligible-operator search and protected driver actions |
 | Driver route execution | `/app/driver/routes` | React assigned routes, on-demand stop details and terminal delivery actions |
-| Administrator route review / driver rollback | `/html/operators.html` | Existing role-authorized route page |
+| Administrator route review | `/app/admin/routes` | Bounded route directory, selected stops and terminal delivery actions |
+| Legacy route rollback | `/html/operators.html` | Existing role-authorized route page |
 
 Driver sign-in now opens `/app/driver/routes`. Administrator sign-in and operational pages retain their existing destinations. The driver journey is documented in `REACT_DRIVER_ROUTES.md`; the legacy route page remains available for rollback.
 
@@ -26,7 +27,7 @@ Driver sign-in now opens `/app/driver/routes`. Administrator sign-in and operati
 
 The typed API boundary accepts only the current origin's `/api/` paths, forces same-origin credentials/no-store, and rejects fetch redirects. Fixed client messages replace raw server error bodies. A 401 removes authenticated content and offers sign-in. Required-password-change responses use the existing protected setup page; ordinary forbidden responses have a separate classification. CSRF failures clear the in-memory token for the next explicit request.
 
-Session loading is cancellable and ignores superseded responses. Focus, visibility restoration and an explicit Refresh session action recheck persisted identity. These refreshes, shell navigation and sign-out are paused while a driver or account update is pending so the active operation is not discarded by the shell. Expiry, role guards and malformed responses are covered by component tests. Client role guards determine navigation only: Spring continues enforcing every API permission. There is no customer or account-directory data embedded in public shell HTML/assets.
+Session loading is cancellable and ignores superseded responses. Focus, visibility restoration and an explicit Refresh session action recheck persisted identity. These refreshes, shell navigation and sign-out are paused while a route or account update is pending so the active operation is not discarded by the shell. Expiry, role guards and malformed responses are covered by component tests. Client role guards determine navigation only: Spring continues enforcing every API permission. There is no customer or account-directory data embedded in public shell HTML/assets.
 
 ## Development
 
@@ -34,14 +35,14 @@ Use Node 24.20.0 and npm 11.19.0 (`frontend/.nvmrc`, package engines). From `fro
 
 ```sh
 npm ci
-npm run dev
+SCHEDULING_DEV_BACKEND=http://127.0.0.1:8081 npm run dev -- --port 5174
 npm run typecheck
 npm run lint
 npm test
 npm run build
 ```
 
-Open `http://127.0.0.1:5173/app/`. Start the backend separately using its documented disposable/local configuration. Vite proxies `/api`, `/html`, `/js` and `/css` to `http://127.0.0.1:8080` by default, so session cookies and legacy links remain on the browser's current origin. For a different local port set `SCHEDULING_DEV_BACKEND=http://127.0.0.1:PORT`. Only loopback HTTP origins are accepted; remote targets, credentials and non-origin paths are rejected. This variable is development configuration and is not included in the production bundle. `npm run preview` previews static output; it is not a replacement for the authenticated backend/proxy workflow.
+Open `http://127.0.0.1:5174/app/`. Start Spring separately on port 8081 using your existing local configuration (or the `--server.port=8081` argument). This frontend setting does not change Spring’s production listener or use your local database during tests. Vite proxies `/api`, `/html`, `/js` and `/css` to `http://127.0.0.1:8081` by default, so session cookies and legacy links remain on the browser's current origin. For a different local port set `SCHEDULING_DEV_BACKEND=http://127.0.0.1:PORT`. Only loopback HTTP origins are accepted; remote targets, credentials and non-origin paths are rejected. This variable is development configuration and is not included in the production bundle. `npm run preview` previews static output; it is not a replacement for the authenticated backend/proxy workflow.
 
 Dependencies and transitive resolutions are locked in package-lock.json. npm lifecycle install scripts are disabled; the verified native build packages work without them. React/Vite are pinned, and TypeScript 6.0.3 is selected within the installed lint tooling's supported range. Type checking runs independently: a successful Vite build is not proof of TypeScript correctness.
 
@@ -51,7 +52,7 @@ Dependencies and transitive resolutions are locked in package-lock.json. npm lif
 
 There are no committed generated bundles or node_modules. Build/runtime application secrets must not be placed in frontend files or VITE-prefixed variables.
 
-Only `/app`, `/app/`, `/app/admin`, `/app/admin/accounts`, `/app/driver` and `/app/driver/routes` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
+Only `/app`, `/app/`, `/app/admin`, `/app/admin/accounts`, `/app/admin/routes`, `/app/driver` and `/app/driver/routes` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
 
 Shell HTML and session responses are not cached. Vite assets have content-hashed names, and `/app/assets/**` receives public immutable caching for one year. Deploy the complete jar as one artifact so its HTML and assets remain matched; avoid caching shell HTML at a proxy/CDN. Deploying this jar adds Workspace alongside existing pages; reverting the artifact restores the prior entry points without changing database records.
 
