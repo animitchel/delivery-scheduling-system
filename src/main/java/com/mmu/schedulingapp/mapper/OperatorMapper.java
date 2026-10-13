@@ -9,7 +9,6 @@ public class OperatorMapper {
 
     public static Operator toEntity(OperatorRequestDTO dto, Warehouse warehouse) {
         return Operator.builder()
-                .operatorId(dto.getOperatorId())
                 .name(dto.getName())
                 .phoneNumber(dto.getPhoneNumber())
                 .email(dto.getEmail())

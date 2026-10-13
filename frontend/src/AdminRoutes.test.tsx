@@ -107,7 +107,7 @@ describe('administrator route workflow', () => {
   it('loads a directly linked route outside the first directory page and focuses its summary', async () => {
     const client=clientFor(); client.directory.mockResolvedValue(directory([{...route,routeId:2}]));client.route.mockResolvedValue({...route,routeId:91});
     render(<AdminRoutes client={client} initialRouteId={91} onAuthError={vi.fn()} />); await screen.findByRole('heading',{name:'Route #91'});
-    expect(client.route).toHaveBeenCalledWith(91,expect.any(AbortSignal));expect(screen.getByRole('region',{name:'Route #91 overview'})).toHaveFocus();expect(screen.getByText(/outside this directory page/)).toBeVisible();
+    expect(client.route).toHaveBeenCalledWith(91,expect.any(AbortSignal));await waitFor(() => expect(screen.getByRole('region',{name:'Route #91 overview'})).toHaveFocus());expect(screen.getByText(/outside this directory page/)).toBeVisible();
   });
   it('does not substitute another route when the deep-link target is missing', async () => {
     const client=clientFor();client.route.mockRejectedValue(new ApiError(404));render(<AdminRoutes client={client} initialRouteId={91} onAuthError={vi.fn()} />);
