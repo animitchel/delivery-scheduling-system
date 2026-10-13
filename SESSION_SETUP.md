@@ -24,7 +24,7 @@ Spring's form-login filter handles authentication, session context persistence a
 2. Serve the frontend and backend through the same origin over HTTPS. Relative frontend URLs replace hardcoded localhost addresses. Wildcard CORS has been removed. A future Vite development server should proxy `/api` to Spring rather than opening a broad credentialed CORS policy.
 3. Outside the explicit `local` profile, session cookies are `Secure`, `HttpOnly`, `SameSite=Lax`, and use `/` as their path. The `local` profile allows HTTP cookies for development; never activate it on a public deployment. Sessions expire after 30 minutes of inactivity and use cookies only, not URL session IDs.
 4. Run one application instance for now. Sessions are held in memory and restart invalidates them. Horizontal scaling needs a deliberately configured shared session store or suitable routing before rollout.
-5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, email password recovery, administrator account-management UI, frontend migration and the wider audit items remain separate work.
+5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, email password recovery, frontend migration and the wider audit items remain separate work.
 
 For local development with your existing local database configuration, start the built application explicitly in the local profile and open `/html/login.html`:
 

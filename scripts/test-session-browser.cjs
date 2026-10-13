@@ -78,43 +78,133 @@ const assert = require("node:assert/strict");
         assert.equal(await page.locator("#routeSelector").isDisabled(), true);
         await page.locator("#logoutButton").click();
         await page.waitForURL("**/html/login.html?loggedOut");
-        // Administrator API creates temporary credentials; onboarding is enforced server-side.
+        // Accounts screen: pagination, safe rendering, failures and one-time credentials.
         await page.locator("#username").fill("smoke.admin");
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
         await page.waitForURL("**/html/admin.html");
-        await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
-        const operators = await (await context.request.get(`${target.origin}/api/v1/scheduling-app/operators`)).json();
-        const operator = operators.find(item => item.name === "Onboarding operator");
-        assert.ok(operator);
-        const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
-        const created = await context.request.post(`${target.origin}/api/admin/accounts/drivers`, {
-            headers: { [csrf.headerName]: csrf.token },
-            data: { username: "onboarding.driver", operatorId: operator.operatorId, currentPassword: "smoke test administrator passphrase" }
+        await page.getByRole("link", { name: "Accounts", exact: true }).click();
+        await page.waitForURL("**/html/accounts.html");
+        await page.locator("#accountsPageLabel").filter({ hasText: "Page 1 of 2" }).waitFor();
+        assert.equal(await page.locator("#accountRows tr").first().getByRole("button").count(), 0);
+        await page.locator("#accountsNext").click();
+        await page.locator("#accountsPageLabel").filter({ hasText: "Page 2 of 2" }).waitFor();
+        await page.locator("#accountsPrevious").click();
+        await page.locator("#accountsPageLabel").filter({ hasText: "Page 1 of 2" }).waitFor();
+        await page.waitForFunction(() => document.querySelectorAll("#accountOperator option").length === 3);
+        assert.ok((await page.locator("#accountOperator option").allTextContents()).some(text => text.includes("<img")));
+        assert.equal(await page.locator("#accountOperator img").count(), 0);
+        assert.equal(await page.evaluate(() => window.__injected), undefined);
+        await page.screenshot({ path: "/private/tmp/accounts-ui-desktop.png", fullPage: true });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await page.locator("nav").count(), 1);
+        await page.screenshot({ path: "/private/tmp/accounts-ui-mobile.png" });
+        await page.locator("#listHeading").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: "/private/tmp/accounts-ui-mobile-directory.png" });
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await page.setViewportSize({ width: 1280, height: 720 });
+        await page.locator("#accountUsername").scrollIntoViewIfNeeded();
+        const operatorValue = await page.locator("#accountOperator option").filter({ hasText: "Onboarding operator" }).getAttribute("value");
+        await page.locator("#accountUsername").fill("onboarding.driver");
+        await page.locator("#accountOperator").selectOption(operatorValue);
+        await page.locator("#createPassword").fill("incorrect administrator passphrase");
+        await page.locator("#createAccountButton").click();
+        await page.locator("#accountsMessage").filter({ hasText: "password was not accepted" }).waitFor();
+        assert.equal(await page.locator("#createPassword").inputValue(), "");
+        await page.locator("#accountOperator").selectOption(operatorValue);
+        await page.locator("#createPassword").fill("smoke test administrator passphrase");
+        let creations = 0;
+        await page.route("**/api/admin/accounts/drivers", async route => {
+            creations++;
+            await new Promise(resolve => setTimeout(resolve, 200));
+            await route.continue();
         });
-        assert.equal(created.status(), 201);
-        assert.ok(created.headers()["cache-control"].includes("no-store"));
-        const credential = await created.json();
-        await page.locator("#logoutButton").click();
-        await page.waitForURL("**/html/login.html?loggedOut");
-        await page.locator("#username").fill("onboarding.driver");
-        await page.locator("#password").fill(credential.temporaryPassword);
-        await page.locator("#loginButton").click();
-        await page.waitForURL("**/html/change-password.html");
-        assert.equal((await context.request.get(`${target.origin}/api/driver/routes`)).status(), 403);
-        await page.locator("#currentPassword").fill(credential.temporaryPassword);
-        await page.locator("#newPassword").fill("browser permanent driver passphrase");
-        await page.locator("#confirmPassword").fill("browser permanent driver passphrase");
-        await page.locator("#passwordButton").click();
-        await page.waitForURL("**/html/login.html?passwordChanged");
-        assert.equal((await context.request.get(`${target.origin}/api/auth/me`)).status(), 401);
-        await page.locator("#username").fill("onboarding.driver");
-        await page.locator("#password").fill("browser permanent driver passphrase");
-        await page.locator("#loginButton").click();
-        await page.waitForURL("**/html/operators.html");
-        await page.locator("#globalMsg").filter({ hasText: "No assigned routes available." }).waitFor();
-        await page.locator("#logoutButton").click();
-        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.locator("#createAccountButton").click();
+        assert.equal(await page.locator("#createAccountButton").isDisabled(), true);
+        await page.evaluate(() => document.querySelector("#createAccountForm").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+        await page.locator("#credentialDialog[open]").waitFor();
+        assert.equal(creations, 1);
+        const temporary = await page.locator("#temporaryPassword").inputValue();
+        assert.equal(temporary.length, 32);
+        assert.ok((await page.locator("#credentialExpiry").textContent()).includes("Expires"));
+        await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+        await page.locator("#copyCredential").click();
+        await page.locator("#credentialMessage").filter({ hasText: "Copied" }).waitFor();
+        assert.equal(await page.evaluate(async expected => (await navigator.clipboard.readText()) === expected, temporary), true);
+        await page.locator("#closeCredential").click();
+        assert.equal((await page.locator("#temporaryPassword").inputValue()).length, 0);
+        assert.equal(await page.locator("#credentialUsername").textContent(), "");
+        assert.equal(await page.evaluate(() => localStorage.length + sessionStorage.length), 0);
+        await page.locator("#accountRows tr").filter({ hasText: "onboarding.driver" }).waitFor();
+        // Failed duplicate creation is shown clearly and never retried automatically.
+        await page.locator("#accountUsername").fill("smoke.driver");
+        await page.locator("#accountOperator").selectOption({ index: 1 });
+        await page.locator("#createPassword").fill("smoke test administrator passphrase");
+        await page.locator("#createAccountButton").click();
+        await page.locator("#accountsMessage").filter({ hasText: "conflicts" }).waitFor();
+        assert.equal(await page.locator("#createPassword").inputValue(), "");
+        assert.equal(creations, 2);
+        const driverContext = await browser.newContext();
+        const driverPage = await driverContext.newPage();
+        driverPage.on("pageerror", error => errors.push(error.message));
+        async function driverLogin(password, destination) {
+            await driverPage.goto(`${target.origin}/html/login.html`);
+            await driverPage.locator("#username").fill("onboarding.driver");
+            await driverPage.locator("#password").fill(password);
+            await driverPage.locator("#loginButton").click();
+            await driverPage.waitForURL(`**/html/${destination}`);
+        }
+        async function choosePassword(current, replacement) {
+            await driverPage.locator("#currentPassword").fill(current);
+            await driverPage.locator("#newPassword").fill(replacement);
+            await driverPage.locator("#confirmPassword").fill(replacement);
+            await driverPage.locator("#passwordButton").click();
+            await driverPage.waitForURL("**/html/login.html?passwordChanged");
+        }
+        const permanent = "browser permanent driver passphrase";
+        await driverLogin(temporary, "change-password.html");
+        assert.equal((await driverContext.request.get(`${target.origin}/api/driver/routes`)).status(), 403);
+        await choosePassword(temporary, permanent);
+        await driverLogin(permanent, "operators.html");
+        await driverPage.locator("#globalMsg").filter({ hasText: "No assigned routes available." }).waitFor();
+        assert.equal((await driverContext.request.get(`${target.origin}/html/accounts.html`)).status(), 403);
+        assert.equal((await driverContext.request.get(`${target.origin}/js/accounts.js`)).status(), 403);
+        function managedRow() { return page.locator("#accountRows tr").filter({ hasText: "onboarding.driver" }); }
+        async function accountAction(label) {
+            await managedRow().getByRole("button", { name: label, exact: true }).click();
+            await page.locator("#actionPassword").fill("smoke test administrator passphrase");
+            await page.locator("#confirmAction").click();
+        }
+        await accountAction("Disable");
+        await managedRow().getByRole("button", { name: "Enable", exact: true }).waitFor();
+        assert.equal((await driverContext.request.get(`${target.origin}/api/auth/me`)).status(), 401);
+        await accountAction("Enable");
+        await managedRow().getByRole("button", { name: "Disable", exact: true }).waitFor();
+        assert.equal((await driverContext.request.get(`${target.origin}/api/auth/me`)).status(), 401);
+        await driverLogin(permanent, "operators.html");
+        await accountAction("Reset password");
+        await page.locator("#credentialDialog[open]").waitFor();
+        const resetPassword = await page.locator("#temporaryPassword").inputValue();
+        assert.equal(resetPassword === temporary, false);
+        await page.keyboard.press("Escape");
+        await page.locator("#credentialDialog[open]").waitFor({ state: "hidden" });
+        assert.equal((await page.locator("#temporaryPassword").inputValue()).length, 0);
+        assert.equal(await page.locator("#actionPassword").inputValue(), "");
+        assert.equal((await driverContext.request.get(`${target.origin}/api/auth/me`)).status(), 401);
+        await driverLogin(resetPassword, "change-password.html");
+        await choosePassword(resetPassword, "browser second permanent passphrase");
+        await driverContext.close();
+        // Read failures can be retried, while an expired session redirects to sign-in.
+        await page.route("**/api/admin/accounts?*", route => route.fulfill({ status: 500, contentType: "application/json", body: '{}' }), { times: 1 });
+        await page.locator("#refreshAccounts").click();
+        await page.locator("#accountRows").filter({ hasText: "could not be loaded" }).waitFor();
+        await page.locator("#refreshAccounts").click();
+        await managedRow().waitFor();
+        const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        assert.equal((await context.request.post(`${target.origin}/api/auth/logout`, { headers: { [csrf.headerName]: csrf.token } })).status(), 204);
+        await page.locator("#refreshAccounts").click();
+        await page.waitForURL("**/html/login.html");
         assert.deepEqual(errors, []);
         console.log("Browser admin/driver login, ownership, route selection, status updates, CSRF, safe rendering and logout passed.");
     } finally { await browser.close(); }

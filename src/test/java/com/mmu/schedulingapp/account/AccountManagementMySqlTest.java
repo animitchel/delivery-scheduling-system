@@ -78,6 +78,14 @@ class AccountManagementMySqlTest {
         assertThat(java.util.List.of(first.get(15,TimeUnit.SECONDS),second.get(15,TimeUnit.SECONDS))).containsExactlyInAnyOrder(201,409);
         assertThat(accounts.count()).isEqualTo(4); assertThat(audits.count()).isEqualTo(1);
     }
+    @Test void eligibilitySearchAndPaginationExcludeLinkedDisabledDriversOnMySql() {
+        service.enabled(one,PASSWORD,driver.getAccountId(),false);
+        var page=service.eligibleOperators(one,0,1,"sPaRe");
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent().getFirst().operatorId()).isEqualTo(spareOperator);
+        assertThat(service.eligibleOperators(one,0,20,"Driver").getContent()).isEmpty();
+        assertThat(service.eligibleOperators(one,1,1,"").getContent()).isEmpty();
+    }
     @Test void temporaryExpiryAndAuditTimestampsRoundTripInUtc() {
         var before=java.time.Instant.now(); var credential=service.reset(one,PASSWORD,driver.getAccountId());
         var expiry=accounts.findById(driver.getAccountId()).orElseThrow().getTemporaryPasswordExpiresAt();

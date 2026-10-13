@@ -105,6 +105,41 @@ class AccountManagementIntegrationTest {
         assertThat(result.getResponse().getHeader("Cache-Control")).contains("no-store");
         return json.readTree(result.getResponse().getContentAsString()).get("temporaryPassword").asText();
     }
+    @Test void eligibleOperatorsExcludeEveryLinkedAccountEvenWhenDisabledOrOffPage() throws Exception {
+        var session=login("test.admin");
+        jdbc.update("UPDATE user_accounts SET enabled=FALSE WHERE username='test.driver'");
+        for(int index=0;index<20;index++) accounts.saveAndFlush(new UserAccount("paging.admin"+index,HASH,AccountRole.ADMIN,null,false));
+        var late=new Operator(); late.setName("Late linked operator"); late.setPhoneNumber("123"); late.setEmail("late@example.test"); operators.saveAndFlush(late);
+        accounts.saveAndFlush(new UserAccount("late.driver",HASH,AccountRole.DRIVER,late,false));
+        mvc.perform(get("/api/admin/accounts").param("size","20").session(session)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.accounts.length()").value(20)).andExpect(jsonPath("$.totalElements").value(24));
+        var result=mvc.perform(get("/api/admin/accounts/eligible-operators").param("size","1").session(session))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.operators.length()").value(1))
+                .andExpect(jsonPath("$.operators[0].operatorId").value(spareOperator())).andExpect(jsonPath("$.totalElements").value(1)).andReturn();
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("password", "driver@example.test");
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("search","SpArE").session(session))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("search","Driver").session(session))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.operators").isEmpty());
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("page","1").param("size","1").session(session))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.operators").isEmpty());
+    }
+    @Test void eligibleOperatorsAndAccountsAssetsRequireAdministratorAndValidBounds() throws Exception {
+        mvc.perform(get("/api/admin/accounts/eligible-operators")).andExpect(status().isUnauthorized());
+        var driver=login("test.driver");
+        mvc.perform(get("/api/admin/accounts/eligible-operators").session(driver)).andExpect(status().isForbidden());
+        mvc.perform(get("/html/accounts.html").session(driver)).andExpect(status().isForbidden());
+        mvc.perform(get("/js/accounts.js").session(driver)).andExpect(status().isForbidden());
+        mvc.perform(get("/css/accounts.css").session(driver)).andExpect(status().isForbidden());
+        mvc.perform(get("/html/accounts.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/html/login.html"));
+        var admin=login("test.admin");
+        mvc.perform(get("/html/accounts.html").session(admin)).andExpect(status().isOk());
+        mvc.perform(get("/js/accounts.js").session(admin)).andExpect(status().isOk());
+        mvc.perform(get("/css/accounts.css").session(admin)).andExpect(status().isOk());
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("size","101").session(admin)).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("page","-1").session(admin)).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/admin/accounts/eligible-operators").param("search","a".repeat(101)).session(admin)).andExpect(status().isBadRequest());
+    }
     @Test void listIsBoundedAndContainsNoCredentialState() throws Exception {
         var session=login("test.admin");
         var result=mvc.perform(get("/api/admin/accounts").session(session)).andExpect(status().isOk())

@@ -1,6 +1,6 @@
 # Administrator account-management API
 
-This is the backend account-management PR. It adds controlled driver onboarding, revocation and password changes. The administrator Accounts interface is the next focused PR. The password-setup page is included now so users can complete onboarding without developer assistance.
+The account-management backend supports controlled driver onboarding, revocation and password changes. Administrators can now use the Accounts link on the dashboard; see `ACCOUNTS_UI.md`. The password-setup page lets users complete onboarding without developer assistance.
 
 ## API contract
 
@@ -38,7 +38,7 @@ The migration adds revision, forced-change and temporary-expiry columns plus the
 
 Restart invalidates existing in-memory sessions. After management has been used, do not roll back to an older executable that ignores revisions, forced setup or expiry; preserve the new credential state and use a forward fix or a reviewed compatible rollback. No live migration or real account change is performed by the implementation tests.
 
-Production HTTPS, trusted-ingress login throttling and session-store/scaling requirements from `SESSION_SETUP.md` still apply. Sensitive management and password-change endpoints also need ingress rate limits before public exposure. Public signup, email recovery, role changes, operator relinking and an administrator account-management UI are outside this PR.
+Production HTTPS, trusted-ingress login throttling and session-store/scaling requirements from `SESSION_SETUP.md` still apply. Sensitive management and password-change endpoints also need ingress rate limits before public exposure. Public signup, email recovery, role changes and operator relinking remain separate work. The administrator interface is documented in `ACCOUNTS_UI.md`.
 
 ## Verification
 
