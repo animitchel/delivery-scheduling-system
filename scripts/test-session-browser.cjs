@@ -84,7 +84,8 @@ const assert = require("node:assert/strict");
         }));
         assert.equal(response, 400); // Domain validation was reached, rather than CSRF 403.
         // Administrator route review uses bounded summaries and selected-route details.
-        await page.goto(`${target.origin}/app/admin/routes`);
+        await page.getByRole("link",{name:"Routes",exact:true}).click();
+        await page.waitForURL("**/app/admin/routes");
         await page.getByRole("heading",{name:"Routes",exact:true}).waitFor();
         await page.getByRole("button",{name:"Next routes",exact:true}).click();
         await page.getByText("Page 2 of 2 · 24 routes",{exact:true}).waitFor();
