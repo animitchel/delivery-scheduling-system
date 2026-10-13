@@ -49,13 +49,15 @@ public class DeliveryService {
 
     @Transactional
     public DeliveryResponseDTO createDelivery(DeliveryRequestDTO dto) {
-        Recipient client = recipientRepository.findById(dto.getRecipientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+        var input = DeliveryPreparationInput.from(dto);
+        Recipient client = recipientRepository.findById(input.recipientId())
+                .orElseThrow(() -> DeliveryPreparationInput.invalid("Recipient not found."));
 
         Operator operator = (dto.getOperatorId() != null) ?
-                operatorRepository.findById(dto.getOperatorId()).orElse(null) : null;
+                operatorRepository.findById(dto.getOperatorId()).orElseThrow(() -> DeliveryPreparationInput.invalid("Operator not found.")) : null;
 
         Delivery delivery = DeliveryMapper.toEntity(dto, client, operator);
+        input.apply(delivery);
         deliveryRepository.save(delivery);
         return DeliveryMapper.toResponseDTO(delivery);
     }
@@ -63,6 +65,7 @@ public class DeliveryService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<DeliveryResponseDTO> updateDelivery(int id, DeliveryRequestDTO dto) {
+        var input = DeliveryPreparationInput.from(dto);
         var lockedIds = lifecycle.lockOperators(id);
         return deliveryRepository.lockById(id).flatMap(existing -> {
             lifecycle.checkAssignmentUnchanged(id, lockedIds);
@@ -74,18 +77,14 @@ public class DeliveryService {
             }
 
             Recipient recipient = recipientRepository.findById(dto.getRecipientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+                    .orElseThrow(() -> DeliveryPreparationInput.invalid("Recipient not found."));
 
             Operator operator = (dto.getOperatorId() != null) ?
-                    operatorRepository.findById(dto.getOperatorId()).orElse(null) : null;
+                    operatorRepository.findById(dto.getOperatorId()).orElseThrow(() -> DeliveryPreparationInput.invalid("Operator not found.")) : null;
 
             existing.setRecipientId(recipient);
             existing.setOperatorId(operator);
-            existing.setScheduledDate(dto.getScheduledDate());
-            existing.setStartTimeWindow(dto.getStartTimeWindow());
-            existing.setEndTimeWindow(dto.getEndTimeWindow());
-            existing.setPriorityLevel(dto.getPriorityLevel());
-            existing.setSpecialInstructions(dto.getSpecialInstructions());
+            input.apply(existing);
 
             Delivery updated = deliveryRepository.save(existing);
             return Optional.of(DeliveryMapper.toResponseDTO(updated));
