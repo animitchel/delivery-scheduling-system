@@ -59,7 +59,7 @@ public class AccountManagementService {
         administrator(actor, currentPassword);
         String normalized = AccountService.normalizeUsername(username);
         if (operatorId == null || operatorId <= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid operator.");
-        var operator = operators.findById(operatorId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Operator not found."));
+        var operator = operators.lockById(operatorId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Operator not found."));
         if (accounts.existsByUsername(normalized) || accounts.existsByOperatorOperatorId(operatorId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username or operator already has an account.");
         }
