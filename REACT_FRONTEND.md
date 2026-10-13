@@ -73,3 +73,7 @@ React delivery creation and review are documented in [REACT_DELIVERIES.md](REACT
 ## Administrator route generation
 
 `/app/admin/routes/generate` provides explicit generation/assignment confirmation, a dedicated configurable browser deadline and all-status review after uncertain writes. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) for the timeout setting, recovery limits and browser verification.
+
+## Administrator warehouse setup
+
+`/app/admin/warehouses` provides bounded depot search, explicit coordinates, conditional editing/deletion and review after uncertain writes. See [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md) for draft and recovery behaviour.
