@@ -1,0 +1,172 @@
+.driver-heading,.dialog-heading,.stop-title{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:center
+}
+.driver-heading h1{
+  margin-bottom:0
+}
+.driver-heading{
+  margin-bottom:30px
+}
+.route-picker{
+  margin:25px 0
+}
+.route-picker label{
+  display:block;
+  font-weight:600;
+  margin-bottom:8px
+}
+.route-picker select{
+  font:inherit;
+  width:100%;
+  padding:12px;
+  border:1px solid #cdd8ce;
+  border-radius:8px;
+  background:white
+}
+.route-summary{
+  overflow-wrap:anywhere;
+  padding:24px;
+  background:#e9efdf;
+  border-radius:12px;
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between
+}
+.route-summary h2,.route-summary p{
+  margin:0
+}
+.route-progress{
+  width:100%;
+  font-size:.85rem
+}
+.status-badge{
+  display:inline-block;
+  border:1px solid #cbd8c6;
+  background:#f3f7ef;
+  padding:5px 10px;
+  border-radius:20px;
+  font-size:.7rem;
+  font-weight:650;
+  white-space:nowrap
+}
+.stop-list{
+  list-style:none;
+  padding:0;
+  display:grid;
+  gap:18px;
+  margin-top:24px
+}
+.stop-card{
+  background:white;
+  border:1px solid #dce4da;
+  border-radius:12px;
+  padding:24px;
+  display:flex;
+  gap:20px
+}
+.stop-number{
+  flex-shrink:0;
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:#edf3e7;
+  color:#426642;
+  font-weight:650
+}
+.stop-body{
+  min-width:0;
+  flex:1;
+  overflow-wrap:anywhere
+}
+.stop-title h2{
+  margin:0
+}
+.travel{
+  font-size:.85rem;
+  margin:14px 0
+}
+.stop-actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center
+}
+.cancel-confirm{
+  margin-top:20px;
+  padding:20px;
+  background:#fff3e8;
+  border-radius:8px
+}
+.cancel-confirm button{
+  margin:4px
+}
+.button.danger{
+  background:#893e2b;
+  border-color:#893e2b
+}
+.stop-dialog{
+  border:1px solid #d0dbd1;
+  border-radius:14px;
+  width:min(560px,94vw);
+  max-height:90vh;
+  padding:24px;
+  overflow:auto;
+  color:#172c28
+}
+.stop-dialog::backdrop{
+  background:#10292188
+}
+.stop-dialog p,.stop-dialog h3{
+  overflow-wrap:anywhere
+}
+.stop-dialog dd{
+  margin:0 0 18px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere
+}
+.stop-dialog dt{
+  font-size:.75rem;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#526a58
+}
+.route-empty{
+  padding:30px;
+  background:white;
+  border-radius:12px;
+  border:1px solid #dce4da
+}
+@media(max-width:520px){
+  .driver-heading{
+  align-items:flex-start;
+  flex-direction:column
+}
+.stop-card{
+  padding:18px;
+  gap:12px
+}
+.stop-title{
+  align-items:flex-start;
+  flex-direction:column
+}
+.stop-actions button{
+  width:100%
+}
+.dialog-heading{
+  align-items:flex-start;
+  flex-direction:column
+}
+.route-summary{
+  overflow-wrap:anywhere;
+  padding:20px
+}
+
+}
+
