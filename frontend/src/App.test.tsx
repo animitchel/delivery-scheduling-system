@@ -6,6 +6,7 @@ import { App } from './App';
 import { ApiError } from './api';
 import { adminRoutesApi } from './admin-routes-api';
 import { deliveriesApi } from './deliveries-api';
+import { operatorsApi } from './operators-api';
 import { warehousesApi } from './warehouses-api';
 import { recipientsApi } from './recipients-api';
 import { accountsApi } from './accounts-api';
@@ -202,6 +203,10 @@ describe('authenticated workspace', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save warehouse' }).closest('form')!); act(() => { window.dispatchEvent(new Event('focus')); }); await userEvent.click(screen.getByRole('link', { name: 'Accounts' })); expect(client.session).toHaveBeenCalledTimes(1); expect(screen.getByRole('button', { name: 'Sign out' })).toBeDisabled();
     await act(async () => { pending.resolve({ warehouse, etag: `"${'b'.repeat(64)}"` }); await pending.promise; }); await screen.findByText('Warehouse saved.');
     client.session.mockRejectedValue(new ApiError(401)); act(() => { window.dispatchEvent(new Event('focus')); }); await screen.findByRole('link', { name: 'Sign in' }); expect(screen.queryByRole('heading', { name: 'Warehouse directory' })).not.toBeInTheDocument();
+  });
+
+  it('denies operator management to drivers before mounting administrator endpoints', async () => {
+    const reads = vi.spyOn(operatorsApi, 'directory'); mount(clientFor(driver), '/admin/operators'); await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' }); expect(reads).not.toHaveBeenCalled();
   });
 
 });

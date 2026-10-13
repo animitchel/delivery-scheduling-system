@@ -77,3 +77,7 @@ React delivery creation and review are documented in [REACT_DELIVERIES.md](REACT
 ## Administrator warehouse setup
 
 `/app/admin/warehouses` provides bounded depot search, explicit coordinates, conditional editing/deletion and review after uncertain writes. See [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md) for draft and recovery behaviour.
+
+## Administrator operator setup
+
+`/app/admin/operators` provides driver-record setup, bounded warehouse ID selection, conditional edits/deletion and a separate Accounts handoff. See [REACT_OPERATORS.md](REACT_OPERATORS.md) for assignment safeguards, recovery and end-to-end verification.

@@ -635,6 +635,60 @@ const assert = require("node:assert/strict");
         assert.equal(warehouseDeletes, 1);
         await page.getByRole("button", { name: "I reviewed results; continue", exact: true }).click();
 
+
+        // Operator onboarding uses the existing Accounts screen, then a real assignment/lifecycle handover.
+        await page.getByRole("link", { name: "Operators", exact: true }).click();
+        await page.getByRole("button", { name: "New operator", exact: true }).click();
+        await page.getByLabel("Operator name", { exact: true }).fill("Chrome operator");
+        await page.getByLabel("Phone number", { exact: true }).fill("+447123456789");
+        await page.getByLabel("Operator email", { exact: true }).fill("chrome.operator@example.test");
+        await page.getByLabel("Vehicle type", { exact: true }).fill("Van");
+        await page.getByLabel("Maximum capacity", { exact: true }).fill("25");
+        await page.getByRole("button", { name: `Choose warehouse #${assignedWarehouseId}`, exact: true }).click();
+        for (const width of [320, 375, 768, 1440]) {
+            await page.setViewportSize({ width, height: 1000 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        }
+        await page.locator("#operator-editor").evaluate(node => node.scrollIntoView({ block: "start" }));
+        await page.screenshot({ path: "/private/tmp/react-operators-desktop.png", clip: { x: 0, y: 0, width: 1440, height: 900 } });
+        await page.getByRole("button", { name: "Save operator", exact: true }).click();
+        await page.getByText("Operator saved.", { exact: true }).waitFor();
+        const operatorRows = await (await context.request.get(`${target.origin}/api/admin/operators`)).json();
+        const chromeOperatorId = operatorRows.operators.find(row => row.email === "chrome.operator@example.test").operatorId;
+        assert.equal(await page.locator(".recipient-table img").count(), 0);
+        await page.getByRole("link", { name: "Manage driver login access", exact: true }).click();
+        await page.locator("#account-operator option").filter({ hasText: "Chrome operator" }).waitFor({ state: "attached" });
+        await page.locator("#account-operator").selectOption(String(chromeOperatorId));
+        await page.getByLabel("Driver username", { exact: true }).fill("chrome.operator.driver");
+        await page.locator("#create-current-password").fill("smoke test administrator passphrase");
+        await page.getByRole("button", { name: "Create driver account", exact: true }).click();
+        await page.locator('[aria-labelledby="credential-title"][open]').waitFor();
+        const operatorTemporary = await page.locator("#temporary-driver-password").inputValue();
+        await page.getByRole("button", { name: "Done", exact: true }).click();
+        const operatorContext = await browser.newContext(); const operatorPage = await operatorContext.newPage();
+        operatorPage.on("pageerror", error => errors.push(error.message));
+        async function operatorLogin(password) {
+            await operatorPage.goto(`${target.origin}/html/login.html`); await operatorPage.locator("#username").fill("chrome.operator.driver"); await operatorPage.locator("#password").fill(password); await operatorPage.locator("#loginButton").click();
+        }
+        await operatorLogin(operatorTemporary); await operatorPage.waitForURL("**/html/change-password.html");
+        const operatorPermanent = "disposable chrome operator permanent passphrase";
+        await operatorPage.locator("#currentPassword").fill(operatorTemporary); await operatorPage.locator("#newPassword").fill(operatorPermanent); await operatorPage.locator("#confirmPassword").fill(operatorPermanent); await operatorPage.locator("#passwordButton").click(); await operatorPage.waitForURL("**/html/login.html?passwordChanged");
+        await operatorLogin(operatorPermanent); await operatorPage.waitForURL("**/app/driver/routes"); await operatorPage.getByRole("heading", { name: "No assigned routes", exact: true }).waitFor();
+        const planningHeaders = await (await context.request.get(`${target.origin}/api/admin/routes?size=50`)).json();
+        const busyOperators = new Set(planningHeaders.routes.filter(route => route.routeStatus !== "COMPLETED").map(route => route.operatorId));
+        const eligibleCount = operatorRows.operators.filter(o => o.availabilityStatus === "AVAILABLE" && !busyOperators.has(o.operatorId)).length;
+        const operatorCsrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        for (let i = 0; i < eligibleCount; i++) assert.equal((await context.request.post(`${target.origin}/api/admin/deliveries`, { headers: { [operatorCsrf.headerName]: operatorCsrf.token }, data: { recipientId, scheduledDate: "1990-01-02", startTimeWindow: "09:00", endTimeWindow: "12:00", priorityLevel: "MEDIUM", specialInstructions: "Operator handover fixture" } })).status(), 201);
+        await page.getByRole("link", { name: "Generate routes", exact: true }).click(); await page.getByLabel("Planning cutoff date", { exact: true }).fill("1990-01-02"); await page.getByRole("button", { name: "Review assignment", exact: true }).click(); await page.getByRole("button", { name: "Confirm generation and assignment", exact: true }).click(); await page.getByRole("heading", { name: "Generated routes", exact: true }).waitFor();
+        await page.getByRole("link", { name: "Operators", exact: true }).click(); await page.getByRole("button", { name: `Edit operator #${chromeOperatorId}`, exact: true }).click(); await page.getByLabel("Operator name", { exact: true }).waitFor();
+        assert.equal(await page.getByLabel("Availability", { exact: true }).isDisabled(), true); assert.equal(await page.getByLabel("Vehicle type", { exact: true }).isDisabled(), true);
+        await page.setViewportSize({ width: 375, height: 900 }); await page.locator("#operator-editor").evaluate(node => node.scrollIntoView({ block: "start" })); await page.screenshot({ path: "/private/tmp/react-operators-mobile.png", clip: { x: 0, y: 0, width: 375, height: 780 } });
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await operatorPage.getByRole("button", { name: "Reload routes", exact: true }).click(); await operatorPage.getByRole("button", { name: "Mark completed", exact: true }).click(); await operatorPage.getByRole("status").filter({ hasText: "1 of 1 stops finished" }).waitFor();
+        assert.equal((await (await context.request.get(`${target.origin}/api/admin/operators/${chromeOperatorId}`)).json()).availabilityStatus, "AVAILABLE");
+        await operatorPage.goto(`${target.origin}/app/admin/operators`); await operatorPage.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor(); await operatorContext.close();
+        await page.getByRole("button", { name: "Cancel operator edit", exact: true }).click(); await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("dialog", { name: "Delete this operator?", exact: true }).waitFor(); await page.keyboard.press("Escape");
+        await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("button", { name: "Confirm operator deletion", exact: true }).click(); await page.getByRole("alert").filter({ hasText: "history cannot be deleted" }).waitFor();
         await page.getByRole("link", { name: "Accounts", exact: true }).click();
         await page.getByRole("button", { name: "Reload accounts", exact: true }).waitFor();
         const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
