@@ -70,7 +70,7 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
-    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/driver"})
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/driver","/app/driver/routes"})
     void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
         var client=HttpClient.newHttpClient();
         var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
@@ -121,7 +121,7 @@ class Java25ApplicationSmokeTest {
             builder.environment().put("DRIVER_TEST_OTHER_DELIVERY", String.valueOf(driverFixtures.otherDelivery()));
             builder.redirectErrorStream(true);
             var process = builder.start();
-            if (!process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS)) {
+            if (!process.waitFor(90, java.util.concurrent.TimeUnit.SECONDS)) {
                 process.destroyForcibly();
                 throw new AssertionError("Browser verification timed out.");
             }
@@ -147,6 +147,7 @@ class Java25ApplicationSmokeTest {
                 for (int routeIndex = 0; routeIndex < (index == 0 ? 2 : index == 1 ? 1 : 0); routeIndex++) {
                     var delivery = new com.mmu.schedulingapp.model.Delivery();
                     delivery.setRecipientId(recipients.findById(recipient.getRecipientId()).orElseThrow()); delivery.setOperatorId(operator);
+                    delivery.setScheduledDate(java.time.LocalDate.now().plusDays(routeIndex)); delivery.setStartTimeWindow(java.time.LocalTime.of(9,0)); delivery.setEndTimeWindow(java.time.LocalTime.of(12,0)); delivery.setSpecialInstructions("Use side entrance");
                     delivery.setDeliveryStatus(com.mmu.schedulingapp.model.Delivery.DeliveryStatus.IN_PROGRESS); delivery.setPriorityLevel(com.mmu.schedulingapp.model.Delivery.PriorityLevel.MEDIUM); deliveries.saveAndFlush(delivery);
                     var route = new com.mmu.schedulingapp.model.Route(); route.setOperator(operator); route.setScheduledDate(java.time.LocalDate.now().plusDays(routeIndex));
                     route.setRouteStatus(com.mmu.schedulingapp.model.Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route);

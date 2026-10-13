@@ -48,7 +48,7 @@ export function createApiClient(fetcher: typeof fetch = fetch) {
     const headers = new Headers(options.headers);
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
       if (!csrf) {
-        const value = await json(await checked(await send(target('/api/auth/csrf'), { method: 'GET' })));
+        const value = await json(await checked(await send(target('/api/auth/csrf'), { method: 'GET', ...(options.signal ? { signal: options.signal } : {}) })));
         if (!record(value) || value['headerName'] !== 'X-CSRF-TOKEN' || typeof value['token'] !== 'string' || value['token'].length < 1 || value['token'].length > 4096) throw new ApiError(502);
         csrf = { headerName: value['headerName'], token: value['token'] };
       }
