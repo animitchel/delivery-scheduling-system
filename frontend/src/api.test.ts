@@ -47,6 +47,13 @@ describe('session API contract', () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json({ passwordChangeRequired: true, error: 'private detail' }, 403));
     await expect(createApiClient(fetcher).session(new AbortController().signal)).rejects.toMatchObject({ status: 403, passwordChangeRequired: true, message: 'You do not have permission for this action.' });
   });
+  it('cancels CSRF acquisition before any status write is sent', async () => {
+    const controller = new AbortController();
+    const fetcher = vi.fn<typeof fetch>().mockImplementation((_url, options) => new Promise((_resolve, reject) => { options?.signal?.addEventListener('abort', () => reject(new DOMException('Cancelled', 'AbortError'))); }));
+    const request = createApiClient(fetcher).request('/api/driver/deliveries/1/status', { method: 'PATCH', signal: controller.signal });
+    controller.abort(); await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetcher).toHaveBeenCalledTimes(1); expect(fetcher.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+  });
   it('keeps request cancellation recognizable', async () => {
     const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new DOMException('Cancelled', 'AbortError'));
     await expect(createApiClient(fetcher).session(new AbortController().signal)).rejects.toMatchObject({ name: 'AbortError' });

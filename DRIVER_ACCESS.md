@@ -1,6 +1,6 @@
 # Driver ownership and workflow
 
-Drivers can now sign in at `/html/login.html` and use `/html/operators.html`. The page lists only their assigned routes, supports explicit selection when there are multiple routes, shows an empty state when there are none, and retrieves recipient details through an assigned delivery. Administrator management APIs remain administrator-only; administrators retain access to the route page through their existing APIs.
+Drivers can now sign in at `/html/login.html` and use `/app/driver/routes`. The page lists only their assigned routes, supports explicit selection when there are multiple routes, shows an empty state when there are none, and retrieves recipient details through an assigned delivery. The legacy `/html/operators.html` page remains available for rollback. See `REACT_DRIVER_ROUTES.md` for the React workflow and its error handling. Administrator management APIs remain administrator-only; administrators retain access to the route page through their existing APIs.
 
 ## Driver API
 
