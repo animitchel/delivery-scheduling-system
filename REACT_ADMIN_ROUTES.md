@@ -4,7 +4,7 @@ Administrator route review opens at `/app/admin/routes` from Routes in the React
 
 ## Bounded directory API
 
-`GET /api/v1/scheduling-app/routes/directory?page=0&size=20` is additive. The legacy all-routes API remains compatible. Page numbers are 0–10000 and sizes 1–50; invalid bounds return 400. Results are ordered by scheduled date descending, then route ID descending. Empty/out-of-range pages return empty `routes` with page metadata.
+`GET /api/v1/scheduling-app/routes/directory?page=0&size=20` is additive. The legacy all-routes API remains compatible. Page numbers are 0–10000 and sizes 1–50; invalid bounds return 400. An optional exact `scheduledDate=YYYY-MM-DD` filter includes every route status for that date. Results are ordered by scheduled date descending, then route ID descending. Empty/out-of-range pages return empty `routes` with page metadata.
 
 The response contains `{routes, page, size, totalElements, totalPages}`. Each summary contains route ID, operator ID/name, scheduled date, route status, `stopCount` and `finishedCount`. Finished includes completed and cancelled deliveries; an empty route reports zero for both counts. No stop list or recipient data is returned in the directory.
 
@@ -33,3 +33,5 @@ Open `http://127.0.0.1:5174/app/admin/routes`. Vite defaults match these ports; 
 Frontend tests cover runtime contracts, role guards, stale detail/route responses, paging changes, cancellation, duplicate writes, read/write budgets, session errors and conflict/uncertain-outcome recovery. H2 tests verify stable paging, scalar query/statement bounds, metrics, empty pages, permissions and OSIV-disabled detail mapping. Disposable MySQL verifies the aggregate and terminal metrics. Chrome exercises administrator/driver concurrent changes, persisted completion/cancellation, operator release, pagination, native-dialog keyboard behavior and responsive widths while retaining prior account and driver journeys.
 
 Run `npm --prefix frontend run check` and the established Java 25 `scripts/test-account-mysql.sh` suite with optional `session.browser.*` arguments. The protected legacy `/html/operators.html` page remains a rollback path. Route generation, recipient/delivery editing, deletion and archive management are separate tasks. This branch does not deploy, migrate a live database or change live accounts.
+
+The upcoming React generation slice uses [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md). This existing review screen continues to work with its current endpoints.

@@ -13,6 +13,14 @@ public interface RouteRepository extends JpaRepository<Route, Integer> {
             countQuery = "select count(r) from Route r join r.operator o")
     org.springframework.data.domain.Page<com.mmu.schedulingapp.dto.route.RouteHeader> directory(org.springframework.data.domain.Pageable pageable);
 
+    @Query(value = """
+            select new com.mmu.schedulingapp.dto.route.RouteHeader(r.routeId, o.operatorId, o.name, r.scheduledDate, r.routeStatus)
+            from Route r join r.operator o where r.scheduledDate = :date
+            order by r.scheduledDate desc, r.routeId desc
+            """, countQuery = "select count(r) from Route r join r.operator o where r.scheduledDate = :date")
+    org.springframework.data.domain.Page<com.mmu.schedulingapp.dto.route.RouteHeader> directoryForDate(
+            @Param("date") java.time.LocalDate date, org.springframework.data.domain.Pageable pageable);
+
     interface StopCounts { Integer getRouteId(); Long getStopCount(); Long getFinishedCount(); }
     @Query("select r.routeId as routeId, count(d) as stopCount, sum(case when d.deliveryStatus in (com.mmu.schedulingapp.model.Delivery.DeliveryStatus.COMPLETED, com.mmu.schedulingapp.model.Delivery.DeliveryStatus.CANCELLED) then 1 else 0 end) as finishedCount from Route r left join r.deliveries d where r.routeId in :ids group by r.routeId")
     List<StopCounts> directoryCounts(@Param("ids") List<Integer> ids);
