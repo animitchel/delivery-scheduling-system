@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError } from './api';
 import { adminRoutesApi } from './admin-routes-api';
+import { recipientsApi } from './recipients-api';
 import { accountsApi } from './accounts-api';
 import { driverApi } from './driver-api';
 import type { Credential } from './accounts-api';
@@ -22,6 +23,7 @@ describe('authenticated workspace', () => {
     mount(clientFor()); expect(screen.getByRole('status')).toHaveTextContent('Preparing');
     expect(await screen.findByRole('heading', { name: 'Keep deliveries moving.' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open accounts' })).toHaveAttribute('href', '/app/admin/accounts');
+    expect(screen.getByRole('link', { name: 'Open recipients' })).toHaveAttribute('href', '/app/admin/recipients');
     expect(screen.getByRole('link', { name: 'Open scheduling' })).toHaveAttribute('href', '/html/admin.html');
   });
   it('shows driver tools without administrator navigation', async () => {
@@ -129,4 +131,9 @@ describe('authenticated workspace', () => {
     const attack = '<img src=x onerror=alert(1)>'; mount(clientFor({ ...admin, username: attack }));
     await screen.findByText(attack); expect(document.querySelector('img')).toBeNull();
   });
+  it('guards recipient administration from drivers before requesting data', async () => {
+    const requests=vi.spyOn(recipientsApi,'directory'); mount(clientFor(driver),'/admin/recipients');
+    await screen.findByRole('heading',{name:'You don’t have access to this workspace.'}); expect(requests).not.toHaveBeenCalled(); requests.mockRestore();
+  });
+
 });

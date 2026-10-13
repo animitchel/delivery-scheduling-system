@@ -77,6 +77,60 @@ const assert = require("node:assert/strict");
         await page.waitForURL("**/html/admin.html");
         await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
 
+        // Recipient deep link, real conditional update, safe text and responsive form.
+        await page.getByRole("link", {name:"Recipients",exact:true}).click();
+        await page.waitForURL("**/app/admin/recipients");
+        await page.locator(".recipient-table tbody tr").first().waitFor();
+        assert.equal(await page.locator(".recipient-table img").count(),0);
+        await page.locator(".recipient-table tbody button").first().click();
+        await page.getByLabel("Contact number (optional)").fill("012345");
+        let recipientWrites=0;
+        const countRecipient=request=>{if(request.method()==="PUT" && new URL(request.url()).pathname.startsWith("/api/admin/recipients/")) recipientWrites++;};
+        page.on("request",countRecipient);
+        await page.getByRole("button",{name:"Save recipient",exact:true}).click();
+        await page.getByRole("status").filter({hasText:/Recipient .* saved/}).waitFor();
+        page.off("request",countRecipient); assert.equal(recipientWrites,1);
+        await page.locator(".recipient-table tbody button").first().click();
+        await page.getByLabel("First name",{exact:true}).waitFor();
+        for(const width of [320,375,768]) {
+            await page.setViewportSize({width,height:900});
+            assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+        }
+        await page.setViewportSize({width:1440,height:1000});
+        await page.evaluate(() => window.scrollTo(0,0));
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await page.screenshot({path:"/private/tmp/react-recipients-desktop.png",clip:{x:0,y:0,width:1440,height:900}});
+        await page.setViewportSize({width:375,height:900});
+        await page.getByRole("heading",{name:"Edit recipient",exact:true}).scrollIntoViewIfNeeded();
+        await page.screenshot({path:"/private/tmp/react-recipients-mobile.png"});
+        await page.setViewportSize({width:1280,height:900});
+        // A concurrent API writer invalidates the open form's version.
+        const recipientDirectory=await (await context.request.get(`${target.origin}/api/admin/recipients?page=0&size=20&search=`)).json();
+        const recipientId=recipientDirectory.recipients[0].recipientId;
+        const latest=await context.request.get(`${target.origin}/api/admin/recipients/${recipientId}`);
+        const latestBody=await latest.json();
+        const recipientCsrf=await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        const concurrent=await context.request.put(`${target.origin}/api/admin/recipients/${recipientId}`,{headers:{[recipientCsrf.headerName]:recipientCsrf.token,"If-Match":latest.headers().etag},data:{firstName:latestBody.firstName,lastName:latestBody.lastName,address:latestBody.address,contactNumber:"654321",priorityLevel:latestBody.priorityLevel}});
+        assert.equal(concurrent.status(),200);
+        await page.getByRole("button",{name:"Save recipient",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"changed while you were editing"}).waitFor();
+        assert.equal(await page.getByRole("button",{name:"Save recipient",exact:true}).isDisabled(),true);
+        await page.getByRole("button",{name:"Reload directory",exact:true}).click();
+        await page.locator(".recipient-table tbody tr").first().waitFor();
+        // Provider failure is mocked at the API boundary; no live Maps request is made.
+        await page.getByRole("button",{name:"New recipient",exact:true}).click();
+        await page.getByLabel("First name",{exact:true}).fill("Browser");
+        await page.getByLabel("Last name",{exact:true}).fill("Recipient");
+        await page.getByLabel("Address",{exact:true}).fill("Mock address");
+        await page.route("**/api/admin/recipients",route=>route.fulfill({status:503,contentType:"application/json",body:'{}'}),{times:1});
+        await page.getByRole("button",{name:"Save recipient",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"Address lookup is unavailable"}).waitFor();
+        assert.equal(await page.getByRole("alert").filter({hasText:"Address lookup is unavailable"}).evaluate(node => node.ownerDocument.querySelector(".recipient-fields textarea")?.value),"Mock address");
+        await page.getByRole("link",{name:"Scheduling",exact:true}).click();
+        await page.waitForURL("**/html/admin.html");
+        await page.locator("#sessionAccount").filter({hasText:"smoke.admin"}).waitFor();
+        await page.waitForFunction(() => document.querySelector("#recipientId option")?.textContent.includes("<img"));
+
         // Check that CSRF reaches the server from the actual shared jQuery prefilter.
         const response = await page.evaluate(() => new Promise(resolve => {
             $.ajax({ url: "/api/v1/scheduling-app/operators", method: "POST", contentType: "application/json", data: "{}" })
