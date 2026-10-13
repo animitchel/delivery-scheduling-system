@@ -121,16 +121,23 @@ class Java25ApplicationSmokeTest {
         try {
             var builder = new ProcessBuilder(System.getProperty("session.browser.node"), "scripts/test-session-browser.cjs", base);
             builder.environment().put("NODE_PATH", System.getProperty("session.browser.modules"));
-            builder.environment().put("SESSION_BROWSER_EXECUTABLE", System.getProperty("session.browser.executable"));
+            String executable = System.getProperty("session.browser.executable");
+            if (executable != null && !executable.isBlank()) builder.environment().put("SESSION_BROWSER_EXECUTABLE", executable);
+            // Without an override, Playwright launches its version-matched bundled Chromium.
+            String artifactDirectory = System.getProperty("session.browser.artifacts");
+            if (artifactDirectory != null) builder.environment().put("SESSION_BROWSER_ARTIFACTS_DIR", artifactDirectory);
             builder.environment().put("DRIVER_TEST_OTHER_ROUTE", String.valueOf(driverFixtures.otherRoute()));
             builder.environment().put("DRIVER_TEST_OTHER_DELIVERY", String.valueOf(driverFixtures.otherDelivery()));
-            builder.redirectErrorStream(true);
+            var browserLog=java.nio.file.Path.of(artifactDirectory == null ? "target/browser-artifacts" : artifactDirectory, "browser.log");
+            java.nio.file.Files.createDirectories(browserLog.getParent());
+            builder.redirectErrorStream(true); builder.redirectOutput(browserLog.toFile());
             var process = builder.start();
             if (!process.waitFor(90, java.util.concurrent.TimeUnit.SECONDS)) {
                 process.destroyForcibly();
-                throw new AssertionError("Browser verification timed out.");
+                process.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                throw new AssertionError("Browser verification timed out. See " + browserLog);
             }
-            String output=new String(process.getInputStream().readAllBytes(),StandardCharsets.UTF_8);
+            String output=java.nio.file.Files.readString(browserLog,StandardCharsets.UTF_8);
             assertThat(process.exitValue()).withFailMessage("Browser verification failed: %s",output).isZero();
         } finally { clearDriverFixtures(); }
     }
