@@ -9,6 +9,8 @@ import { deliveriesApi } from './deliveries-api';
 import { recipientsApi } from './recipients-api';
 import { accountsApi } from './accounts-api';
 import { driverApi } from './driver-api';
+import { generationApi } from './route-generation-api';
+import type { GenerationResult } from './route-generation-api';
 import type { Credential } from './accounts-api';
 import type { DriverRoute } from './driver-api';
 import type { Account, SessionClient } from './api';
@@ -154,6 +156,37 @@ describe('authenticated workspace', () => {
     await act(async()=>pending.resolve({deliveryId:7,recipientId:1,operatorId:null,clientName:'Alex Smith',operatorName:null,scheduledDate:'2020-01-02',startTimeWindow:'09:00:00',endTimeWindow:'12:00:00',priorityLevel:'MEDIUM',deliveryStatus:'PENDING',specialInstructions:null}));
     await screen.findByText('Delivery #7 created.'); expect(screen.getByRole('button',{name:'Sign out'})).toBeEnabled();
     client.session.mockRejectedValue(new ApiError(401)); act(()=>window.dispatchEvent(new Event('focus'))); await screen.findByRole('link',{name:'Sign in'}); expect(screen.queryByText('Delivery #7 created.')).not.toBeInTheDocument();
+  });
+
+  it('denies route generation to drivers without reading or writing administrator endpoints', async () => {
+    const reads = vi.spyOn(generationApi, 'directory'); const writes = vi.spyOn(generationApi, 'generate');
+    mount(clientFor(driver), '/admin/routes/generate');
+    await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' });
+    expect(reads).not.toHaveBeenCalled(); expect(writes).not.toHaveBeenCalled();
+  });
+  it.each(['0', '-1', '01', '2147483648', 'abc', '1&routeId=2'])('rejects invalid route link %s without loading a different route', async value => {
+    const reads = vi.spyOn(adminRoutesApi, 'directory'); const details = vi.spyOn(adminRoutesApi, 'route');
+    mount(clientFor(), `/admin/routes?routeId=${value}`);
+    await screen.findByRole('heading', { name: 'Invalid route link.' });
+    expect(reads).not.toHaveBeenCalled(); expect(details).not.toHaveBeenCalled();
+  });
+  it('holds the workspace during generation and clears recovery after session expiry', async () => {
+    vi.spyOn(generationApi, 'directory').mockResolvedValue({ routes: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    const pending = deferred<GenerationResult>(); const writes = vi.spyOn(generationApi, 'generate').mockReturnValue(pending.promise);
+    const client = clientFor(); mount(client, '/admin/routes/generate');
+    await screen.findByRole('button', { name: 'Review assignment' });
+    await userEvent.click(screen.getByRole('button', { name: 'Review assignment' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm generation and assignment' }));
+    act(() => { window.dispatchEvent(new Event('focus')); });
+    await userEvent.click(screen.getByRole('link', { name: 'Accounts' }));
+    expect(client.session).toHaveBeenCalledTimes(1); expect(writes).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Refresh session' })).toBeDisabled();
+    await act(async () => { pending.resolve({ scheduledDate: '2026-10-13', routes: [], processingTimeMs: 0 }); await pending.promise; });
+    client.session.mockRejectedValue(new ApiError(401)); act(() => { window.dispatchEvent(new Event('focus')); });
+    await screen.findByRole('link', { name: 'Sign in' });
+    expect(screen.queryByLabelText('Planning cutoff date')).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
 });

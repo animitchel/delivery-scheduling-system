@@ -74,3 +74,7 @@ Some provider failures retain the existing estimated-distance fallback: route de
 Legacy POST `/api/v1/scheduling-app/routes` retains its payload/response and the existing behavior of ignoring its optional operator ID. New callers should use the strict contract. Shared service validation now rejects null/out-of-storage-range dates before acquiring a planning slot. Legacy GET `/routes/directory` also accepts the optional exact `scheduledDate` filter; existing callers omitting it retain their results. Scoped safe error handling applies to both route controllers. Legacy deletion/lifecycle rules are preserved.
 
 Focused H2/MockMvc tests cover strict parsing, roles/CSRF/password setup, cutoff/overdue selection, acknowledgement shape, framework errors, planning limits, fallback labels, stale inputs, concurrent requests, whole-plan rollback and scalar all-status filtering. Real HTTP tests use cookies/CSRF with OSIV enabled; scalar tests use OSIV disabled. Disposable MySQL verifies concurrency, rollback, completed-route review, paging and storage date bounds. Maps is mocked; no live provider/database calls are required. Existing Java/MySQL/frontend/Chrome journeys remain regression gates.
+
+## React consumer
+
+The administrator consumer is documented in [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md), including explicit assignment confirmation, browser timeout configuration and manual reconciliation without automatic write replay.

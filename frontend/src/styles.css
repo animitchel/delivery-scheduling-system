@@ -464,3 +464,10 @@ h1 {
 .delivery-details dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .delivery-recovery .button { margin: 8px 12px 8px 0; }
 @media (max-width: 600px) { .delivery-details { grid-template-columns: minmax(0, 1fr); gap: 8px; } .delivery-details dd { margin-bottom: 12px; } }
+
+.generation-dialog { width: min(560px, calc(100vw - 32px)); border: 1px solid #dce5df; border-radius: 16px; padding: 24px; color: #18352d; }
+.generation-dialog::backdrop { background: rgb(8 32 26 / 55%); }
+.generation-results, .generation-stops { padding-left: 24px; }
+.generation-results li, .generation-stops li { padding: 16px 0; overflow-wrap: anywhere; border-bottom: 1px solid #dce5df; }
+.generation-recovery .button { margin: 8px 12px 8px 0; }
+.generation-dialog .button, .generation-recovery .button { max-width: 100%; white-space: normal; }

@@ -104,4 +104,15 @@ describe('administrator route workflow', () => {
     const signal = client.route.mock.calls.at(-1)?.[1]; view.unmount(); expect(signal?.aborted).toBe(true);
     await act(async () => { newer.resolve(route); await newer.promise; }); expect(screen.queryByText('Driver')).not.toBeInTheDocument();
   });
+  it('loads a directly linked route outside the first directory page and focuses its summary', async () => {
+    const client=clientFor(); client.directory.mockResolvedValue(directory([{...route,routeId:2}]));client.route.mockResolvedValue({...route,routeId:91});
+    render(<AdminRoutes client={client} initialRouteId={91} onAuthError={vi.fn()} />); await screen.findByRole('heading',{name:'Route #91'});
+    expect(client.route).toHaveBeenCalledWith(91,expect.any(AbortSignal));expect(screen.getByRole('region',{name:'Route #91 overview'})).toHaveFocus();expect(screen.getByText(/outside this directory page/)).toBeVisible();
+  });
+  it('does not substitute another route when the deep-link target is missing', async () => {
+    const client=clientFor();client.route.mockRejectedValue(new ApiError(404));render(<AdminRoutes client={client} initialRouteId={91} onAuthError={vi.fn()} />);
+    await screen.findByRole('alert');expect(client.route).toHaveBeenCalledTimes(1);expect(client.route.mock.calls[0]?.[0]).toBe(91);expect(screen.queryByRole('heading',{name:'Route #1'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button',{name:'Reload routes'}));await screen.findByRole('alert');expect(client.route.mock.calls.map(call=>call[0])).toEqual([91,91]);
+  });
+
 });
