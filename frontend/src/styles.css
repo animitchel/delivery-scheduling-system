@@ -471,3 +471,11 @@ h1 {
 .generation-results li, .generation-stops li { padding: 16px 0; overflow-wrap: anywhere; border-bottom: 1px solid #dce5df; }
 .generation-recovery .button { margin: 8px 12px 8px 0; }
 .generation-dialog .button, .generation-recovery .button { max-width: 100%; white-space: normal; }
+
+.warehouse-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.warehouse-fields label { display: grid; gap: 8px; min-width: 0; align-content: start; }
+.warehouse-fields textarea { width: 100%; min-height: 110px; padding: 12px; border: 1px solid #c8d8d0; border-radius: 8px; font: inherit; }
+.warehouse-current { margin: 20px 0; padding: 16px; border-left: 3px solid #195a47; overflow-wrap: anywhere; background: #f1f7f3; }
+@media (max-width: 640px) { .warehouse-fields { grid-template-columns: 1fr; } }
+
+.warehouse-table-actions .text-button + .text-button { margin-left: 14px; }

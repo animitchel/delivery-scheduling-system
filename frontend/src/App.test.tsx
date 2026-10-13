@@ -6,6 +6,7 @@ import { App } from './App';
 import { ApiError } from './api';
 import { adminRoutesApi } from './admin-routes-api';
 import { deliveriesApi } from './deliveries-api';
+import { warehousesApi } from './warehouses-api';
 import { recipientsApi } from './recipients-api';
 import { accountsApi } from './accounts-api';
 import { driverApi } from './driver-api';
@@ -187,6 +188,20 @@ describe('authenticated workspace', () => {
     await screen.findByRole('link', { name: 'Sign in' });
     expect(screen.queryByLabelText('Planning cutoff date')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('denies warehouse management to a driver before reading warehouse data', async () => {
+    const read = vi.spyOn(warehousesApi, 'directory'); mount(clientFor(driver), '/admin/warehouses');
+    await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' }); expect(read).not.toHaveBeenCalled();
+  });
+  it('holds shell navigation during a warehouse write and clears private content on expiry', async () => {
+    const warehouse = { warehouseId: 3, name: 'Depot', address: 'Address', latitude: 0, longitude: 0 };
+    vi.spyOn(warehousesApi, 'directory').mockResolvedValue({ warehouses: [warehouse], page: 0, size: 20, totalElements: 1, totalPages: 1 });
+    vi.spyOn(warehousesApi, 'read').mockResolvedValue({ warehouse, etag: `"${'a'.repeat(64)}"` }); const pending = deferred<{ warehouse: typeof warehouse; etag: string }>(); vi.spyOn(warehousesApi, 'update').mockReturnValue(pending.promise);
+    const client = clientFor(); mount(client, '/admin/warehouses'); await screen.findByRole('button', { name: 'Edit warehouse #3' }); await userEvent.click(screen.getByRole('button', { name: 'Edit warehouse #3' })); await screen.findByLabelText('Warehouse name');
+    fireEvent.submit(screen.getByRole('button', { name: 'Save warehouse' }).closest('form')!); act(() => { window.dispatchEvent(new Event('focus')); }); await userEvent.click(screen.getByRole('link', { name: 'Accounts' })); expect(client.session).toHaveBeenCalledTimes(1); expect(screen.getByRole('button', { name: 'Sign out' })).toBeDisabled();
+    await act(async () => { pending.resolve({ warehouse, etag: `"${'b'.repeat(64)}"` }); await pending.promise; }); await screen.findByText('Warehouse saved.');
+    client.session.mockRejectedValue(new ApiError(401)); act(() => { window.dispatchEvent(new Event('focus')); }); await screen.findByRole('link', { name: 'Sign in' }); expect(screen.queryByRole('heading', { name: 'Warehouse directory' })).not.toBeInTheDocument();
   });
 
 });
