@@ -15,6 +15,8 @@ import static org.assertj.core.api.Assertions.*;
 
 @EnabledIfSystemProperty(named="account.mysql.url", matches="jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/account_foundation_test")
 class DriverMySqlIntegrationTest {
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final TestWorkers workers = new TestWorkers();
     static ConfigurableApplicationContext context;
     static String url;
     DriverAssignmentService service;
@@ -86,8 +88,8 @@ class DriverMySqlIntegrationTest {
     }
     @Test void concurrentTerminalUpdatesHaveOnlyOneWinner() throws Exception {
         var start=new CountDownLatch(1);
-        var one=CompletableFuture.supplyAsync(() -> { await(start); return update("COMPLETED"); });
-        var two=CompletableFuture.supplyAsync(() -> { await(start); return update("CANCELLED"); });
+        var one=workers.supplyAsync(() -> { await(start); return update("COMPLETED"); });
+        var two=workers.supplyAsync(() -> { await(start); return update("CANCELLED"); });
         start.countDown();
         assertThat(java.util.List.of(one.get(10,TimeUnit.SECONDS),two.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(200,409);
     }
@@ -112,7 +114,7 @@ class DriverMySqlIntegrationTest {
             connection.setAutoCommit(false);
             for(String statement:statements) try(var sql=connection.createStatement()) { sql.executeUpdate(statement); }
             var started=new CountDownLatch(1);
-            var result=CompletableFuture.supplyAsync(() -> { started.countDown(); return update("COMPLETED"); });
+            var result=workers.supplyAsync(() -> { started.countDown(); return update("COMPLETED"); });
             assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();
             assertThatThrownBy(() -> result.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
             connection.commit();
@@ -130,8 +132,8 @@ class DriverMySqlIntegrationTest {
             context.getBean(RouteRepository.class).saveAndFlush(route);
         });
         var start=new CountDownLatch(1);
-        var one=CompletableFuture.runAsync(() -> { await(start); service.status(accountId,0L,deliveryId,"COMPLETED"); });
-        var two=CompletableFuture.runAsync(() -> { await(start); context.getBean(com.mmu.schedulingapp.service.DeliveryService.class)
+        var one=workers.runAsync(() -> { await(start); service.status(accountId,0L,deliveryId,"COMPLETED"); });
+        var two=workers.runAsync(() -> { await(start); context.getBean(com.mmu.schedulingapp.service.DeliveryService.class)
                 .updateDeliveryStatus(next[0],Delivery.DeliveryStatus.CANCELLED); });
         start.countDown(); one.get(10,TimeUnit.SECONDS); two.get(10,TimeUnit.SECONDS);
         var route=context.getBean(RouteRepository.class).findById(routeId).orElseThrow();
@@ -141,8 +143,8 @@ class DriverMySqlIntegrationTest {
     }
     @Test void administratorAndDriverCompetingTerminalWritesHaveOneWinnerOnMySql() throws Exception {
         var start=new CountDownLatch(1);
-        var one=CompletableFuture.supplyAsync(() -> { await(start); return update("COMPLETED"); });
-        var two=CompletableFuture.supplyAsync(() -> {
+        var one=workers.supplyAsync(() -> { await(start); return update("COMPLETED"); });
+        var two=workers.supplyAsync(() -> {
             await(start);
             try { context.getBean(com.mmu.schedulingapp.service.DeliveryService.class).updateDeliveryStatus(deliveryId,Delivery.DeliveryStatus.CANCELLED); return 200; }
             catch(ResponseStatusException e) { return e.getStatusCode().value(); }
@@ -179,8 +181,8 @@ class DriverMySqlIntegrationTest {
             connection.setAutoCommit(false);
             try(var sql=connection.createStatement()) { sql.executeQuery("SELECT operator_id FROM operators WHERE operator_id="+operator[0]+" FOR UPDATE").close(); }
             var started=new CountDownLatch(2);
-            var one=CompletableFuture.supplyAsync(() -> generate(started));
-            var two=CompletableFuture.supplyAsync(() -> generate(started));
+            var one=workers.supplyAsync(() -> generate(started));
+            var two=workers.supplyAsync(() -> generate(started));
             assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();
             assertThatThrownBy(() -> one.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
             assertThatThrownBy(() -> two.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
@@ -231,11 +233,11 @@ class DriverMySqlIntegrationTest {
     }
     @Test void mapsPauseReleasesMySqlConnectionAndAllowsOperatorEdits() throws Exception {
         var operator=preparePlanning(1); var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
-        var planning=CompletableFuture.supplyAsync(() -> pausedPlan(entered,release));
+        var planning=workers.supplyAsync(() -> pausedPlan(entered,release));
         try {
             assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
             assertThat(context.getBean(com.zaxxer.hikari.HikariDataSource.class).getHikariPoolMXBean().getActiveConnections()).isZero();
-            var edit=CompletableFuture.runAsync(() -> {
+            var edit=workers.runAsync(() -> {
                 try(var connection=DriverManager.getConnection(url,"root","disposable-test-password"); var sql=connection.createStatement()) {
                     sql.executeUpdate("UPDATE operators SET availability_status='OFF_DUTY' WHERE operator_id="+operator);
                 } catch(SQLException e) { throw new RuntimeException(e); }
@@ -247,7 +249,7 @@ class DriverMySqlIntegrationTest {
     }
     @Test void relatedDataChangedWhileCommitWaitsIsRefreshedAndRejectedOnMySql() throws Exception {
         preparePlanning(1); var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
-        var planning=CompletableFuture.supplyAsync(() -> pausedPlan(entered,release));
+        var planning=workers.supplyAsync(() -> pausedPlan(entered,release));
         try(var connection=DriverManager.getConnection(url,"root","disposable-test-password")) {
             try {
                 assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); connection.setAutoCommit(false);
