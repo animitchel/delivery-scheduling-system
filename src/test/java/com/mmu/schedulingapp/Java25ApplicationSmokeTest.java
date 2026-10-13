@@ -71,7 +71,7 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
-    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/warehouses","/app/admin/deliveries","/app/admin/routes","/app/admin/routes/generate","/app/driver","/app/driver/routes"})
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/warehouses", "/app/admin/operators","/app/admin/deliveries","/app/admin/routes","/app/admin/routes/generate","/app/driver","/app/driver/routes"})
     void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
         var client=HttpClient.newHttpClient();
         var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
@@ -187,7 +187,7 @@ class Java25ApplicationSmokeTest {
             var routes=context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class); routes.deleteAll(); routes.flush();
             var deliveries=context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class); deliveries.deleteAll(); deliveries.flush();
             var repository=context.getBean(com.mmu.schedulingapp.account.AccountRepository.class);
-            for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver","onboarding.driver")) repository.findByUsername(name).ifPresent(repository::delete);
+            for (String name: java.util.List.of("smoke.driver","other.driver","empty.driver","onboarding.driver","chrome.operator.driver")) repository.findByUsername(name).ifPresent(repository::delete);
             for (var account: repository.findAll()) if (account.getUsername().startsWith("pagination.admin")) repository.delete(account);
             repository.flush();
             context.getBean(com.mmu.schedulingapp.account.AccountAuditRepository.class).deleteAll();
