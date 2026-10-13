@@ -24,7 +24,7 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
     java.util.Optional<Delivery> lockById(@Param("id") Integer id);
 
     @Query("select d.deliveryId from Delivery d where d.scheduledDate <= :date and d.deliveryStatus = com.mmu.schedulingapp.model.Delivery.DeliveryStatus.PENDING order by d.deliveryId")
-    List<Integer> findPendingIds(@Param("date") LocalDate date);
+    List<Integer> findPendingIds(@Param("date") LocalDate date, org.springframework.data.domain.Pageable pageable);
 
     List<Delivery> findByScheduledDateLessThanEqualAndDeliveryStatus(
             LocalDate date, Delivery.DeliveryStatus status);

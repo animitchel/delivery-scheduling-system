@@ -13,10 +13,18 @@ import java.util.*;
 public class RouteBuilder {
 
     private final Operator operator;
+    @FunctionalInterface public interface DistanceLookup {
+        DistanceResult get(double lat1, double lon1, double lat2, double lon2) throws Exception;
+    }
+    private final DistanceLookup lookup;
+    private final Runnable checkDeadline;
     // cache whole DistanceResult so we reuse duration too
     private final Map<String, DistanceResult> legCache = new HashMap<>();
 
-    public RouteBuilder(Operator operator) { this.operator = operator; }
+    public RouteBuilder(Operator operator) { this(operator, DistanceCalculator::getGoogleMapsDistance, () -> {}); }
+    public RouteBuilder(Operator operator, DistanceLookup lookup, Runnable checkDeadline) {
+        this.operator = operator; this.lookup = lookup; this.checkDeadline = checkDeadline;
+    }
 
     public List<Delivery> buildOptimizedRoute(List<Delivery> deliveries) {
         List<Delivery> route = new ArrayList<>();
@@ -127,18 +135,22 @@ public class RouteBuilder {
 
     /** Get leg info with caching (Distance + Duration). */
     private DistanceResult getLeg(double lat1, double lon1, double lat2, double lon2) {
+        checkDeadline.run();
         String key = lat1 + "," + lon1 + "->" + lat2 + "," + lon2;
         DistanceResult cached = legCache.get(key);
         if (cached != null) return cached;
 
         try {
-            DistanceResult result = DistanceCalculator.getGoogleMapsDistance(lat1, lon1, lat2, lon2);
+            DistanceResult result = lookup.get(lat1, lon1, lat2, lon2);
             legCache.put(key, result);
             return result;
+        } catch (org.springframework.web.server.ResponseStatusException limit) {
+            throw limit;
         } catch (Exception e) {
-            // fallback to haversine if API fails; duration unknown → synthesize simple estimate or nulls
+            checkDeadline.run();
+            // Label straight-line distance explicitly; an unknown travel time is never zero.
             double km = haversine(lat1, lon1, lat2, lon2);
-            DistanceResult fallback = new DistanceResult(km, null, 0);
+            DistanceResult fallback = new DistanceResult(km, "Estimated distance; time unavailable", null);
             legCache.put(key, fallback);
             return fallback;
         }

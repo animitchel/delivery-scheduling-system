@@ -140,7 +140,7 @@ class DeliveryLifecycleIntegrationTest {
         // Isolate the provider boundary: no Google requests or application credentials.
         try(var maps=org.mockito.Mockito.mockStatic(com.mmu.schedulingapp.utility.DistanceCalculator.class)) {
             maps.when(() -> com.mmu.schedulingapp.utility.DistanceCalculator.getGoogleMapsDistance(
-                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble()))
+                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.any()))
                     .thenReturn(new com.mmu.schedulingapp.utility.DistanceResult(0,"0 seconds",0));
             var next=routing.createRoutes(request);
             assertThat(next).hasSize(1); assertThat(next.get(0).getDeliveries()).extracting(d -> d.getDeliveryId()).containsExactly(pending[0]);
