@@ -33,7 +33,7 @@ public class AccountService {
         if (operatorId == null || operatorId <= 0) {
             throw new IllegalArgumentException("A valid operator ID is required for a driver account.");
         }
-        Operator operator = operators.findById(operatorId)
+        Operator operator = operators.lockById(operatorId)
                 .orElseThrow(() -> new IllegalArgumentException("Operator does not exist."));
         if (accounts.existsByOperatorOperatorId(operatorId)) {
             throw new IllegalArgumentException("Operator already has an account.");
