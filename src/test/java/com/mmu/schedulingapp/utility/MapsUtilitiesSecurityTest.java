@@ -77,6 +77,13 @@ class MapsUtilitiesSecurityTest {
         assertThat(output.getAll()).doesNotContain("maps.googleapis.com", "IOException", "IllegalStateException");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings={"{}","{\"lat\":53}","{\"lat\":\"53\",\"lng\":2}","{\"lat\":91,\"lng\":2}","{\"lat\":53,\"lng\":181}"})
+    void missingOrInvalidCoordinatesAreNotFabricated(String location,CapturedOutput output) {
+        assertThat(GeocodingService.getCoordinates(ADDRESS,(api,parameters)->"{\"status\":\"OK\",\"results\":[{\"geometry\":{\"location\":"+location+"}}]}")).isEmpty();
+        assertPrivateDataAbsent(output);
+    }
+
     @Test
     void missingConfigurationDoesNotInvokeTransport(CapturedOutput output) {
         assertThat(GeocodingService.getCoordinates(ADDRESS, (api, parameters) ->
