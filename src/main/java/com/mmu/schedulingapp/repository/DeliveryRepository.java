@@ -11,6 +11,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface DeliveryRepository extends JpaRepository<Delivery, Integer> {
+    @Query("select new com.mmu.schedulingapp.dto.delivery.DeliveryDirectory$Item(d.deliveryId,d.recipientId.recipientId,d.recipientId.firstName,d.recipientId.lastName,d.operatorId.operatorId,d.scheduledDate,d.startTimeWindow,d.endTimeWindow,d.priorityLevel,d.deliveryStatus) from Delivery d where (:date is null or d.scheduledDate=:date) and (:status is null or d.deliveryStatus=:status) and (:recipient is null or d.recipientId.recipientId=:recipient)")
+    org.springframework.data.domain.Page<com.mmu.schedulingapp.dto.delivery.DeliveryDirectory.Item> directory(
+            @Param("date") LocalDate date, @Param("status") Delivery.DeliveryStatus status,
+            @Param("recipient") Integer recipient, org.springframework.data.domain.Pageable pageable);
+
     @Query(value = DriverAssignmentQueries.SELECT_DELIVERY, nativeQuery = true)
     java.util.Optional<Delivery> findOwnedDelivery(@Param("accountId") Long accountId, @Param("authRevision") long authRevision, @Param("deliveryId") Integer deliveryId);
 

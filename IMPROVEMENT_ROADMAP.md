@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 13 October 2026; merged through PR #19\
+**Progress reconciled:** 13 October 2026; merged through PR #20\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -192,12 +192,14 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | React administrator account directory, eligible-operator search, creation/access/reset and one-time credentials | PR #17 | Merged |
 | React administrator route review, bounded route summaries and selected-stop details/actions | PR #18 | Merged |
 | Recipient API foundation: bounded search, strict writes, conditional edits and guarded coordinate updates | PR #19 | Merged |
+| React recipient management: searchable directory, creation, conditional edits and explicit save recovery | PR #20 | Merged |
+| Delivery preparation API: strict unassigned creation, shared legacy validation and bounded directory | `aniM/delivery-preparation-api` | Implemented in this branch; merge pending |
 
 ### Next implementation sequence
 
-1. Recipient API foundation merged in PR #19; legacy recipient endpoints remain compatible.
-2. React recipient management implemented in `aniM/react-admin-recipients`: bounded search, creation, ETag-protected edits and explicit conflict/uncertain-save recovery. Merge pending.
-3. Define delivery validation/reference contracts and migrate delivery preparation into React, followed by route generation using existing planning/lifecycle rules.
+1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
+2. Review and merge the delivery preparation API foundation; strict creation produces unassigned pending work, with date/status/recipient-filtered scalar pages and shared validation for legacy writes. See [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
+3. Migrate delivery preparation into React using bounded recipient selection and explicit uncertain-save reconciliation. Follow with route generation as a separate focused change, using the existing planning/lifecycle rules.
 4. Add missing setup/history workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
 6. Establish CI (no checked-in workflow currently exists), then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
