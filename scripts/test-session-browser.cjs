@@ -23,6 +23,60 @@ const assert = require("node:assert/strict");
         await page.waitForFunction(() => document.querySelector("#recipientId option")?.textContent.includes("<img"));
         assert.equal(await page.evaluate(() => window.__injected), undefined);
         assert.equal(await page.locator("#recipientId img").count(), 0);
+        // React foundation: real Spring assets, session contract, deep links and safe shell.
+        await page.getByRole("link", { name: "Workspace", exact: true }).click();
+        await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
+        await page.waitForURL("**/app/admin");
+        assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).count(), 1);
+        assert.equal(await page.getByRole("link", { name: "Open accounts", exact: true }).getAttribute("href"), "/html/accounts.html");
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.equal(await page.locator(".brand").count(),1);
+        await page.screenshot({ path: "/private/tmp/react-workspace-desktop.png", clip: { x: 0, y: 0, width: 1440, height: 900 } });
+        for (const width of [320,375,768]) {
+            await page.setViewportSize({ width, height: 900 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        }
+        await page.setViewportSize({ width: 375, height: 900 });
+        await page.evaluate(() => window.scrollTo(0,0));
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await page.screenshot({ path: "/private/tmp/react-workspace-mobile.png", clip: { x: 0, y: 0, width: 375, height: 780 } });
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.reload();
+        await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
+        await page.keyboard.press("Tab");
+        assert.equal(await page.evaluate(() => document.activeElement.textContent), "Skip to content");
+        assert.equal((await context.request.get(`${target.origin}/app/assets/missing.js`)).status(),404);
+        const identity=await (await context.request.get(`${target.origin}/api/auth/me`)).json();
+        const attack='<img src=x onerror="window.__injected=true">';
+        await page.route("**/api/auth/me", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...identity, username: attack }) }));
+        await page.getByRole("button", { name: "Refresh session", exact: true }).click();
+        await page.getByText(attack, { exact: true }).waitFor();
+        assert.equal(await page.locator("img").count(),0);
+        assert.equal(await page.evaluate(() => window.__injected),undefined);
+        await page.unroute("**/api/auth/me");
+        await page.route("**/api/auth/me", route => route.fulfill({ status: 503, contentType: "application/json", body: "{}" }));
+        await page.getByRole("button", { name: "Refresh session", exact: true }).click();
+        await page.getByRole("alert").waitFor();
+        assert.equal(await page.getByRole("navigation").count(),0);
+        await page.unroute("**/api/auth/me");
+        await page.getByRole("button", { name: "Try again", exact: true }).click();
+        await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
+        let shellLogouts=0;
+        const countLogout=request => { if(request.method()==="POST" && new URL(request.url()).pathname==="/api/auth/logout") shellLogouts++; };
+        page.on("request",countLogout);
+        await page.getByRole("button", { name: "Sign out", exact: true }).evaluate(button => { button.click(); button.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
+        await page.waitForURL("**/html/login.html?loggedOut");
+        page.off("request",countLogout);
+        assert.equal(shellLogouts,1);
+        assert.equal((await context.request.get(`${target.origin}/api/auth/me`)).status(),401);
+        assert.deepEqual(await page.evaluate(() => [localStorage.length,sessionStorage.length]),[0,0]);
+        await page.locator("#username").fill("smoke.admin");
+        await page.locator("#password").fill("smoke test administrator passphrase");
+        await page.locator("#loginButton").click();
+        await page.waitForURL("**/html/admin.html");
+        await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
+
         // Check that CSRF reaches the server from the actual shared jQuery prefilter.
         const response = await page.evaluate(() => new Promise(resolve => {
             $.ajax({ url: "/api/v1/scheduling-app/operators", method: "POST", contentType: "application/json", data: "{}" })
@@ -48,6 +102,27 @@ const assert = require("node:assert/strict");
         await page.locator("#loginButton").click();
         await page.waitForURL("**/html/operators.html");
         await page.locator("#sessionAccount").filter({ hasText: "smoke.driver" }).waitFor();
+        await page.goto(`${target.origin}/app/driver`);
+        await page.getByRole("heading", { name: "Your next stop starts here.", exact: true }).waitFor();
+        assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).count(),0);
+        await page.goto(`${target.origin}/app/admin`);
+        await page.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor();
+        assert.equal(await page.getByRole("link", { name: "Open accounts", exact: true }).count(),0);
+        await page.getByRole("link", { name: "Open your workspace", exact: true }).click();
+        await page.getByRole("heading", { name: "Your next stop starts here.", exact: true }).waitFor();
+        // Expire the actual backend session without relying on a mocked identity response.
+        const shellCsrf=await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        assert.equal((await context.request.post(`${target.origin}/api/auth/logout`, { headers: { [shellCsrf.headerName]: shellCsrf.token } })).status(),204);
+        await page.getByRole("button", { name: "Refresh session", exact: true }).click();
+        await page.getByRole("heading", { name: "Sign in to your workspace.", exact: true }).waitFor();
+        assert.equal(await page.getByRole("navigation").count(),0);
+        await page.getByRole("link", { name: "Sign in", exact: true }).click();
+        await page.locator("#username").fill("smoke.driver");
+        await page.locator("#password").fill("smoke test administrator passphrase");
+        await page.locator("#loginButton").click();
+        await page.waitForURL("**/html/operators.html");
+        await page.locator("#sessionAccount").filter({ hasText: "smoke.driver" }).waitFor();
+
         await page.waitForFunction(() => document.querySelectorAll("#routeSelector option").length === 3);
         const owned = await (await context.request.get(`${target.origin}/api/driver/routes`)).json();
         assert.equal(owned.length, 2);

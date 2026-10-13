@@ -70,6 +70,36 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/driver"})
+    void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
+        var client=HttpClient.newHttpClient();
+        var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.headers().firstValue("Content-Type").orElse("")).contains("text/html");
+        assertThat(response.headers().firstValue("Cache-Control").orElse("")).contains("no-store");
+        assertThat(response.body()).contains("Delivery workspace","/app/assets/").doesNotContain("smoke.admin");
+    }
+    @Test void bundledAssetsUseImmutableCachingAndMissingPathsNeverServeSpaHtml() throws Exception {
+        var client=HttpClient.newHttpClient();
+        var index=client.send(HttpRequest.newBuilder(URI.create(base+"/app/")).GET().build(),HttpResponse.BodyHandlers.ofString());
+        var paths=java.util.regex.Pattern.compile("/app/assets/[^\" ]+\\.(?:js|css)").matcher(index.body());
+        int found=0;
+        while(paths.find()) {
+            var asset=client.send(HttpRequest.newBuilder(URI.create(base+paths.group())).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(asset.statusCode()).isEqualTo(200);
+            assertThat(asset.headers().firstValue("Cache-Control").orElse("")).contains("max-age=31536000","immutable");
+            found++;
+        }
+        assertThat(found).isEqualTo(2);
+        for(String path:java.util.List.of("/app/assets/missing.js","/app/missing","/app/missing.css")) {
+            var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(404);
+            assertThat(response.body()).doesNotContain("<div id=\"root\">");
+        }
+        var api=client.send(HttpRequest.newBuilder(URI.create(base+"/api/auth/me")).GET().build(),HttpResponse.BodyHandlers.ofString());
+        assertThat(api.statusCode()).isEqualTo(401); assertThat(api.headers().firstValue("Content-Type").orElse("")).contains("application/json");
+    }
+
     @Test void runningServerRejectsAnonymousSchedulingRequests() throws Exception {
         var response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(base+"/api/v1/scheduling-app/routes")).GET().build(),HttpResponse.BodyHandlers.ofString());
         assertThat(response.statusCode()).isEqualTo(401);
