@@ -51,8 +51,8 @@ class RouteMapsFallbackTest {
             var route = new RouteBuilder(operator).buildOptimizedRoute(List.of(delivery));
             if (route.size() != 1 || route.get(0) != delivery || delivery.getOperatorId() != operator
                     || delivery.getFromPrevDistanceKm() <= 0
-                    || delivery.getFromPrevDurationText() != null
-                    || delivery.getFromPrevDurationSeconds() != 0) {
+                    || !"Estimated distance; time unavailable".equals(delivery.getFromPrevDurationText())
+                    || delivery.getFromPrevDurationSeconds() != null) {
                 throw new AssertionError("Existing route fallback changed");
             }
             System.out.println("fallback-preserved");

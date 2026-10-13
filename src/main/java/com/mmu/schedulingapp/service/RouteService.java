@@ -23,14 +23,24 @@ public class RouteService {
     private final RouteRepository routeRepository;
     private final OperatorRepository operatorRepository;
     private final DeliveryRepository deliveryRepository;
+    private final com.mmu.schedulingapp.utility.MapsProvider maps;
+    private final com.mmu.schedulingapp.utility.PlanningGuard planning;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public RouteService(RouteRepository routeRepository,
                         OperatorRepository operatorRepository,
-                        DeliveryRepository deliveryRepository
+                        DeliveryRepository deliveryRepository,
+                        com.mmu.schedulingapp.utility.MapsProvider maps,
+                        com.mmu.schedulingapp.utility.PlanningGuard planning
     ) {
         this.routeRepository = routeRepository;
         this.operatorRepository = operatorRepository;
         this.deliveryRepository = deliveryRepository;
+        this.maps = maps; this.planning = planning;
+    }
+
+    public RouteService(RouteRepository routes, OperatorRepository operators, DeliveryRepository deliveries) {
+        this(routes, operators, deliveries, null, null);
     }
 
     public List<RouteResponseDTO> getAllRoutes() {
@@ -52,29 +62,38 @@ public class RouteService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<RouteResponseDTO> createRoutes(RouteRequestDTO dto) {
-        List<Operator> operators = operatorRepository.findAvailableIds().stream()
-                .map(operatorRepository::lockById).flatMap(Optional::stream)
-                .filter(o -> o.getAvailabilityStatus() == Operator.AvailabilityStatus.AVAILABLE)
-                .filter(o -> !routeRepository.existsByOperatorAndRouteStatusNot(o, Route.RouteStatus.COMPLETED))
-                .toList();
-        if (operators.isEmpty()) throw DeliveryLifecycleService.conflict("No available operators without active routes.");
-        List<Integer> pendingIds = deliveryRepository.findPendingIds(dto.getScheduledDate());
+        try (var budget = planning.begin()) {
+            List<Integer> pendingIds = deliveryRepository.findPendingIds(dto.getScheduledDate(),
+                    org.springframework.data.domain.PageRequest.of(0, budget.maxDeliveries() + 1));
+            if (pendingIds.size() > budget.maxDeliveries()) throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE, "Too many deliveries for one route-planning operation.");
+            budget.check();
+            List<Operator> operators = operatorRepository.findAvailableIds().stream()
+                    .map(operatorRepository::lockById).flatMap(Optional::stream)
+                    .filter(o -> o.getAvailabilityStatus() == Operator.AvailabilityStatus.AVAILABLE)
+                    .filter(o -> !routeRepository.existsByOperatorAndRouteStatusNot(o, Route.RouteStatus.COMPLETED))
+                    .toList();
+            if (operators.isEmpty()) throw DeliveryLifecycleService.conflict("No available operators without active routes.");
+            budget.check();
 
-        if (pendingIds.isEmpty()) {
-            throw DeliveryLifecycleService.conflict("No pending deliveries for the requested date or earlier.");
+            if (pendingIds.isEmpty()) {
+                throw DeliveryLifecycleService.conflict("No pending deliveries for the requested date or earlier.");
+            }
+
+            // Lock deliveries in stable order and recheck after any pending edit/delete commits.
+            List<Delivery> pendingDueDeliveries = pendingIds.stream()
+                    .map(deliveryRepository::lockById).flatMap(Optional::stream)
+                    .filter(d -> d.getDeliveryStatus() == Delivery.DeliveryStatus.PENDING)
+                    .filter(d -> d.getScheduledDate() != null && !d.getScheduledDate().isAfter(dto.getScheduledDate()))
+                    .filter(d -> routeRepository.findContainingDelivery(d.getDeliveryId()).isEmpty())
+                    .toList();
+            if (pendingDueDeliveries.isEmpty()) throw DeliveryLifecycleService.conflict("No unrouted pending deliveries.");
+
+
+            var result = distributeDeliveriesAndCreateRoutes(dto, operators, pendingDueDeliveries, budget);
+            budget.check();
+            return result;
         }
-
-        // Lock deliveries in stable order and recheck after any pending edit/delete commits.
-        List<Delivery> pendingDueDeliveries = pendingIds.stream()
-                .map(deliveryRepository::lockById).flatMap(Optional::stream)
-                .filter(d -> d.getDeliveryStatus() == Delivery.DeliveryStatus.PENDING)
-                .filter(d -> d.getScheduledDate() != null && !d.getScheduledDate().isAfter(dto.getScheduledDate()))
-                .filter(d -> routeRepository.findContainingDelivery(d.getDeliveryId()).isEmpty())
-                .toList();
-        if (pendingDueDeliveries.isEmpty()) throw DeliveryLifecycleService.conflict("No unrouted pending deliveries.");
-
-
-        return distributeDeliveriesAndCreateRoutes(dto, operators, pendingDueDeliveries);
 
 
 
@@ -116,9 +135,10 @@ public class RouteService {
     private RouteResponseDTO createAndSaveRouteForDriver(
             RouteRequestDTO dto,
             Operator operator,
-            List<Delivery> deliveries) {
+            List<Delivery> deliveries, com.mmu.schedulingapp.utility.PlanningGuard.Budget budget) {
         // Build optimized route
-        RouteBuilder builder = new RouteBuilder(operator);
+        RouteBuilder builder = new RouteBuilder(operator,
+                (lat1, lon1, lat2, lon2) -> maps.distance(lat1, lon1, lat2, lon2, budget), budget::check);
         List<Delivery> optimizedRoute = builder.buildOptimizedRoute(deliveries);
 
 
@@ -143,7 +163,7 @@ public class RouteService {
     private List<RouteResponseDTO> distributeDeliveriesAndCreateRoutes(
             RouteRequestDTO dto,
             List<Operator> operators,
-            List<Delivery> pendingDeliveries) {
+            List<Delivery> pendingDeliveries, com.mmu.schedulingapp.utility.PlanningGuard.Budget budget) {
         List<RouteResponseDTO> responses = new ArrayList<>();
 
         int baseLoad = pendingDeliveries.size() / operators.size();
@@ -157,7 +177,8 @@ public class RouteService {
             Operator operator = operators.get(i);
             List<Delivery> subList = pendingDeliveries.subList(index, index + deliveriesToAssign);
 
-            responses.add(createAndSaveRouteForDriver(dto, operator, subList));
+            budget.check();
+            responses.add(createAndSaveRouteForDriver(dto, operator, subList, budget));
             index += deliveriesToAssign;
         }
 

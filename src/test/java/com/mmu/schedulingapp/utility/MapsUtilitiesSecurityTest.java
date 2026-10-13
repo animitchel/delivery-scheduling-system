@@ -94,7 +94,7 @@ class MapsUtilitiesSecurityTest {
             assertThat(parameters).containsEntry("origins", "53.1,-2.1")
                     .containsEntry("destinations", "53.2,-2.2").containsEntry("units", "metric");
             return """
-                    {"rows":[{"elements":[{"distance":{"value":1250},
+                    {"status":"OK","rows":[{"elements":[{"status":"OK","distance":{"value":1250},
                      "duration":{"text":"4 mins","value":240}}]}],"private":"private-provider-body"}
                     """;
         });
