@@ -37,5 +37,5 @@ public final class DriverAssignmentQueries {
     public static final String UPDATE_STATUS = """
             UPDATE deliveries d SET delivery_status = :status
             WHERE d.delivery_id = :deliveryId AND d.delivery_status = 'IN_PROGRESS' AND
-            """ + OWNED_DELIVERY;
+            """ + OWNED_DELIVERY + " AND EXISTS (SELECT 1 FROM route_deliveries rd JOIN routes r ON r.route_id=rd.route_id WHERE rd.delivery_id=d.delivery_id AND r.route_status='IN_PROGRESS')";
 }

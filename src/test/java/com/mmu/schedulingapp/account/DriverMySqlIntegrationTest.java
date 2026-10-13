@@ -34,12 +34,12 @@ class DriverMySqlIntegrationTest {
             var routes=context.getBean(RouteRepository.class); var accounts=context.getBean(AccountRepository.class);
             var operators=context.getBean(OperatorRepository.class); var recipients=context.getBean(RecipientRepository.class);
             routes.deleteAll(); routes.flush(); deliveries.deleteAll(); deliveries.flush(); accounts.deleteAll(); accounts.flush(); operators.deleteAll(); operators.flush(); recipients.deleteAll(); recipients.flush();
-            var first=new Operator(); first.setName("First"); first.setEmail("first@mysql.test"); first.setPhoneNumber("123"); operators.saveAndFlush(first);
+            var first=new Operator(); first.setName("First"); first.setEmail("first@mysql.test"); first.setPhoneNumber("123"); first.setAvailabilityStatus(Operator.AvailabilityStatus.ON_DELIVERY); operators.saveAndFlush(first);
             var second=new Operator(); second.setName("Second"); second.setEmail("second@mysql.test"); second.setPhoneNumber("123"); operators.saveAndFlush(second); secondOperator=second.getOperatorId();
             accountId=accounts.saveAndFlush(new UserAccount("mysql.driver","{bcrypt}$2a$12$"+"a".repeat(53),AccountRole.DRIVER,first,false)).getId();
             var recipient=new Recipient(); recipient.setFirstName("First"); recipient.setLastName("Recipient"); recipient.setAddress("Address"); recipient.setLatitude(java.math.BigDecimal.ZERO); recipient.setLongitude(java.math.BigDecimal.ZERO); recipients.saveAndFlush(recipient);
             var delivery=new Delivery(); delivery.setRecipientId(recipient); delivery.setOperatorId(first); delivery.setDeliveryStatus(Delivery.DeliveryStatus.IN_PROGRESS); delivery.setPriorityLevel(Delivery.PriorityLevel.MEDIUM); deliveries.saveAndFlush(delivery); deliveryId=delivery.getDeliveryId();
-            var route=new Route(); route.setOperator(first); route.setScheduledDate(java.time.LocalDate.now()); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route); routeId=route.getRouteId();
+            var route=new Route(); route.setOperator(first); route.setScheduledDate(java.time.LocalDate.now()); route.setRouteStatus(Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route); routeId=route.getRouteId();
         });
     }
     @Test void nativeOwnershipQueriesAndAtomicStatusWorkOnMySql() {
@@ -111,6 +111,88 @@ class DriverMySqlIntegrationTest {
             assertThat(result.get(10,TimeUnit.SECONDS)).isEqualTo(404);
         }
     }
+    @Test void differentFinalStopsSerializeAndReleaseOperatorOnMySql() throws Exception {
+        final Integer[] next={null};
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(t -> {
+            var route=context.getBean(RouteRepository.class).findById(routeId).orElseThrow();
+            var original=route.getDeliveries().get(0);
+            var second=new Delivery(); second.setRecipientId(original.getRecipientId()); second.setOperatorId(route.getOperator());
+            second.setDeliveryStatus(Delivery.DeliveryStatus.IN_PROGRESS); second.setPriorityLevel(Delivery.PriorityLevel.MEDIUM);
+            deliveries.saveAndFlush(second); next[0]=second.getDeliveryId(); route.getDeliveries().add(second);
+            context.getBean(RouteRepository.class).saveAndFlush(route);
+        });
+        var start=new CountDownLatch(1);
+        var one=CompletableFuture.runAsync(() -> { await(start); service.status(accountId,0L,deliveryId,"COMPLETED"); });
+        var two=CompletableFuture.runAsync(() -> { await(start); context.getBean(com.mmu.schedulingapp.service.DeliveryService.class)
+                .updateDeliveryStatus(next[0],Delivery.DeliveryStatus.CANCELLED); });
+        start.countDown(); one.get(10,TimeUnit.SECONDS); two.get(10,TimeUnit.SECONDS);
+        var route=context.getBean(RouteRepository.class).findById(routeId).orElseThrow();
+        assertThat(route.getRouteStatus()).isEqualTo(Route.RouteStatus.COMPLETED);
+        assertThat(context.getBean(OperatorRepository.class).findById(route.getOperator().getOperatorId()).orElseThrow().getAvailabilityStatus())
+                .isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+    }
+    @Test void administratorAndDriverCompetingTerminalWritesHaveOneWinnerOnMySql() throws Exception {
+        var start=new CountDownLatch(1);
+        var one=CompletableFuture.supplyAsync(() -> { await(start); return update("COMPLETED"); });
+        var two=CompletableFuture.supplyAsync(() -> {
+            await(start);
+            try { context.getBean(com.mmu.schedulingapp.service.DeliveryService.class).updateDeliveryStatus(deliveryId,Delivery.DeliveryStatus.CANCELLED); return 200; }
+            catch(ResponseStatusException e) { return e.getStatusCode().value(); }
+        });
+        start.countDown();
+        assertThat(java.util.List.of(one.get(10,TimeUnit.SECONDS),two.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(200,409);
+        assertThat(context.getBean(RouteRepository.class).findById(routeId).orElseThrow().getRouteStatus()).isEqualTo(Route.RouteStatus.COMPLETED);
+    }
+
+    @Test void routeAndDeliveryChangesRollBackIfOperatorReleaseFailsOnMySql() throws Exception {
+        try(var connection=DriverManager.getConnection(url,"root","disposable-test-password"); var sql=connection.createStatement()) {
+            sql.execute("CREATE TRIGGER reject_test_release BEFORE UPDATE ON operators FOR EACH ROW BEGIN IF NEW.availability_status='AVAILABLE' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Test release failure'; END IF; END");
+            try {
+                assertThatThrownBy(() -> service.status(accountId,0L,deliveryId,"COMPLETED")).isInstanceOf(RuntimeException.class);
+                assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS);
+                assertThat(context.getBean(RouteRepository.class).findById(routeId).orElseThrow().getRouteStatus()).isEqualTo(Route.RouteStatus.IN_PROGRESS);
+            } finally { sql.execute("DROP TRIGGER reject_test_release"); }
+        }
+    }
+    @Test void simultaneousRouteGenerationCannotClaimSameOperatorOrDeliveryOnMySql() throws Exception {
+        final Integer[] operator={null};
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(t -> {
+            var routes=context.getBean(RouteRepository.class); routes.deleteAll(); routes.flush();
+            var op=deliveries.findById(deliveryId).orElseThrow().getOperatorId(); operator[0]=op.getOperatorId();
+            op.setAvailabilityStatus(Operator.AvailabilityStatus.AVAILABLE);
+            context.getBean(OperatorRepository.class).findById(secondOperator).orElseThrow().setAvailabilityStatus(Operator.AvailabilityStatus.OFF_DUTY);
+            var warehouse=new Warehouse(); warehouse.setName("Concurrency depot"); warehouse.setAddress("Test address");
+            warehouse.setLatitude(java.math.BigDecimal.ZERO); warehouse.setLongitude(java.math.BigDecimal.ZERO);
+            context.getBean(WarehouseRepository.class).saveAndFlush(warehouse); op.setWarehouse(warehouse);
+            var d=deliveries.findById(deliveryId).orElseThrow(); d.setDeliveryStatus(Delivery.DeliveryStatus.PENDING);
+            d.setScheduledDate(java.time.LocalDate.now()); d.setStartTimeWindow(java.time.LocalTime.MIN); d.setEndTimeWindow(java.time.LocalTime.MAX);
+        });
+        try(var connection=DriverManager.getConnection(url,"root","disposable-test-password")) {
+            connection.setAutoCommit(false);
+            try(var sql=connection.createStatement()) { sql.executeQuery("SELECT operator_id FROM operators WHERE operator_id="+operator[0]+" FOR UPDATE").close(); }
+            var started=new CountDownLatch(2);
+            var one=CompletableFuture.supplyAsync(() -> generate(started));
+            var two=CompletableFuture.supplyAsync(() -> generate(started));
+            assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();
+            assertThatThrownBy(() -> one.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            assertThatThrownBy(() -> two.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            connection.commit();
+            assertThat(java.util.List.of(one.get(10,TimeUnit.SECONDS),two.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(201,409);
+        }
+        assertThat(context.getBean(RouteRepository.class).count()).isEqualTo(1);
+        assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS);
+    }
+    int generate(CountDownLatch started) {
+        try(var maps=org.mockito.Mockito.mockStatic(com.mmu.schedulingapp.utility.DistanceCalculator.class)) {
+            maps.when(() -> com.mmu.schedulingapp.utility.DistanceCalculator.getGoogleMapsDistance(
+                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble()))
+                    .thenReturn(new com.mmu.schedulingapp.utility.DistanceResult(0,"0 seconds",0));
+            var request=new com.mmu.schedulingapp.dto.route.RouteRequestDTO(); request.setScheduledDate(java.time.LocalDate.now());
+            started.countDown();
+            context.getBean(com.mmu.schedulingapp.service.RouteService.class).createRoutes(request); return 201;
+        } catch(ResponseStatusException e) { return e.getStatusCode().value(); }
+    }
+
     int update(String status) {
         try { service.status(accountId,0L,deliveryId,status); return 200; }
         catch(ResponseStatusException failure) { return failure.getStatusCode().value(); }
