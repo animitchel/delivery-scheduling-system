@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 13 October 2026; merged through PR #18\
+**Progress reconciled:** 13 October 2026; merged through PR #19\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -191,12 +191,12 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | React driver route execution and entry-point cutover | PR #16 | Merged |
 | React administrator account directory, eligible-operator search, creation/access/reset and one-time credentials | PR #17 | Merged |
 | React administrator route review, bounded route summaries and selected-stop details/actions | PR #18 | Merged |
-| Recipient API foundation: bounded search, strict writes, conditional edits and guarded coordinate updates | `aniM/recipient-management-api` | Implemented in this branch; merge pending |
+| Recipient API foundation: bounded search, strict writes, conditional edits and guarded coordinate updates | PR #19 | Merged |
 
 ### Next implementation sequence
 
-1. Review and merge the recipient API foundation; legacy recipient endpoints remain compatible.
-2. Migrate recipient management into React using bounded search and ETag-protected edits.
+1. Recipient API foundation merged in PR #19; legacy recipient endpoints remain compatible.
+2. React recipient management implemented in `aniM/react-admin-recipients`: bounded search, creation, ETag-protected edits and explicit conflict/uncertain-save recovery. Merge pending.
 3. Define delivery validation/reference contracts and migrate delivery preparation into React, followed by route generation using existing planning/lifecycle rules.
 4. Add missing setup/history workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
