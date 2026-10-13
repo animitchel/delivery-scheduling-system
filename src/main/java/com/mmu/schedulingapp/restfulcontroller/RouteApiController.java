@@ -32,6 +32,12 @@ public class RouteApiController {
     }
 
 
+    @GetMapping("/directory")
+    public com.mmu.schedulingapp.dto.route.RouteDirectory directory(@RequestParam(defaultValue = "0") int page,
+                                                                    @RequestParam(defaultValue = "20") int size) {
+        return routeService.directory(page, size);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<RouteResponseDTO> getRoute(@PathVariable int id) {
         Optional<RouteResponseDTO> optionalRoute = routeService.getRoute(id);

@@ -43,6 +43,24 @@ public class RouteService {
                 .toList();
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public com.mmu.schedulingapp.dto.route.RouteDirectory directory(int page, int size) {
+        if (page < 0 || page > 10000 || size < 1 || size > 50) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid route page or size.");
+        }
+        var headers = routeRepository.directory(org.springframework.data.domain.PageRequest.of(page, size));
+        var ids = headers.getContent().stream().map(com.mmu.schedulingapp.dto.route.RouteHeader::routeId).toList();
+        var counts = ids.isEmpty() ? java.util.Map.<Integer, RouteRepository.StopCounts>of()
+                : routeRepository.directoryCounts(ids).stream().collect(java.util.stream.Collectors.toMap(RouteRepository.StopCounts::getRouteId, java.util.function.Function.identity()));
+        var items = headers.getContent().stream().map(header -> {
+            var count = counts.get(header.routeId());
+            return new com.mmu.schedulingapp.dto.route.RouteDirectory.Item(header.routeId(), header.operatorId(), header.operatorName(),
+                    header.scheduledDate(), header.routeStatus(), count == null ? 0 : count.getStopCount(), count == null ? 0 : count.getFinishedCount());
+        }).toList();
+        return new com.mmu.schedulingapp.dto.route.RouteDirectory(items, page, size, headers.getTotalElements(), headers.getTotalPages());
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public Optional<RouteResponseDTO> getRoute(int id) {
         return routeRepository.findById(id).map(RouteMapper::toResponseDTO);
     }
