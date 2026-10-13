@@ -70,7 +70,7 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
-    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/driver","/app/driver/routes"})
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/routes","/app/driver","/app/driver/routes"})
     void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
         var client=HttpClient.newHttpClient();
         var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
@@ -140,7 +140,15 @@ class Java25ApplicationSmokeTest {
             for (int index = 0; index < 5; index++) {
                 var operator = new com.mmu.schedulingapp.model.Operator();
                 operator.setName("Browser driver " + index); operator.setEmail("browser" + index + "@example.test"); operator.setPhoneNumber("123"); operators.saveAndFlush(operator);
-                if (index == 4) { operator.setName("<img src=x onerror=window.__injected=true>"); operators.saveAndFlush(operator); continue; }
+                if (index == 4) {
+                    operator.setName("<img src=x onerror=window.__injected=true>"); operators.saveAndFlush(operator);
+                    for (int pageFixture=0; pageFixture<21; pageFixture++) {
+                        var empty = new com.mmu.schedulingapp.model.Route(); empty.setOperator(operator); empty.setScheduledDate(java.time.LocalDate.now().minusDays(1));
+                        empty.setRouteStatus(com.mmu.schedulingapp.model.Route.RouteStatus.PLANNED); empty.setDeliveries(new java.util.ArrayList<>()); routes.saveAndFlush(empty);
+                    }
+                    continue;
+                }
+                if (index == 1) { operator.setAvailabilityStatus(com.mmu.schedulingapp.model.Operator.AvailabilityStatus.ON_DELIVERY); operators.saveAndFlush(operator); }
                 if (index == 3) { operator.setName("Onboarding operator"); operators.saveAndFlush(operator); continue; }
                 String username = index == 0 ? "smoke.driver" : index == 1 ? "other.driver" : "empty.driver";
                 accounts.createDriver(username, "smoke test administrator passphrase", operator.getOperatorId());
@@ -150,7 +158,13 @@ class Java25ApplicationSmokeTest {
                     delivery.setScheduledDate(java.time.LocalDate.now().plusDays(routeIndex)); delivery.setStartTimeWindow(java.time.LocalTime.of(9,0)); delivery.setEndTimeWindow(java.time.LocalTime.of(12,0)); delivery.setSpecialInstructions("Use side entrance");
                     delivery.setDeliveryStatus(com.mmu.schedulingapp.model.Delivery.DeliveryStatus.IN_PROGRESS); delivery.setPriorityLevel(com.mmu.schedulingapp.model.Delivery.PriorityLevel.MEDIUM); deliveries.saveAndFlush(delivery);
                     var route = new com.mmu.schedulingapp.model.Route(); route.setOperator(operator); route.setScheduledDate(java.time.LocalDate.now().plusDays(routeIndex));
-                    route.setRouteStatus(com.mmu.schedulingapp.model.Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route);
+                    route.setRouteStatus(com.mmu.schedulingapp.model.Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery)));
+                    if (index == 1) for (int extraStop=0; extraStop<2; extraStop++) {
+                        var extra = new com.mmu.schedulingapp.model.Delivery(); extra.setRecipientId(delivery.getRecipientId()); extra.setOperatorId(operator);
+                        extra.setScheduledDate(delivery.getScheduledDate()); extra.setStartTimeWindow(delivery.getStartTimeWindow()); extra.setEndTimeWindow(delivery.getEndTimeWindow()); extra.setSpecialInstructions("Use side entrance");
+                        extra.setDeliveryStatus(com.mmu.schedulingapp.model.Delivery.DeliveryStatus.IN_PROGRESS); extra.setPriorityLevel(com.mmu.schedulingapp.model.Delivery.PriorityLevel.MEDIUM); deliveries.saveAndFlush(extra); route.getDeliveries().add(extra);
+                    }
+                    routes.saveAndFlush(route);
                     if (index == 1) { otherRoute = route.getRouteId(); otherDelivery = delivery.getDeliveryId(); }
                 }
             }

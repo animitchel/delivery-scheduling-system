@@ -42,6 +42,14 @@ class DriverMySqlIntegrationTest {
             var route=new Route(); route.setOperator(first); route.setScheduledDate(java.time.LocalDate.now()); route.setRouteStatus(Route.RouteStatus.IN_PROGRESS); route.setDeliveries(new java.util.ArrayList<>(java.util.List.of(delivery))); routes.saveAndFlush(route); routeId=route.getRouteId();
         });
     }
+    @Test void boundedAdministratorDirectoryCountsWorkOnMySql() {
+        var admin=context.getBean(com.mmu.schedulingapp.service.RouteService.class);
+        var first=admin.directory(0,20); assertThat(first.routes()).hasSize(1);
+        assertThat(first.routes().getFirst().stopCount()).isEqualTo(1); assertThat(first.routes().getFirst().finishedCount()).isZero();
+        service.status(accountId,0L,deliveryId,"COMPLETED");
+        var finished=admin.directory(0,20).routes().getFirst(); assertThat(finished.finishedCount()).isEqualTo(1); assertThat(finished.routeStatus()).isEqualTo(Route.RouteStatus.COMPLETED);
+        assertThat(admin.directory(1,20).routes()).isEmpty();
+    }
     @Test void nativeOwnershipQueriesAndAtomicStatusWorkOnMySql() {
         assertThat(service.routes(accountId,0L)).hasSize(1);
         assertThat(service.recipient(accountId,0L,deliveryId).address()).isEqualTo("Address");

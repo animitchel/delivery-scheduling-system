@@ -1,0 +1,21 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from './api';
+import type { createApiClient } from './api';
+import { createAdminRoutesClient, parseDirectory } from './admin-routes-api';
+const stop = { deliveryId:10,recipientId:3,clientName:'Test',status:'IN_PROGRESS' as const,fromPrevDistanceKm:null,fromPrevDurationText:null,fromPrevDurationSeconds:null };
+const summary = {routeId:1,operatorId:4,operatorName:'Driver',scheduledDate:'2026-10-13',routeStatus:'IN_PROGRESS',stopCount:1,finishedCount:0};
+const directory = {routes:[summary],page:0,size:20,totalElements:1,totalPages:1};
+const delivery = {deliveryId:10,recipientId:3,operatorId:4,deliveryStatus:'IN_PROGRESS',scheduledDate:null,startTimeWindow:null,endTimeWindow:null,specialInstructions:null,priorityLevel:'MEDIUM'};
+const recipient = {recipientId:3,firstName:'Test',lastName:'Recipient',address:'Address',contactNumber:null};
+const json=(v:unknown)=>new Response(JSON.stringify(v));
+type Request=ReturnType<typeof createApiClient>['request'];
+describe('administrator route API',()=>{
+  it('loads the paginated directory rather than the unbounded legacy route list',async()=>{ const request=vi.fn<Request>().mockResolvedValue(json(directory));const signal=new AbortController().signal; expect(await createAdminRoutesClient(request).directory(0,signal)).toEqual(directory); expect(request).toHaveBeenCalledWith('/api/v1/scheduling-app/routes/directory?page=0&size=20',{signal}); });
+  it.each([null,{...directory,page:1},{...directory,routes:[summary,summary]},{...directory,routes:[{...summary,finishedCount:2}]},{...directory,routes:[{...summary,routeStatus:'UNKNOWN'}]}])('rejects malformed directory responses',v=>{expect(()=>parseDirectory(v,0)).toThrow(ApiError);});
+  it('fetches detail data only through explicit administrator endpoints',async()=>{const request=vi.fn<Request>().mockResolvedValueOnce(json(delivery)).mockResolvedValueOnce(json(recipient));const signal=new AbortController().signal;expect((await createAdminRoutesClient(request).details(stop,4,signal)).recipient.address).toBe('Address');expect(request.mock.calls.map(c=>c[0])).toEqual(['/api/v1/scheduling-app/deliveries/10','/api/v1/scheduling-app/recipients/3']);});
+  it.each([{...delivery,recipientId:8},{...delivery,operatorId:8},{...delivery,deliveryStatus:'COMPLETED'}])('rejects stale stop relationships or status',async value=>{const request=vi.fn<Request>().mockResolvedValueOnce(json(value)).mockResolvedValueOnce(json(recipient));await expect(createAdminRoutesClient(request).details(stop,4,new AbortController().signal)).rejects.toMatchObject({status:409});});
+  it('rejects a mismatched recipient response',async()=>{const request=vi.fn<Request>().mockResolvedValueOnce(json(delivery)).mockResolvedValueOnce(json({...recipient,recipientId:9}));await expect(createAdminRoutesClient(request).details(stop,4,new AbortController().signal)).rejects.toMatchObject({status:502});});
+  it('sends the existing terminal status payload and does not retry conflicts',async()=>{const request=vi.fn<Request>().mockRejectedValue(new ApiError(409));const signal=new AbortController().signal;await expect(createAdminRoutesClient(request).update(10,'COMPLETED',signal)).rejects.toMatchObject({status:409});expect(request).toHaveBeenCalledTimes(1);expect(request).toHaveBeenCalledWith('/api/v1/scheduling-app/deliveries/10',{method:'PATCH',signal,headers:{'Content-Type':'application/json'},body:'{"deliveryStatus":"COMPLETED"}'});});
+  it('treats wrong write acknowledgements as uncertain',async()=>{const request=vi.fn<Request>().mockResolvedValue(json({...delivery,deliveryId:11,deliveryStatus:'COMPLETED'}));await expect(createAdminRoutesClient(request).update(10,'COMPLETED',new AbortController().signal)).rejects.toMatchObject({status:502});});
+  it('rejects excessive pages before requesting anything',async()=>{const request=vi.fn<Request>();await expect(createAdminRoutesClient(request).directory(10001,new AbortController().signal)).rejects.toMatchObject({status:400});expect(request).not.toHaveBeenCalled();});
+});
