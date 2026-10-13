@@ -9,7 +9,8 @@ import com.mmu.schedulingapp.model.Recipient;
 import com.mmu.schedulingapp.repository.DeliveryRepository;
 import com.mmu.schedulingapp.repository.OperatorRepository;
 import com.mmu.schedulingapp.repository.RecipientRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,13 +22,19 @@ public class DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final RecipientRepository recipientRepository;
     private final OperatorRepository operatorRepository;
+    private final DeliveryLifecycleService lifecycle;
+    private final com.mmu.schedulingapp.repository.RouteRepository routes;
 
     public DeliveryService(DeliveryRepository deliveryRepository,
                            RecipientRepository recipientRepository,
-                           OperatorRepository operatorRepository) {
+                           OperatorRepository operatorRepository,
+                           DeliveryLifecycleService lifecycle,
+                           com.mmu.schedulingapp.repository.RouteRepository routes) {
         this.deliveryRepository = deliveryRepository;
         this.recipientRepository = recipientRepository;
         this.operatorRepository = operatorRepository;
+        this.lifecycle = lifecycle;
+        this.routes = routes;
     }
 
     public List<DeliveryResponseDTO> getAllDeliveries() {
@@ -54,9 +61,14 @@ public class DeliveryService {
     }
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<DeliveryResponseDTO> updateDelivery(int id, DeliveryRequestDTO dto) {
-        return deliveryRepository.findById(id).flatMap(existing -> {
+        var lockedIds = lifecycle.lockOperators(id);
+        return deliveryRepository.lockById(id).flatMap(existing -> {
+            lifecycle.checkAssignmentUnchanged(id, lockedIds);
+            if (!routes.findContainingDelivery(id).isEmpty()) {
+                throw DeliveryLifecycleService.conflict("Routed deliveries cannot be edited.");
+            }
             if (existing.getDeliveryStatus() != Delivery.DeliveryStatus.PENDING) {
                 return Optional.empty(); // Can't update non-pending deliveries
             }
@@ -81,25 +93,40 @@ public class DeliveryService {
     }
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<DeliveryResponseDTO> updateDeliveryStatus(int id, Delivery.DeliveryStatus newStatus) {
-        return deliveryRepository.findById(id).flatMap(delivery -> {
-            if (delivery.getDeliveryStatus() != Delivery.DeliveryStatus.IN_PROGRESS && newStatus != Delivery.DeliveryStatus.IN_PROGRESS) {
-                return Optional.empty(); // Can only update if status is IN_PROGRESS
+        var lockedIds = lifecycle.lockOperators(id);
+        return deliveryRepository.lockById(id).map(delivery -> {
+            lifecycle.checkAssignmentUnchanged(id, lockedIds);
+            // Starting work belongs to route assignment, not an arbitrary status patch.
+            if (delivery.getDeliveryStatus() != Delivery.DeliveryStatus.IN_PROGRESS
+                    || (newStatus != Delivery.DeliveryStatus.COMPLETED && newStatus != Delivery.DeliveryStatus.CANCELLED)) {
+                throw DeliveryLifecycleService.conflict("Only in-progress deliveries can become completed or cancelled.");
             }
-
+            var memberships = routes.findContainingDelivery(id);
+            if (memberships.size() != 1 || memberships.get(0).getRouteStatus() != com.mmu.schedulingapp.model.Route.RouteStatus.IN_PROGRESS
+                    || delivery.getOperatorId() == null
+                    || !delivery.getOperatorId().getOperatorId().equals(memberships.get(0).getOperator().getOperatorId())) {
+                throw DeliveryLifecycleService.conflict("Delivery must belong to one active route with a matching operator.");
+            }
             delivery.setDeliveryStatus(newStatus);
-            Delivery updated = deliveryRepository.save(delivery);
-            return Optional.of(DeliveryMapper.toResponseDTO(updated));
+            deliveryRepository.saveAndFlush(delivery);
+            lifecycle.finalizeRoutes(id);
+            return DeliveryMapper.toResponseDTO(delivery);
         });
     }
 
 
 
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public Optional<DeliveryResponseDTO> deleteDelivery(int id) {
-        return deliveryRepository.findById(id).map(delivery -> {
+        var lockedIds = lifecycle.lockOperators(id);
+        return deliveryRepository.lockById(id).map(delivery -> {
+            lifecycle.checkAssignmentUnchanged(id, lockedIds);
+            if (delivery.getDeliveryStatus() != Delivery.DeliveryStatus.PENDING || !routes.findContainingDelivery(id).isEmpty()) {
+                throw DeliveryLifecycleService.conflict("Only unrouted pending deliveries can be deleted.");
+            }
             deliveryRepository.delete(delivery);
             return DeliveryMapper.toResponseDTO(delivery);
         });
