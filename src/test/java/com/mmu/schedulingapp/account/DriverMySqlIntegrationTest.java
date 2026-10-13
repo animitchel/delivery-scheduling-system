@@ -193,6 +193,84 @@ class DriverMySqlIntegrationTest {
         } catch(ResponseStatusException e) { return e.getStatusCode().value(); }
     }
 
+    Integer preparePlanning(int count) {
+        final Integer[] operator={null};
+        new TransactionTemplate(context.getBean(PlatformTransactionManager.class)).executeWithoutResult(t -> {
+            var routes=context.getBean(RouteRepository.class); routes.deleteAll(); routes.flush();
+            var d=deliveries.findById(deliveryId).orElseThrow(); var op=d.getOperatorId(); operator[0]=op.getOperatorId();
+            var w=new Warehouse(); w.setName("Planning depot"); w.setAddress("Depot"); w.setLatitude(java.math.BigDecimal.ZERO); w.setLongitude(java.math.BigDecimal.ZERO);
+            context.getBean(WarehouseRepository.class).saveAndFlush(w); op.setWarehouse(w); op.setAvailabilityStatus(Operator.AvailabilityStatus.AVAILABLE);
+            var other=context.getBean(OperatorRepository.class).findById(secondOperator).orElseThrow(); other.setWarehouse(w);
+            other.setAvailabilityStatus(count==2 ? Operator.AvailabilityStatus.AVAILABLE : Operator.AvailabilityStatus.OFF_DUTY);
+            d.setOperatorId(null); d.setDeliveryStatus(Delivery.DeliveryStatus.PENDING); d.setScheduledDate(java.time.LocalDate.now()); d.setEndTimeWindow(java.time.LocalTime.MAX);
+            if(count==2) { var next=new Delivery(); next.setRecipientId(d.getRecipientId()); next.setDeliveryStatus(Delivery.DeliveryStatus.PENDING);
+                next.setPriorityLevel(Delivery.PriorityLevel.MEDIUM); next.setScheduledDate(java.time.LocalDate.now()); next.setEndTimeWindow(java.time.LocalTime.MAX); deliveries.saveAndFlush(next); }
+        });
+        return operator[0];
+    }
+    int pausedPlan(CountDownLatch entered,CountDownLatch release) {
+        try(var maps=org.mockito.Mockito.mockStatic(com.mmu.schedulingapp.utility.DistanceCalculator.class)) {
+            maps.when(() -> com.mmu.schedulingapp.utility.DistanceCalculator.getGoogleMapsDistance(
+                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.any()))
+                    .thenAnswer(call -> {
+                        assertThat(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                        entered.countDown(); if(!release.await(5,TimeUnit.SECONDS)) throw new AssertionError("Missing test release");
+                        return new com.mmu.schedulingapp.utility.DistanceResult(1,"1 min",60);
+                    });
+            var request=new com.mmu.schedulingapp.dto.route.RouteRequestDTO(); request.setScheduledDate(java.time.LocalDate.now());
+            context.getBean(com.mmu.schedulingapp.service.RouteService.class).createRoutes(request); return 201;
+        } catch(ResponseStatusException e) { return e.getStatusCode().value(); }
+    }
+    @Test void mapsPauseReleasesMySqlConnectionAndAllowsOperatorEdits() throws Exception {
+        var operator=preparePlanning(1); var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
+        var planning=CompletableFuture.supplyAsync(() -> pausedPlan(entered,release));
+        try {
+            assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
+            assertThat(context.getBean(com.zaxxer.hikari.HikariDataSource.class).getHikariPoolMXBean().getActiveConnections()).isZero();
+            var edit=CompletableFuture.runAsync(() -> {
+                try(var connection=DriverManager.getConnection(url,"root","disposable-test-password"); var sql=connection.createStatement()) {
+                    sql.executeUpdate("UPDATE operators SET availability_status='OFF_DUTY' WHERE operator_id="+operator);
+                } catch(SQLException e) { throw new RuntimeException(e); }
+            }); edit.get(1,TimeUnit.SECONDS);
+        } finally { release.countDown(); }
+        assertThat(planning.get(10,TimeUnit.SECONDS)).isEqualTo(409);
+        assertThat(context.getBean(RouteRepository.class).count()).isZero();
+        assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.PENDING);
+    }
+    @Test void relatedDataChangedWhileCommitWaitsIsRefreshedAndRejectedOnMySql() throws Exception {
+        preparePlanning(1); var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
+        var planning=CompletableFuture.supplyAsync(() -> pausedPlan(entered,release));
+        try(var connection=DriverManager.getConnection(url,"root","disposable-test-password")) {
+            try {
+                assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue(); connection.setAutoCommit(false);
+                try(var sql=connection.createStatement()) { sql.executeUpdate("UPDATE recipients SET latitude=10 WHERE recipient_id=(SELECT recipient_id FROM deliveries WHERE delivery_id="+deliveryId+")"); }
+                release.countDown();
+                assertThatThrownBy(() -> planning.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+                connection.commit(); assertThat(planning.get(10,TimeUnit.SECONDS)).isEqualTo(409);
+            } finally { release.countDown(); }
+        }
+        assertThat(context.getBean(RouteRepository.class).count()).isZero();
+        assertThat(deliveries.findById(deliveryId).orElseThrow().getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.PENDING);
+    }
+    @Test void secondRoutePersistenceFailureRollsBackEntirePlanOnMySql() throws Exception {
+        var operator=preparePlanning(2);
+        try(var connection=DriverManager.getConnection(url,"root","disposable-test-password"); var sql=connection.createStatement()) {
+            sql.execute("CREATE TRIGGER reject_second_planned_route BEFORE INSERT ON routes FOR EACH ROW BEGIN IF (SELECT COUNT(*) FROM routes)>0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Test second-route failure'; END IF; END");
+            try(var maps=org.mockito.Mockito.mockStatic(com.mmu.schedulingapp.utility.DistanceCalculator.class)) {
+                maps.when(() -> com.mmu.schedulingapp.utility.DistanceCalculator.getGoogleMapsDistance(
+                        org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.any()))
+                        .thenReturn(new com.mmu.schedulingapp.utility.DistanceResult(1,"1 min",60));
+                var request=new com.mmu.schedulingapp.dto.route.RouteRequestDTO(); request.setScheduledDate(java.time.LocalDate.now());
+                assertThatThrownBy(() -> context.getBean(com.mmu.schedulingapp.service.RouteService.class).createRoutes(request)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            } finally { sql.execute("DROP TRIGGER reject_second_planned_route"); }
+        }
+        assertThat(context.getBean(RouteRepository.class).count()).isZero();
+        assertThat(deliveries.findAll()).allSatisfy(d -> { assertThat(d.getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.PENDING);
+            assertThat(d.getOperatorId()).isNull(); assertThat(d.getFromPrevDistanceKm()).isNull(); });
+        assertThat(context.getBean(OperatorRepository.class).findById(operator).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+        assertThat(context.getBean(OperatorRepository.class).findById(secondOperator).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+    }
+
     int update(String status) {
         try { service.status(accountId,0L,deliveryId,status); return 200; }
         catch(ResponseStatusException failure) { return failure.getStatusCode().value(); }

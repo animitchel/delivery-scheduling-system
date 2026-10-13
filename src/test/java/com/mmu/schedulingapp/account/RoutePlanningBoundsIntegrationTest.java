@@ -66,7 +66,7 @@ class RoutePlanningBoundsIntegrationTest {
         assertThatThrownBy(() -> service.createRoutes(request())).isInstanceOf(ResponseStatusException.class)
                 .satisfies(e -> assertThat(((ResponseStatusException)e).getStatusCode().value()).isEqualTo(status));
     }
-    @Test void sharedCallBudgetRollsBackFirstDriverRouteWhenSecondDriverExceedsIt() throws Exception {
+    @Test void sharedCallBudgetRejectsWholePlanBeforeWritingAnyDriverRoute() throws Exception {
         when(provider.distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any())).thenAnswer(call -> {
             PlanningGuard.Budget budget=call.getArgument(4); budget.countProviderCall(); return new DistanceResult(1,"1 min",60);
         });
