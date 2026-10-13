@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
 import { api, ApiError } from './api';
 import type { Account, Role, SessionClient } from './api';
 import './styles.css';
+import { Accounts } from './Accounts';
 import { DriverRoutes } from './DriverRoutes';
 
 type Session = { kind: 'loading' } | { kind: 'anonymous' } | { kind: 'error' } | { kind: 'ready'; account: Account };
@@ -12,9 +13,9 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   const [session, setSession] = useState<Session>({ kind: 'loading' });
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
-  const [driverBusy, setDriverBusy] = useState(false);
+  const [mutationPending, setMutationPending] = useState(false);
   const mutationBusy = useRef(false);
-  const handleBusyChange = useCallback((value: boolean) => { mutationBusy.current = value; setDriverBusy(value); }, []);
+  const handleBusyChange = useCallback((value: boolean) => { mutationBusy.current = value; setMutationPending(value); }, []);
   const sequence = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const busy = useRef(false);
@@ -66,20 +67,21 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   const { account } = session;
   return <div className="workspace"><a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><Brand /><p className="nav-label">Workspace</p><nav aria-label="Main navigation">
-      <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} end to={home(account.role)} aria-disabled={driverBusy} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Overview</NavLink>
-      {account.role === 'ADMIN' ? <><a href="/html/admin.html">Scheduling</a><a href="/html/accounts.html">Accounts</a><a href="/html/operators.html">Routes</a></> : <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} to="/driver/routes" aria-disabled={driverBusy} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Assigned routes</NavLink>}
+      <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} end to={home(account.role)} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Overview</NavLink>
+      {account.role === 'ADMIN' ? <><a href="/html/admin.html" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Scheduling</a><NavLink to="/admin/accounts" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Accounts</NavLink><a href="/html/operators.html" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Routes</a></> : <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} to="/driver/routes" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Assigned routes</NavLink>}
     </nav><div className="sidebar-note"><span className="status-dot" />Signed in securely</div></aside>
     <div className="workspace-body"><header className="topbar"><span className="workspace-label">Delivery workspace</span><div className="session-actions">
       <div className="identity"><span className="username" title={account.username}>{account.username}</span><span className="role-label">{account.role === 'ADMIN' ? 'Administrator' : 'Driver'}</span></div>
-      <button className="button secondary" disabled={signingOut || driverBusy} onClick={() => { void signOut(); }}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
+      <button className="button secondary" disabled={signingOut || mutationPending} onClick={() => { void signOut(); }}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
     </div></header><main id="main-content" tabIndex={-1}>
       {logoutError && <p className="error-message" role="alert">Sign out failed. Please try again.</p>}
       <Routes><Route index element={<Navigate to={home(account.role)} replace />} />
         <Route path="admin" element={account.role === 'ADMIN' ? <Overview role="ADMIN" /> : <Forbidden destination={home(account.role)} />} />
         <Route path="driver" element={account.role === 'DRIVER' ? <Overview role="DRIVER" /> : <Forbidden destination={home(account.role)} />} />
+        <Route path="admin/accounts" element={account.role === 'ADMIN' ? <Accounts onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
         <Route path="driver/routes" element={account.role === 'DRIVER' ? <DriverRoutes onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
         <Route path="*" element={<><h1>Page not found.</h1><Link to={home(account.role)}>Return to your workspace</Link></>} />
-      </Routes><div className="session-footer"><span>Keep your workspace up to date.</span><button className="text-button" disabled={driverBusy} onClick={refresh}>Refresh session</button></div>
+      </Routes><div className="session-footer"><span>Keep your workspace up to date.</span><button className="text-button" disabled={mutationPending} onClick={refresh}>Refresh session</button></div>
     </main></div></div>;
 }
 function Brand() { return <div className="brand"><span className="brand-mark" aria-hidden="true">↗</span><span>Dispatch<span className="brand-caption">Delivery scheduling</span></span></div>; }
@@ -87,7 +89,7 @@ function Overview({ role }: { role: Role }) {
   const admin = role === 'ADMIN';
   const cards = admin ? [
     { title: 'Schedule deliveries', text: 'Manage recipients, prepare deliveries and generate routes.', href: '/html/admin.html', action: 'Open scheduling', symbol: '01' },
-    { title: 'Manage accounts', text: 'Create driver access, reset passwords and manage account availability.', href: '/html/accounts.html', action: 'Open accounts', symbol: '02' },
+    { title: 'Manage accounts', text: 'Create driver access, reset passwords and manage account availability.', href: '/app/admin/accounts', action: 'Open accounts', symbol: '02' },
     { title: 'Review routes', text: 'Follow assigned stops and review delivery progress.', href: '/html/operators.html', action: 'Open routes', symbol: '03' },
   ] : [{ title: 'Your assigned routes', text: 'Review your stops, view recipient details and update each delivery as you go.', href: '/app/driver/routes', action: 'View assigned routes', symbol: '01' }];
   return <><section className="page-intro"><p className="eyebrow">{admin ? 'Operations overview' : 'Driver overview'}</p><h1>{admin ? 'Keep deliveries moving.' : 'Your next stop starts here.'}</h1>
