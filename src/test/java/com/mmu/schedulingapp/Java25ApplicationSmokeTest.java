@@ -70,7 +70,7 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
-    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/routes","/app/driver","/app/driver/routes"})
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/deliveries","/app/admin/routes","/app/driver","/app/driver/routes"})
     void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
         var client=HttpClient.newHttpClient();
         var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());

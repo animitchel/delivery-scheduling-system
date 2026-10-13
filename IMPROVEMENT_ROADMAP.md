@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 13 October 2026; merged through PR #20\
+**Progress reconciled:** 13 October 2026; merged through PR #21\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -193,13 +193,14 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | React administrator route review, bounded route summaries and selected-stop details/actions | PR #18 | Merged |
 | Recipient API foundation: bounded search, strict writes, conditional edits and guarded coordinate updates | PR #19 | Merged |
 | React recipient management: searchable directory, creation, conditional edits and explicit save recovery | PR #20 | Merged |
-| Delivery preparation API: strict unassigned creation, shared legacy validation and bounded directory | `aniM/delivery-preparation-api` | Implemented in this branch; merge pending |
+| Delivery preparation API: strict unassigned creation, shared legacy validation and bounded directory | PR #21 | Merged |
+| React delivery preparation: bounded recipient selection, creation, filtered directory/details and explicit uncertain-save review | `aniM/react-admin-deliveries` | Implemented in this branch; merge pending |
 
 ### Next implementation sequence
 
 1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
-2. Review and merge the delivery preparation API foundation; strict creation produces unassigned pending work, with date/status/recipient-filtered scalar pages and shared validation for legacy writes. See [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
-3. Migrate delivery preparation into React using bounded recipient selection and explicit uncertain-save reconciliation. Follow with route generation as a separate focused change, using the existing planning/lifecycle rules.
+2. Delivery preparation API merged in PR #21; strict creation and bounded reads are documented in [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
+3. Review and merge React delivery preparation in `aniM/react-admin-deliveries`; see [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Follow with route generation as a separate focused change, using the existing planning/lifecycle rules.
 4. Add missing setup/history workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
 6. Establish CI (no checked-in workflow currently exists), then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.

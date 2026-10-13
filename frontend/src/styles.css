@@ -454,3 +454,13 @@ h1 {
 @media (max-width: 600px) { .recipient-panel { padding: 16px; } .recipient-fields { grid-template-columns: minmax(0, 1fr); } }
 
 .recipient-fields > div { display: grid; gap: 8px; align-content: start; }
+
+.delivery-recipient-list { list-style: none; padding: 0; }
+.delivery-recipient-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 1px solid #dce5df; padding: 16px 0; overflow-wrap: anywhere; }
+.delivery-recipient-list li > div { flex: 1; min-width: 180px; }
+.delivery-instructions { grid-column: 1 / -1; }
+.delivery-details { display: grid; grid-template-columns: minmax(100px, 180px) minmax(0, 1fr); gap: 12px 24px; }
+.delivery-details dt { font-weight: 700; }
+.delivery-details dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.delivery-recovery .button { margin: 8px 12px 8px 0; }
+@media (max-width: 600px) { .delivery-details { grid-template-columns: minmax(0, 1fr); gap: 8px; } .delivery-details dd { margin-bottom: 12px; } }
