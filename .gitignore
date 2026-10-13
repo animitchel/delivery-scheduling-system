@@ -45,3 +45,9 @@ application-local.properties
 # IDE files
 *.eml
 *.userlibraries
+
+### React frontend ###
+/frontend/node_modules/
+/frontend/dist/
+/frontend/coverage/
+/frontend/*.tsbuildinfo

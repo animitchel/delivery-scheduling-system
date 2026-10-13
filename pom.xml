@@ -29,6 +29,9 @@
     <properties>
         <java.version>25</java.version>
         <lombok.version>1.18.48</lombok.version>
+        <frontend.node.version>v24.20.0</frontend.node.version>
+        <frontend.npm.version>11.19.0</frontend.npm.version>
+        <skipTests>false</skipTests>
     </properties>
     <dependencies>
         <dependency>
@@ -104,6 +107,51 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>2.0.2</version>
+                <configuration>
+                    <workingDirectory>frontend</workingDirectory>
+                    <installDirectory>${project.build.directory}/frontend-runtime</installDirectory>
+                    <nodeVersion>${frontend.node.version}</nodeVersion>
+                    <npmVersion>${frontend.npm.version}</npmVersion>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>frontend-runtime</id><phase>generate-resources</phase>
+                        <goals><goal>install-node-and-npm</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>frontend-install</id><phase>generate-resources</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration><arguments>ci --ignore-scripts --no-fund --no-audit</arguments></configuration>
+                    </execution>
+                    <execution>
+                        <id>frontend-quality</id><phase>generate-resources</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration><arguments>run check</arguments><skip>${skipTests}</skip></configuration>
+                    </execution>
+                    <execution>
+                        <id>frontend-build</id><phase>generate-resources</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration><arguments>run build</arguments></configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>frontend-assets</id><phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/static/app</outputDirectory>
+                            <resources><resource><directory>frontend/dist</directory><filtering>false</filtering></resource></resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
