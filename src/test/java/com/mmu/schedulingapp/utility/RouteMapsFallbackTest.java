@@ -48,12 +48,14 @@ class RouteMapsFallbackTest {
             Delivery delivery = Delivery.builder().deliveryId(1).recipientId(recipient)
                     .scheduledDate(LocalDate.now()).endTimeWindow(LocalTime.MAX)
                     .priorityLevel(Delivery.PriorityLevel.MEDIUM).build();
-            var route = new RouteBuilder(operator).buildOptimizedRoute(List.of(delivery));
-            if (route.size() != 1 || route.get(0) != delivery || delivery.getOperatorId() != operator
-                    || delivery.getFromPrevDistanceKm() <= 0
-                    || !"Estimated distance; time unavailable".equals(delivery.getFromPrevDurationText())
-                    || delivery.getFromPrevDurationSeconds() != null) {
-                throw new AssertionError("Existing route fallback changed");
+            var input = com.mmu.schedulingapp.service.autorouting.PlanningSnapshot.DeliveryInput.from(delivery);
+            var route = new RouteBuilder(com.mmu.schedulingapp.service.autorouting.PlanningSnapshot.OperatorInput.from(operator),
+                    java.time.LocalDateTime.now(), DistanceCalculator::getGoogleMapsDistance, () -> {}).buildOptimizedRoute(List.of(input));
+            if (route.size() != 1 || route.get(0).deliveryId() != 1 || delivery.getOperatorId() != null
+                    || delivery.getFromPrevDistanceKm() != null || route.get(0).distanceKm() <= 0
+                    || !"Estimated distance; time unavailable".equals(route.get(0).durationText())
+                    || route.get(0).durationSeconds() != null) {
+                throw new AssertionError("Labelled fallback or immutable calculation changed");
             }
             System.out.println("fallback-preserved");
         }
