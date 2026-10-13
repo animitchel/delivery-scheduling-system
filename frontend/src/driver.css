@@ -170,3 +170,7 @@
 
 }
 
+
+.route-directory { margin:24px 0; padding:24px; background:white; border:1px solid #dce4da; border-radius:12px; min-width:0 }
+.admin-routes .route-summary { margin-top:32px }
+@media(max-width:520px) { .route-directory { padding:16px } }

@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 13 October 2026; merged through PR #16\
+**Progress reconciled:** 13 October 2026; merged through PR #17\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -189,13 +189,15 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | Snapshot/calculate/revalidate route-planning transactions | PR #14 | Merged |
 | React + TypeScript + Vite foundation, same-origin API/session integration and Spring asset packaging | PR #15 | Merged |
 | React driver route execution and entry-point cutover | PR #16 | Merged |
-| React administrator account directory, eligible-operator search, creation/access/reset and one-time credentials | `aniM/react-admin-accounts` | Implemented in this branch; merge pending |
+| React administrator account directory, eligible-operator search, creation/access/reset and one-time credentials | PR #17 | Merged |
+
+| React administrator route review, bounded route summaries and selected-stop details/actions | `aniM/react-admin-routes` | Implemented in this branch; merge pending |
 
 ### Next implementation sequence
 
-1. Review and merge the React account-management slice; retain `/html/accounts.html` for rollback.
-2. Migrate administrator route review into React using the existing lifecycle contracts.
-3. Split scheduling migration into recipient/delivery management and route generation, each with its own API and browser acceptance checks.
+1. Review and merge React administrator route review; retain `/html/operators.html` for rollback.
+2. Migrate recipient/delivery management with focused API, validation and browser acceptance checks.
+3. Migrate route generation using the existing planning/lifecycle contracts; keep feasibility and explicit unassigned-work feedback in scope where contracts are ready.
 4. Add missing setup/history workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
 6. Establish CI (no checked-in workflow currently exists), then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.

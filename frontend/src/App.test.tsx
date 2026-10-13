@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError } from './api';
+import { adminRoutesApi } from './admin-routes-api';
 import { accountsApi } from './accounts-api';
 import { driverApi } from './driver-api';
 import type { Credential } from './accounts-api';
@@ -79,6 +80,9 @@ describe('authenticated workspace', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Sign out failed');
     expect(screen.queryByText('private details')).not.toBeInTheDocument(); expect(client.logout).toHaveBeenCalledTimes(1);
   });
+  it('denies the administrator route screen to a driver without calling its directory API', async () => {
+    const requests=vi.spyOn(adminRoutesApi,'directory'); mount(clientFor(driver),'/admin/routes'); await screen.findByRole('heading',{name:'You don’t have access to this workspace.'}); expect(requests).not.toHaveBeenCalled();
+  });
   it('denies the React account directory to a driver without calling its API', async () => {
     const requests = vi.spyOn(accountsApi, 'accounts'); mount(clientFor(driver), '/admin/accounts');
     await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' }); expect(requests).not.toHaveBeenCalled();
@@ -94,6 +98,14 @@ describe('authenticated workspace', () => {
     await act(async()=>{pending.resolve({account:{...target,passwordChangeRequired:true},temporaryPassword:'A'.repeat(32),expiresAt:'2026-10-14T12:00:00Z'});await pending.promise;}); await screen.findByRole('dialog',{name:'Temporary driver password'});
     expect(screen.getByLabelText('Temporary password')).toHaveValue('A'.repeat(32));
     await userEvent.click(screen.getByRole('button',{name:'Done'})); await userEvent.click(screen.getByRole('link',{name:'Overview'})); await screen.findByRole('heading',{name:'Keep deliveries moving.'}); expect(document.querySelector('#temporary-driver-password')).toBeNull();
+  });
+  it('keeps administrator route writes mounted during focus and blocks shell navigation', async () => {
+    const assignment: DriverRoute={routeId:1,operatorId:4,operatorName:'Driver',scheduledDate:'2026-10-13',routeStatus:'IN_PROGRESS',deliveries:[{deliveryId:1,recipientId:1,clientName:'Test recipient',status:'IN_PROGRESS',fromPrevDistanceKm:null,fromPrevDurationText:null,fromPrevDurationSeconds:null}]};
+    vi.spyOn(adminRoutesApi,'directory').mockResolvedValue({routes:[{routeId:1,operatorId:4,operatorName:'Driver',scheduledDate:'2026-10-13',routeStatus:'IN_PROGRESS',stopCount:1,finishedCount:0}],page:0,size:20,totalElements:1,totalPages:1});
+    const read=vi.spyOn(adminRoutesApi,'route').mockResolvedValue(assignment); const pending=deferred<void>();const update=vi.spyOn(adminRoutesApi,'update').mockReturnValue(pending.promise); const client=clientFor(); mount(client,'/admin/routes'); await screen.findByRole('button',{name:'Mark completed'});
+    fireEvent.click(screen.getByRole('button',{name:'Mark completed'})); act(()=>{window.dispatchEvent(new Event('focus'));}); await userEvent.click(screen.getByRole('link',{name:'Accounts'}));
+    expect(screen.getByRole('heading',{name:'Routes'})).toBeVisible();expect(client.session).toHaveBeenCalledTimes(1);expect(update).toHaveBeenCalledTimes(1);expect(screen.getByRole('button',{name:'Sign out'})).toBeDisabled();
+    read.mockResolvedValue({...assignment,routeStatus:'COMPLETED',deliveries:[{...assignment.deliveries[0]!,status:'COMPLETED'}]}); await act(async()=>{pending.resolve();await pending.promise;});await waitFor(()=>expect(screen.getByRole('status')).toHaveTextContent('1 of 1 stops finished'));expect(screen.getByRole('button',{name:'Mark completed'})).toBeDisabled();
   });
   it('does not mount driver endpoints for an administrator deep link', async () => {
     const requests = vi.spyOn(driverApi, 'routes'); mount(clientFor(), '/driver/routes');
