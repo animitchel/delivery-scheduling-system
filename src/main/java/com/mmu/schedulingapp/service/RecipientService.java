@@ -23,6 +23,10 @@ public class RecipientService {
     private final Function<String, Optional<GeocodingService.Coordinate>> coordinateLookup;
 
     @Autowired
+    public RecipientService(RecipientRepository recipientRepository, com.mmu.schedulingapp.utility.MapsProvider provider) {
+        this(recipientRepository, provider::coordinates);
+    }
+
     public RecipientService(RecipientRepository recipientRepository) {
         this(recipientRepository, GeocodingService::getCoordinates);
     }

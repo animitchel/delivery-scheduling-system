@@ -185,7 +185,7 @@ class DriverMySqlIntegrationTest {
     int generate(CountDownLatch started) {
         try(var maps=org.mockito.Mockito.mockStatic(com.mmu.schedulingapp.utility.DistanceCalculator.class)) {
             maps.when(() -> com.mmu.schedulingapp.utility.DistanceCalculator.getGoogleMapsDistance(
-                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble()))
+                    org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.anyDouble(),org.mockito.ArgumentMatchers.any()))
                     .thenReturn(new com.mmu.schedulingapp.utility.DistanceResult(0,"0 seconds",0));
             var request=new com.mmu.schedulingapp.dto.route.RouteRequestDTO(); request.setScheduledDate(java.time.LocalDate.now());
             started.countDown();
