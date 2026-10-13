@@ -23,6 +23,7 @@ public class SecurityConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/html/login.html", "/js/login.js", "/js/auth.js",
                                 "/css/login.css", "/api/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/app", "/app/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/html/change-password.html", "/js/password.js").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password").authenticated()
