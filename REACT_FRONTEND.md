@@ -52,7 +52,7 @@ Dependencies and transitive resolutions are locked in package-lock.json. npm lif
 
 There are no committed generated bundles or node_modules. Build/runtime application secrets must not be placed in frontend files or VITE-prefixed variables.
 
-Only `/app`, `/app/`, `/app/admin`, `/app/admin/accounts`, `/app/admin/routes`, `/app/driver` and `/app/driver/routes` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
+Only `/app`, `/app/`, `/app/admin`, `/app/admin/accounts`, `/app/admin/routes`, `/app/admin/recipients`, `/app/driver` and `/app/driver/routes` forward to the shell. Add deliberate server entry mappings when introducing new frontend routes. APIs, missing assets and unknown server routes do not receive SPA HTML. The shell is public but contains no identity; session data is fetched from protected endpoints. Password-setup enforcement still applies at Spring's filter layer.
 
 Shell HTML and session responses are not cached. Vite assets have content-hashed names, and `/app/assets/**` receives public immutable caching for one year. Deploy the complete jar as one artifact so its HTML and assets remain matched; avoid caching shell HTML at a proxy/CDN. Deploying this jar adds Workspace alongside existing pages; reverting the artifact restores the prior entry points without changing database records.
 
@@ -65,3 +65,5 @@ Spring running-server tests check public entry/deep-link HTML, immutable hashed 
 No database migration, live deployment, account creation or credential change is included. Production readiness still requires the remaining roadmap's schema, scheduling and operational gates.
 
 References: [React TypeScript guidance](https://react.dev/learn/typescript), [Vite production builds](https://vite.dev/guide/build), [frontend Maven build plugin](https://github.com/eirslett/frontend-maven-plugin).
+
+Recipient directory, creation and conditional editing are documented in [REACT_RECIPIENTS.md](REACT_RECIPIENTS.md). Delivery preparation and route generation remain in the legacy scheduling page during migration.
