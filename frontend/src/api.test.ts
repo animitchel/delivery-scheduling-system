@@ -73,4 +73,15 @@ describe('session API contract', () => {
     await expect(createApiClient(fetcher).logout()).rejects.toMatchObject({ status: 502 });
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
+  it('classifies only allowlisted generation conflicts without retaining raw messages', async () => {
+    const fetcher=vi.fn<typeof fetch>().mockResolvedValueOnce(json({headerName:'X-CSRF-TOKEN',token:'test'})).mockResolvedValueOnce(json({error:'No available operators without active routes.'},409));
+    await expect(createApiClient(fetcher).request('/api/admin/routes/generate',{method:'POST'})).rejects.toMatchObject({status:409,routeIssue:'NO_OPERATORS'});
+    const unknown=vi.fn<typeof fetch>().mockResolvedValueOnce(json({headerName:'X-CSRF-TOKEN',token:'test'})).mockResolvedValueOnce(json({error:'private provider credential'},409));
+    await expect(createApiClient(unknown).request('/api/admin/routes/generate',{method:'POST'})).rejects.toMatchObject({status:409,routeIssue:undefined});
+  });
+  it('does not classify identical messages on unrelated endpoints', async () => {
+    const fetcher=vi.fn<typeof fetch>().mockResolvedValue(json({error:'No available operators without active routes.'},409));
+    await expect(createApiClient(fetcher).request('/api/admin/routes')).rejects.toMatchObject({status:409,routeIssue:undefined});
+  });
+
 });

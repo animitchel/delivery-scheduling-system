@@ -1,0 +1,19 @@
+import { describe, it, expect, vi } from 'vitest';
+import { ApiError } from './api';
+import { createGenerationClient, generationTimeout, parseGeneration } from './route-generation-api';
+const date='2026-10-13';
+const route={routeId:91,operatorId:2,operatorName:'Driver',scheduledDate:date,routeStatus:'IN_PROGRESS',stopCount:2,finishedCount:0};
+const ack={scheduledDate:date,routes:[route],processingTimeMs:12};
+const signal=new AbortController().signal;
+describe('route generation client',()=>{
+  it('sends a date-only write, propagates cancellation and checks committed summaries',async()=>{const request=vi.fn().mockResolvedValue(new Response(JSON.stringify(ack),{status:201})); expect(await createGenerationClient(request).generate(date,signal)).toEqual(ack); expect(request).toHaveBeenCalledWith('/api/admin/routes/generate',expect.objectContaining({method:'POST',signal,body:JSON.stringify({scheduledDate:date})}));});
+  it('uses bounded date-filtered review without a status filter',async()=>{const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({routes:[{...route,routeStatus:'COMPLETED',finishedCount:2}],page:0,size:20,totalElements:1,totalPages:1}))); await createGenerationClient(request).directory(0,date,signal); expect(request).toHaveBeenCalledWith('/api/admin/routes?page=0&size=20&scheduledDate=2026-10-13',{signal});});
+  it.each([{scheduledDate:'2026-10-14'},{routes:[]},{processingTimeMs:-1},{routes:[{...route,routeStatus:'COMPLETED'}]},{routes:[{...route,stopCount:0}]},{routes:[{...route,finishedCount:1}]},{routes:[route,route]},{routes:[route,{...route,routeId:92}]}])('rejects uncertain acknowledgements %j',change=>{expect(()=>parseGeneration({...ack,...change},date)).toThrow(ApiError);});
+  it('enforces the hard server workload bounds without limiting acknowledgements to one directory page',()=>{const routes=Array.from({length:21},(_,i)=>({...route,routeId:i+1,operatorId:i+1,stopCount:1})); expect(parseGeneration({...ack,routes},date).routes).toHaveLength(21); expect(()=>parseGeneration({...ack,routes:[{...route,stopCount:501}]},date)).toThrow(ApiError);});
+  it('does not replay an unexpected status or malformed response',async()=>{const request=vi.fn().mockResolvedValue(new Response(JSON.stringify(ack),{status:200})); await expect(createGenerationClient(request).generate(date,signal)).rejects.toMatchObject({status:502}); expect(request).toHaveBeenCalledTimes(1); request.mockResolvedValue(new Response('invalid',{status:201})); await expect(createGenerationClient(request).generate(date,signal)).rejects.toMatchObject({status:502}); expect(request).toHaveBeenCalledTimes(2);});
+  it('rejects invalid dates/pages before sending',async()=>{const request=vi.fn(); const client=createGenerationClient(request); await expect(client.generate('2026-02-30',signal)).rejects.toMatchObject({status:400}); await expect(client.directory(10001,date,signal)).rejects.toMatchObject({status:400}); expect(request).not.toHaveBeenCalled();});
+  it('rejects unrelated routes returned by a filtered read',async()=>{const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({routes:[{...route,scheduledDate:'2026-10-14'}],page:0,size:20,totalElements:1,totalPages:1}))); await expect(createGenerationClient(request).directory(0,date,signal)).rejects.toMatchObject({status:502});});
+  it('checks selected-route identity',async()=>{const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({...route,deliveries:[]}))); await expect(createGenerationClient(request).route(92,signal)).rejects.toMatchObject({status:502});});
+  it('defaults to a dedicated bounded generation timeout',()=>{expect(generationTimeout(undefined)).toBe(180000); expect(generationTimeout('240000')).toBe(240000);});
+  it.each(['0','999','600001','NaN','1000.5','-1','Infinity',''])('fails closed for invalid timeout %s',value=>{expect(()=>generationTimeout(value)).toThrow(/configuration/);});
+});

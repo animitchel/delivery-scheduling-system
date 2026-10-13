@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Navigate, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from './api';
 import type { Account, Role, SessionClient } from './api';
 import './styles.css';
+import { RouteGeneration } from './RouteGeneration';
 import { AdminRoutes } from './AdminRoutes';
 import { Deliveries } from './Deliveries';
 import { Recipients } from './Recipients';
@@ -71,7 +72,7 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   return <div className="workspace"><a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><Brand /><p className="nav-label">Workspace</p><nav aria-label="Main navigation">
       <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} end to={home(account.role)} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Overview</NavLink>
-      {account.role === 'ADMIN' ? <><a href="/html/admin.html" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Scheduling</a><NavLink to="/admin/deliveries" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Deliveries</NavLink><NavLink to="/admin/recipients" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Recipients</NavLink><NavLink to="/admin/accounts" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Accounts</NavLink><NavLink to="/admin/routes" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Routes</NavLink></> : <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} to="/driver/routes" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Assigned routes</NavLink>}
+      {account.role === 'ADMIN' ? <><a href="/html/admin.html" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Scheduling</a><NavLink to="/admin/deliveries" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Deliveries</NavLink><NavLink to="/admin/recipients" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Recipients</NavLink><NavLink to="/admin/accounts" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Accounts</NavLink><NavLink to="/admin/routes/generate" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Generate routes</NavLink><NavLink end to="/admin/routes" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Routes</NavLink></> : <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} to="/driver/routes" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Assigned routes</NavLink>}
     </nav><div className="sidebar-note"><span className="status-dot" />Signed in securely</div></aside>
     <div className="workspace-body"><header className="topbar"><span className="workspace-label">Delivery workspace</span><div className="session-actions">
       <div className="identity"><span className="username" title={account.username}>{account.username}</span><span className="role-label">{account.role === 'ADMIN' ? 'Administrator' : 'Driver'}</span></div>
@@ -81,7 +82,8 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
       <Routes><Route index element={<Navigate to={home(account.role)} replace />} />
         <Route path="admin" element={account.role === 'ADMIN' ? <Overview role="ADMIN" /> : <Forbidden destination={home(account.role)} />} />
         <Route path="driver" element={account.role === 'DRIVER' ? <Overview role="DRIVER" /> : <Forbidden destination={home(account.role)} />} />
-        <Route path="admin/routes" element={account.role === 'ADMIN' ? <AdminRoutes onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
+        <Route path="admin/routes/generate" element={account.role === 'ADMIN' ? <RouteGeneration onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
+        <Route path="admin/routes" element={account.role === 'ADMIN' ? <AdminRoutePage onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
         <Route path="admin/deliveries" element={account.role === 'ADMIN' ? <Deliveries onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
         <Route path="admin/recipients" element={account.role === 'ADMIN' ? <Recipients onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
         <Route path="admin/accounts" element={account.role === 'ADMIN' ? <Accounts onAuthError={handleAuthError} onBusyChange={handleBusyChange} /> : <Forbidden destination={home(account.role)} />} />
@@ -98,7 +100,8 @@ function Overview({ role }: { role: Role }) {
     { title: 'Prepare deliveries', text: 'Choose recipients, create deliveries and review saved work.', href: '/app/admin/deliveries', action: 'Open deliveries', symbol: '02' },
     { title: 'Manage recipients', text: 'Find recipients and maintain delivery addresses and contact details.', href: '/app/admin/recipients', action: 'Open recipients', symbol: '03' },
     { title: 'Manage accounts', text: 'Create driver access, reset passwords and manage account availability.', href: '/app/admin/accounts', action: 'Open accounts', symbol: '04' },
-    { title: 'Review routes', text: 'Follow assigned stops and review delivery progress.', href: '/app/admin/routes', action: 'Open routes', symbol: '05' },
+    { title: 'Generate routes', text: 'Assign eligible pending work to available operators and start routes.', href: '/app/admin/routes/generate', action: 'Open route generation', symbol: '05' },
+    { title: 'Review routes', text: 'Follow assigned stops and review delivery progress.', href: '/app/admin/routes', action: 'Open routes', symbol: '06' },
   ] : [{ title: 'Your assigned routes', text: 'Review your stops, view recipient details and update each delivery as you go.', href: '/app/driver/routes', action: 'View assigned routes', symbol: '01' }];
   return <><section className="page-intro"><p className="eyebrow">{admin ? 'Operations overview' : 'Driver overview'}</p><h1>{admin ? 'Keep deliveries moving.' : 'Your next stop starts here.'}</h1>
     <p className="intro-text">{admin ? 'Your tools for planning work, managing access and following progress.' : 'Everything you need to follow your route and keep the team informed.'}</p></section>
@@ -106,3 +109,11 @@ function Overview({ role }: { role: Role }) {
     <section className="workspace-tip"><div><p className="eyebrow">A clear handover</p><h2>{admin ? 'Plan, assign, follow through.' : 'Update each stop as you go.'}</h2></div><p>{admin ? 'Generated routes are assigned to available operators. Track completion through the route view.' : 'Mark each stop completed or cancelled. Your route finishes when every stop has an outcome.'}</p></section></>;
 }
 function Forbidden({ destination }: { destination: string }) { return <section className="page-intro"><p className="eyebrow">Access restricted</p><h1>You don’t have access to this workspace.</h1><p>Your account has a different workspace.</p><Link className="button" to={destination}>Open your workspace</Link></section>; }
+
+function AdminRoutePage({ onAuthError, onBusyChange }: { onAuthError: (error: ApiError) => void; onBusyChange: (busy: boolean) => void }) {
+  const [params] = useSearchParams(); const values = params.getAll('routeId'); const value = values[0];
+  if (values.length > 1 || value !== undefined && (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) > 2147483647))
+    return <section className="page-intro"><h1>Invalid route link.</h1><p role="alert">Choose a route from the directory.</p><Link to="/admin/routes">Open route directory</Link></section>;
+  const id = value === undefined ? undefined : Number(value);
+  return <AdminRoutes key={id ?? 'directory'} initialRouteId={id} onAuthError={onAuthError} onBusyChange={onBusyChange} />;
+}

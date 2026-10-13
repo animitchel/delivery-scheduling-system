@@ -7,7 +7,7 @@ import type { DriverRoute, Details, Recipient, Stop } from './driver-api';
 import './driver.css';
 import './accounts.css';
 type Info = { stop: Stop; delivery: Details; recipient: Recipient };
-export function AdminRoutes({ client = adminRoutesApi, onAuthError, onBusyChange }: { client?: AdminRoutesClient; onAuthError: (error: ApiError) => void; onBusyChange?: (busy: boolean) => void }) {
+export function AdminRoutes({ client = adminRoutesApi, onAuthError, onBusyChange, initialRouteId }: { client?: AdminRoutesClient; onAuthError: (error: ApiError) => void; onBusyChange?: (busy: boolean) => void; initialRouteId?: number | undefined }) {
   const [directory, setDirectory] = useState<RoutePage | null>(null);
   const [route, setRoute] = useState<DriverRoute | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,9 +59,9 @@ export function AdminRoutes({ client = adminRoutesApi, onAuthError, onBusyChange
     loadRoutes(selected, page);
   }
   useEffect(() => {
-    active.current = true; loadRoutes();
+    active.current = true; if (initialRouteId) focusSelection.current = true; loadRoutes(initialRouteId);
     return () => { active.current = false; reads.current?.abort(); details.current?.abort(); mutation.current?.abort(); };
-  }, [loadRoutes]);
+  }, [loadRoutes, initialRouteId]);
   function openDetails(stop: Stop, button: HTMLButtonElement) {
     clearDetails(); const controller = new AbortController(); details.current = controller;
     returnFocus.current = button; setDetailLoading(true);
@@ -92,10 +92,11 @@ export function AdminRoutes({ client = adminRoutesApi, onAuthError, onBusyChange
       if (!auth(error)) setMessage(error instanceof ApiError && error.status === 404 ? 'This route or delivery is no longer available. Reload routes.' : error instanceof ApiError && error.status === 409 ? 'This delivery has changed. Reload routes before another action.' : 'The update outcome is uncertain. Reload routes before another action.');
     } finally { window.clearTimeout(timeout); write.current = false; onBusyChange?.(false); if (active.current) setBusy(false); }
   }
-  return <section className="driver-routes admin-routes"><div className="driver-heading"><div><p className="eyebrow">Administrator workspace</p><h1>Routes</h1></div><button className="button secondary" disabled={busy || loading} onClick={() => refresh(route?.routeId)}>Reload routes</button></div>
+  return <section className="driver-routes admin-routes"><div className="driver-heading"><div><p className="eyebrow">Administrator workspace</p><h1>Routes</h1></div><button className="button secondary" disabled={busy || loading} onClick={() => refresh(route?.routeId ?? initialRouteId)}>Reload routes</button></div>
     {message && <p role="alert" className="error-message">{message}</p>}
-    {loading ? <p role="status">Loading routes…</p> : directory?.routes.length === 0 && !message ? <div className="route-empty"><h2>No routes found</h2><p>Generated routes will appear here.</p></div> : <>
+    {loading ? <p role="status">Loading routes…</p> : directory?.routes.length === 0 && !route && !message ? <div className="route-empty"><h2>No routes found</h2><p>Generated routes will appear here.</p></div> : <>
       {directory && <div className="route-directory"><h2>Route directory</h2><p className="table-scroll-hint">Scroll across the table to see all route details and actions.</p><div className="accounts-table" role="region" aria-label="Route directory table" tabIndex={0}><table><thead><tr><th>Route</th><th>Operator</th><th>Date</th><th>Status</th><th>Progress</th><th>Action</th></tr></thead><tbody>{directory.routes.map(item => <tr key={item.routeId}><th scope="row">#{item.routeId}</th><td>{item.operatorName}</td><td>{item.scheduledDate}</td><td>{item.routeStatus.replaceAll('_',' ')}</td><td>{item.finishedCount} of {item.stopCount} stops</td><td><button className="text-button" disabled={busy} aria-current={item.routeId === route?.routeId ? 'true' : undefined} onClick={() => { focusSelection.current = true; refresh(item.routeId); }}>View route #{item.routeId}</button></td></tr>)}</tbody></table></div><div className="account-pagination"><button className="button secondary" disabled={busy || directory.page === 0} onClick={() => refresh(undefined,directory.page-1)}>Previous routes</button><span>Page {directory.page+1} of {directory.totalPages} · {directory.totalElements} routes</span><button className="button secondary" disabled={busy || directory.page+1 >= directory.totalPages} onClick={() => refresh(undefined,directory.page+1)}>Next routes</button></div></div>}
+      {route && directory && !directory.routes.some(item => item.routeId === route.routeId) && <p>Viewing route #{route.routeId} from a direct link; it is outside this directory page.</p>}
       {route && <RouteStops route={route} summaryRef={summary} busy={busy} blocked={blocked} cancelStop={cancelStop} onDetails={openDetails} onComplete={stop => { void update(stop, 'COMPLETED'); }} onCancel={setCancelStop} onConfirm={stop => { void update(stop, 'CANCELLED'); }} onKeep={() => setCancelStop(null)} />}
     </>}
     <StopDetailsDialog dialog={dialog} loading={detailLoading} error={detailError} info={info} onClose={closeDetails} onDismiss={clearDetails} />
