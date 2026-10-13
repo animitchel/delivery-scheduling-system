@@ -22,6 +22,9 @@ public interface OperatorRepository extends JpaRepository<Operator, Integer> {
     @org.springframework.data.jpa.repository.Query("select o.operatorId from Operator o where o.availabilityStatus = com.mmu.schedulingapp.model.Operator.AvailabilityStatus.AVAILABLE order by o.operatorId")
     List<Integer> findAvailableIds();
 
+    @org.springframework.data.jpa.repository.Query("select o.operatorId from Operator o where o.availabilityStatus = com.mmu.schedulingapp.model.Operator.AvailabilityStatus.AVAILABLE and not exists (select r.routeId from Route r where r.operator=o and r.routeStatus <> com.mmu.schedulingapp.model.Route.RouteStatus.COMPLETED) order by o.operatorId")
+    List<Integer> findPlanningIds(org.springframework.data.domain.Pageable pageable);
+
     // Find all operators by availability status
     List<Operator> findAllByAvailabilityStatus(Operator.AvailabilityStatus status);
 }
