@@ -35,3 +35,7 @@ Frontend tests cover runtime contracts, role guards, stale detail/route response
 Run `npm --prefix frontend run check` and the established Java 25 `scripts/test-account-mysql.sh` suite with optional `session.browser.*` arguments. The protected legacy `/html/operators.html` page remains a rollback path. Route generation, recipient/delivery editing, deletion and archive management are separate tasks. This branch does not deploy, migrate a live database or change live accounts.
 
 The upcoming React generation slice uses [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md). This existing review screen continues to work with its current endpoints.
+
+## Selected-route links
+
+`/app/admin/routes?routeId=<id>` initially opens the exact positive integer route ID, including routes outside the first directory page. Invalid, duplicate or out-of-range IDs fail before endpoint reads. Missing routes show a failure without substituting a different assignment. The URL selects the initial route; subsequent manual selections use the existing in-page controls. Generation links use this contract.

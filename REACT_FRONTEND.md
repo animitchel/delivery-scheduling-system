@@ -69,3 +69,7 @@ References: [React TypeScript guidance](https://react.dev/learn/typescript), [Vi
 Recipient directory, creation and conditional editing are documented in [REACT_RECIPIENTS.md](REACT_RECIPIENTS.md). Delivery preparation and route generation remain in the legacy scheduling page during migration.
 
 React delivery creation and review are documented in [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Route generation remains in the scheduling page.
+
+## Administrator route generation
+
+`/app/admin/routes/generate` provides explicit generation/assignment confirmation, a dedicated configurable browser deadline and all-status review after uncertain writes. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) for the timeout setting, recovery limits and browser verification.

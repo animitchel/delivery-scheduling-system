@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.datasource.password=", "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop", "server.address=127.0.0.1"})
 class Java25ApplicationSmokeTest {
+    @org.springframework.test.context.bean.override.mockito.MockitoBean com.mmu.schedulingapp.utility.MapsProvider maps;
     @Autowired AccountService accounts;
     @Autowired ObjectMapper json;
     @Autowired com.mmu.schedulingapp.repository.RecipientRepository recipients;
@@ -70,7 +71,7 @@ class Java25ApplicationSmokeTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
     }
-    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/deliveries","/app/admin/routes","/app/driver","/app/driver/routes"})
+    @ParameterizedTest @ValueSource(strings={"/app","/app/","/app/admin","/app/admin/accounts","/app/admin/recipients","/app/admin/deliveries","/app/admin/routes","/app/admin/routes/generate","/app/driver","/app/driver/routes"})
     void servesPublicReactEntryPointsWithoutPrivateData(String path) throws Exception {
         var client=HttpClient.newHttpClient();
         var response=client.send(HttpRequest.newBuilder(URI.create(base+path)).GET().build(),HttpResponse.BodyHandlers.ofString());
@@ -112,6 +113,10 @@ class Java25ApplicationSmokeTest {
         recipient.setLastName("Test"); recipient.setAddress("Test address");
         recipient.setLatitude(java.math.BigDecimal.ZERO); recipient.setLongitude(java.math.BigDecimal.ZERO);
         recipients.saveAndFlush(recipient);
+        org.mockito.Mockito.when(maps.distance(org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.anyDouble(), org.mockito.ArgumentMatchers.any())).thenAnswer(call -> {
+            ((com.mmu.schedulingapp.utility.PlanningGuard.Budget) call.getArgument(4)).countProviderCall();
+            return new com.mmu.schedulingapp.utility.DistanceResult(1, "1 min", 60);
+        });
         var driverFixtures = seedDriverFixtures(recipient);
         try {
             var builder = new ProcessBuilder(System.getProperty("session.browser.node"), "scripts/test-session-browser.cjs", base);
@@ -136,9 +141,14 @@ class Java25ApplicationSmokeTest {
             var operators = context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class);
             var deliveries = context.getBean(com.mmu.schedulingapp.repository.DeliveryRepository.class);
             var routes = context.getBean(com.mmu.schedulingapp.repository.RouteRepository.class);
+            var warehouse = new com.mmu.schedulingapp.model.Warehouse();
+            warehouse.setName("Browser warehouse"); warehouse.setAddress("Test depot");
+            warehouse.setLatitude(java.math.BigDecimal.ONE); warehouse.setLongitude(java.math.BigDecimal.ONE);
+            context.getBean(com.mmu.schedulingapp.repository.WarehouseRepository.class).saveAndFlush(warehouse);
             Integer otherRoute = null, otherDelivery = null;
             for (int index = 0; index < 5; index++) {
                 var operator = new com.mmu.schedulingapp.model.Operator();
+                operator.setWarehouse(warehouse);
                 operator.setName("Browser driver " + index); operator.setEmail("browser" + index + "@example.test"); operator.setPhoneNumber("123"); operators.saveAndFlush(operator);
                 if (index == 4) {
                     operator.setName("<img src=x onerror=window.__injected=true>"); operators.saveAndFlush(operator);
@@ -183,6 +193,7 @@ class Java25ApplicationSmokeTest {
             context.getBean(com.mmu.schedulingapp.account.AccountAuditRepository.class).deleteAll();
             var operators=context.getBean(com.mmu.schedulingapp.repository.OperatorRepository.class); operators.deleteAll(); operators.flush();
             recipients.deleteAll(); recipients.flush();
+            var warehouses=context.getBean(com.mmu.schedulingapp.repository.WarehouseRepository.class); warehouses.deleteAll(); warehouses.flush();
         });
     }
 

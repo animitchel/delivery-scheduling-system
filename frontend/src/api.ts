@@ -1,8 +1,17 @@
 export type Role = 'ADMIN' | 'DRIVER';
 export interface Account { id: number; username: string; role: Role; operatorId: number | null; enabled: boolean; passwordChangeRequired: boolean }
 interface Csrf { headerName: string; token: string }
+export type RouteIssue = 'NO_WORK' | 'NO_OPERATORS' | 'WAREHOUSE_SETUP' | 'DELIVERY_SETUP' | 'STALE_INPUTS' | 'COMMIT_CONFLICT';
+const routeIssues = new Map<string, RouteIssue>([
+  ['No unrouted pending deliveries for the requested date.', 'NO_WORK'],
+  ['No available operators without active routes.', 'NO_OPERATORS'],
+  ['Selected operator needs warehouse coordinates before routing.', 'WAREHOUSE_SETUP'],
+  ['Selected delivery needs complete scheduling and location data.', 'DELIVERY_SETUP'],
+  ['Planning inputs changed. Reload deliveries and operators before requesting a new plan.', 'STALE_INPUTS'],
+  ['Route generation could not be committed. Reload routes and deliveries before requesting another plan.', 'COMMIT_CONFLICT'],
+]);
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly passwordChangeRequired = false) {
+  constructor(readonly status: number, readonly passwordChangeRequired = false, readonly routeIssue?: RouteIssue) {
     super(status === 401 ? 'Your session has ended. Sign in again.' : status === 403 ? 'You do not have permission for this action.' : 'The request could not be completed. Please try again.');
     this.name = 'ApiError';
   }
@@ -30,14 +39,18 @@ export function createApiClient(fetcher: typeof fetch = fetch) {
     if (url.origin !== window.location.origin || !url.pathname.startsWith('/api/') || url.username || url.password) throw new ApiError(400);
     return url;
   }
-  async function checked(response: Response) {
+  async function checked(response: Response, path?: string) {
     if (response.ok) return response;
     if (response.status === 401 || response.status === 403) csrf = undefined;
     let setupRequired = false;
     if (response.status === 403) {
       try { const value: unknown = await response.json(); setupRequired = record(value) && value['passwordChangeRequired'] === true; } catch { /* Never expose raw server responses. */ }
     }
-    throw new ApiError(response.status, setupRequired);
+    let routeIssue: RouteIssue | undefined;
+    if (response.status === 409 && path === '/api/admin/routes/generate') {
+      try { const value: unknown = await response.json(); if (record(value) && typeof value['error'] === 'string') routeIssue = routeIssues.get(value['error']); } catch { /* Unknown messages remain private. */ }
+    }
+    throw new ApiError(response.status, setupRequired, routeIssue);
   }
   async function json(response: Response): Promise<unknown> {
     try { return await response.json(); } catch { throw new ApiError(502); }
@@ -54,7 +67,7 @@ export function createApiClient(fetcher: typeof fetch = fetch) {
       }
       headers.set(csrf.headerName, csrf.token);
     }
-    return checked(await send(url, { ...options, method, headers }));
+    return checked(await send(url, { ...options, method, headers }), url.pathname);
   }
   return { request,
     async session(signal: AbortSignal) { return parseAccount(await json(await request('/api/auth/me', { signal }))); },
