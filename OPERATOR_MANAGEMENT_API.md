@@ -72,3 +72,7 @@ A pre-existing frontend focus test now waits for the focus effect before asserti
 Writes are not idempotent. An unknown acknowledgement requires reviewing current operators/accounts/routes before deciding on another request; a matching email/name alone does not identify the request. Local tests do not establish staging HTTPS, live constraints, operational timeouts, backups or production readiness.
 
 After review and merge, build React warehouse/operator setup screens against these contracts. CI remains a separate near-term task. History/archive operations and repairing inconsistent legacy assignments need their own reviewed contracts.
+
+## React consumer
+
+The administrator screen is documented in [REACT_OPERATORS.md](REACT_OPERATORS.md), including warehouse ID selection, lifecycle-aware edits, account onboarding and explicit outcome review.
