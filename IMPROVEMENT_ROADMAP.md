@@ -199,14 +199,15 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | React route generation: assignment confirmation, bounded waiting, all-status recovery and exact-route links | PR #24 | Merged |
 | Warehouse management API: bounded scalar reads, strict coordinates, conditional edits/deletion and legacy safeguards | PR #25 | Merged |
 | Operator management API: warehouse IDs, conditional edits, lifecycle/history guards and serialized account creation | PR #26 | Merged |
-| React warehouse setup: bounded directory, creation, conditional editing/deletion and explicit outcome review | `aniM/react-admin-warehouses` | Implemented in this branch; merge pending |
+| React warehouse setup: bounded directory, creation, conditional editing/deletion and explicit outcome review | PR #27 | Merged |
+| React operator setup: warehouse ID selection, conditional writes, assignment/history guards and separate account handoff | `aniM/react-admin-operators` | Implemented in this branch; merge pending |
 
 ### Next implementation sequence
 
 1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
 2. Delivery preparation API merged in PR #21; strict creation and bounded reads are documented in [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
 3. React delivery preparation merged in PR #22; see [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Route-generation API foundation merged in PR #23. React route generation merged in PR #24 with explicit assignment confirmation, configured timeout handling and all-status reconciliation after uncertainty. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) and [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md).
-4. Warehouse API foundation merged in PR #25; see [WAREHOUSE_MANAGEMENT_API.md](WAREHOUSE_MANAGEMENT_API.md). Operator API foundation merged in PR #26 with warehouse IDs and guarded availability/account relationships; see [OPERATOR_MANAGEMENT_API.md](OPERATOR_MANAGEMENT_API.md). Review and merge `aniM/react-admin-warehouses`; see [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md). Then build React operator setup with bounded warehouse ID selection and lifecycle-aware edits. Add history/archive workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
+4. Warehouse API foundation merged in PR #25; see [WAREHOUSE_MANAGEMENT_API.md](WAREHOUSE_MANAGEMENT_API.md). Operator API foundation merged in PR #26 with warehouse IDs and guarded availability/account relationships; see [OPERATOR_MANAGEMENT_API.md](OPERATOR_MANAGEMENT_API.md). React warehouse setup merged in PR #27; see [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md). Review and merge `aniM/react-admin-operators` with bounded warehouse ID selection and lifecycle-aware edits; see [REACT_OPERATORS.md](REACT_OPERATORS.md). Establish CI as the next focused PR before further feature expansion. Add history/archive workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
 6. Establish CI as a near-term focused PR (no checked-in workflow currently exists) to enforce backend, frontend and browser checks on subsequent changes; then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
 
