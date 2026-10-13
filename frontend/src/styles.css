@@ -485,3 +485,16 @@ h1 {
 .operator-warehouse-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 0; border-bottom: 1px solid #dce5df; overflow-wrap: anywhere; }
 .operator-warehouse-list span { min-width: 0; flex: 1 1 220px; }
 .operator-warehouse-picker .button { max-width: 100%; white-space: normal; }
+
+/* Delivery controls and recipient text must fit narrow viewports on all browsers. */
+.delivery-panel { min-width: 0; overflow-wrap: anywhere; }
+.delivery-panel input, .delivery-panel select, .delivery-panel textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+.delivery-panel .recipient-toolbar > *, .delivery-panel .recipient-fields > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.delivery-panel .button { max-width: 100%; white-space: normal; }
+.delivery-recipient-list li > div { min-width: min(180px, 100%); }
