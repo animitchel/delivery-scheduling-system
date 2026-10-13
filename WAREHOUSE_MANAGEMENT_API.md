@@ -62,3 +62,7 @@ Verified in this branch: **487 backend tests**, **272 frontend tests**, TypeScri
 Run the established Java 25 disposable test harness with `./scripts/test-account-mysql.sh`; the full validation also includes the existing frontend checks, Vite build and Spring/Chrome workflow. No live database or Maps provider is used by these tests. Local results do not verify deployed foreign keys, database lock settings, staging HTTPS, backups or production readiness.
 
 The next application slice is safe operator management with warehouse IDs and guarded availability changes, followed by React setup screens. CI remains a separate near-term improvement.
+
+## React consumer
+
+The administrator screen is described in [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md), including explicit coordinates, ETag comparison, deletion confirmation and outcome recovery.

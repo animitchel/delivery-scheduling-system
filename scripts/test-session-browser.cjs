@@ -575,6 +575,66 @@ const assert = require("node:assert/strict");
         assert.equal(generationPosts, 2);
         await page.getByRole("link", { name: `Open route #${committedRouteId}`, exact: true }).click();
         await page.getByRole("region", { name: `Route #${committedRouteId} overview`, exact: true }).waitFor();
+        // Warehouse setup: actual writes, stale draft review and a committed delete with lost acknowledgement.
+        await page.getByRole("link", { name: "Warehouses", exact: true }).click();
+        await page.getByRole("button", { name: "New warehouse", exact: true }).click();
+        await page.getByLabel("Warehouse name", { exact: true }).fill("Chrome warehouse");
+        await page.getByLabel("Warehouse address", { exact: true }).fill("Chrome depot address");
+        await page.getByLabel("Latitude", { exact: true }).fill("53.123456");
+        await page.getByLabel("Longitude", { exact: true }).fill("-2.5");
+        for (const width of [320, 375, 768, 1440]) {
+            await page.setViewportSize({ width, height: 1000 });
+            assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        }
+        await page.locator("#warehouse-editor").evaluate(node => node.scrollIntoView({ block: "start" }));
+        await page.screenshot({ path: "/private/tmp/react-warehouses-desktop.png", clip: { x: 0, y: 0, width: 1440, height: 900 } });
+        await page.getByRole("button", { name: "Save warehouse", exact: true }).click();
+        await page.getByText("Warehouse saved.", { exact: true }).waitFor();
+        const warehouseRows = await (await context.request.get(`${target.origin}/api/admin/warehouses`)).json();
+        const chromeWarehouseId = warehouseRows.warehouses.find(row => row.name === "Chrome warehouse").warehouseId;
+        const assignedWarehouseId = warehouseRows.warehouses.find(row => row.name === "Browser warehouse").warehouseId;
+        await page.getByRole("button", { name: `Edit warehouse #${chromeWarehouseId}`, exact: true }).click();
+        await page.getByLabel("Warehouse name", { exact: true }).fill("Chrome draft warehouse");
+        const warehouseBefore = await context.request.get(`${target.origin}/api/admin/warehouses/${chromeWarehouseId}`);
+        const warehouseCsrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
+        assert.equal((await context.request.put(`${target.origin}/api/admin/warehouses/${chromeWarehouseId}`, { headers: { [warehouseCsrf.headerName]: warehouseCsrf.token, "If-Match": warehouseBefore.headers().etag }, data: { name: "Other administrator warehouse", address: "Other saved address", latitude: 54, longitude: -2 } })).status(), 200);
+        await page.getByRole("button", { name: "Save warehouse", exact: true }).click();
+        await page.getByRole("heading", { name: "Review before another write", exact: true }).waitFor();
+        assert.equal(await page.getByLabel("Warehouse name", { exact: true }).inputValue(), "Chrome draft warehouse");
+        await page.getByRole("button", { name: "Review saved warehouse data", exact: true }).click();
+        await page.getByText("Other administrator warehouse", { exact: true }).waitFor();
+        await page.setViewportSize({ width: 375, height: 900 });
+        await page.locator("#warehouse-recovery").evaluate(node => node.scrollIntoView({ block: "start" }));
+        await page.screenshot({ path: "/private/tmp/react-warehouses-mobile.png", clip: { x: 0, y: 0, width: 375, height: 780 } });
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await page.getByRole("button", { name: "I compared details; continue with latest version", exact: true }).click();
+        await page.getByRole("button", { name: "Save warehouse", exact: true }).click();
+        await page.getByText("Warehouse saved.", { exact: true }).waitFor();
+        await page.getByRole("button", { name: `Delete warehouse #${assignedWarehouseId}`, exact: true }).click();
+        await page.getByRole("dialog", { name: "Delete this warehouse?", exact: true }).waitFor();
+        await page.keyboard.press("Escape");
+        await page.getByRole("button", { name: `Delete warehouse #${assignedWarehouseId}`, exact: true }).click();
+        await page.getByRole("button", { name: "Confirm warehouse deletion", exact: true }).click();
+        await page.getByRole("alert").filter({ hasText: "assigned to operators" }).waitFor();
+        await page.getByRole("button", { name: "Review saved warehouse data", exact: true }).click();
+        await page.getByRole("heading", { name: "Current saved details", exact: true }).waitFor();
+        await page.getByRole("button", { name: "I reviewed results; continue", exact: true }).click();
+        await page.getByRole("button", { name: "Reload warehouses", exact: true }).click();
+        let warehouseDeletes = 0;
+        page.on("request", request => { if (request.method() === "DELETE" && new URL(request.url()).pathname === `/api/admin/warehouses/${chromeWarehouseId}`) warehouseDeletes++; });
+        await page.route(`**/api/admin/warehouses/${chromeWarehouseId}`, async route => {
+            if (route.request().method() !== "DELETE") { await route.continue(); return; }
+            const saved = await route.fetch(); assert.equal(saved.status(), 204);
+            await route.fulfill({ status: 200, contentType: "application/json", body: '{}' });
+        });
+        await page.getByRole("button", { name: `Delete warehouse #${chromeWarehouseId}`, exact: true }).click();
+        await page.getByRole("button", { name: "Confirm warehouse deletion", exact: true }).click();
+        await page.getByRole("heading", { name: "Review before another write", exact: true }).waitFor();
+        await page.getByRole("button", { name: "Review saved warehouse data", exact: true }).click();
+        await page.getByText("The warehouse is no longer available. Continuing closes the previous action.", { exact: true }).waitFor();
+        assert.equal(warehouseDeletes, 1);
+        await page.getByRole("button", { name: "I reviewed results; continue", exact: true }).click();
+
         await page.getByRole("link", { name: "Accounts", exact: true }).click();
         await page.getByRole("button", { name: "Reload accounts", exact: true }).waitFor();
         const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
