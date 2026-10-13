@@ -34,8 +34,10 @@ public class RouteApiController {
 
     @GetMapping("/directory")
     public com.mmu.schedulingapp.dto.route.RouteDirectory directory(@RequestParam(defaultValue = "0") int page,
-                                                                    @RequestParam(defaultValue = "20") int size) {
-        return routeService.directory(page, size);
+                                                                    @RequestParam(defaultValue = "20") int size,
+                                                                    @RequestParam(required = false) String scheduledDate) {
+        return routeService.directory(page, size, scheduledDate == null ? null :
+                com.mmu.schedulingapp.dto.route.RouteGenerationRequest.date(scheduledDate));
     }
 
     @GetMapping("/{id}")

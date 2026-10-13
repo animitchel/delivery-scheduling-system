@@ -45,10 +45,17 @@ public class RouteService {
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public com.mmu.schedulingapp.dto.route.RouteDirectory directory(int page, int size) {
+        return directory(page, size, null);
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public com.mmu.schedulingapp.dto.route.RouteDirectory directory(int page, int size, java.time.LocalDate date) {
+        if (date != null) requirePlanningDate(date);
         if (page < 0 || page > 10000 || size < 1 || size > 50) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Invalid route page or size.");
         }
-        var headers = routeRepository.directory(org.springframework.data.domain.PageRequest.of(page, size));
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        var headers = date == null ? routeRepository.directory(pageable) : routeRepository.directoryForDate(date, pageable);
         var ids = headers.getContent().stream().map(com.mmu.schedulingapp.dto.route.RouteHeader::routeId).toList();
         var counts = ids.isEmpty() ? java.util.Map.<Integer, RouteRepository.StopCounts>of()
                 : routeRepository.directoryCounts(ids).stream().collect(java.util.stream.Collectors.toMap(RouteRepository.StopCounts::getRouteId, java.util.function.Function.identity()));
@@ -73,11 +80,18 @@ public class RouteService {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
     public List<RouteResponseDTO> createRoutes(RouteRequestDTO dto) {
+        requirePlanningDate(dto.getScheduledDate());
         try(var budget=planning.begin()) {
             var snapshot=transactions.snapshot(dto.getScheduledDate(),budget);
             var plan=planner.calculate(snapshot,budget);
             return transactions.commit(plan,budget);
         }
+    }
+
+    private static void requirePlanningDate(java.time.LocalDate date) {
+        if (date == null || date.getYear() < 1000 || date.getYear() > 9999)
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "A planning date between years 1000 and 9999 is required.");
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)

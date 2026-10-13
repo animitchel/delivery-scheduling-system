@@ -27,7 +27,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me", "/html/change-password.html", "/js/password.js").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password").authenticated()
-                        .requestMatchers("/api/admin/accounts/**", "/api/admin/recipients", "/api/admin/recipients/**", "/api/admin/deliveries", "/api/admin/deliveries/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/accounts/**", "/api/admin/recipients", "/api/admin/recipients/**", "/api/admin/deliveries", "/api/admin/deliveries/**", "/api/admin/routes", "/api/admin/routes/**").hasRole("ADMIN")
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
                         .requestMatchers(HttpMethod.GET, "/html/operators.html", "/js/operators.js").hasAnyRole("ADMIN", "DRIVER")
                         .requestMatchers("/api/v1/scheduling-app/**", "/html/**", "/js/admin.js",
