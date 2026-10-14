@@ -70,6 +70,15 @@ export function createApiClient(fetcher: typeof fetch = fetch) {
     return checked(await send(url, { ...options, method, headers }), url.pathname);
   }
   return { request,
+    async login(username: string, password: string, signal: AbortSignal) {
+      csrf = undefined;
+      try {
+        await request('/api/auth/login', { method: 'POST', body: new URLSearchParams({ username, password }), signal });
+      } finally { csrf = undefined; }
+      // Login rotates the session; discover its new token before loading identity.
+      await request('/api/auth/csrf', { signal });
+      return parseAccount(await json(await request('/api/auth/me', { signal })));
+    },
     async session(signal: AbortSignal) { return parseAccount(await json(await request('/api/auth/me', { signal }))); },
     async logout() { await request('/api/auth/logout', { method: 'POST' }); csrf = undefined; },
   };

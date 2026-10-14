@@ -25,14 +25,14 @@ window.SchedulingAuth = (() => {
         const response = await request("/api/auth/logout", { method: "POST" });
         if (!response.ok) throw new Error("Sign out failed. Reload the page and try again.");
         csrfToken = undefined;
-        window.location.assign("/html/login.html?loggedOut");
+        window.location.assign("/app/login?loggedOut");
     }
 
     async function initializePage(start, allowedRoles = ["ADMIN"]) {
         try {
             await refreshCsrf();
             const response = await request("/api/auth/me");
-            if (response.status === 401) { window.location.assign("/html/login.html"); return; }
+            if (response.status === 401) { window.location.assign("/app/login"); return; }
             if (!response.ok) throw new Error("Unable to check your session.");
             const account = await response.json();
             if (account.passwordChangeRequired) { window.location.assign("/html/change-password.html"); return; }
@@ -48,7 +48,7 @@ window.SchedulingAuth = (() => {
                 }
             });
             $(document).ajaxError((event, xhr) => {
-                if (xhr.status === 401) window.location.assign("/html/login.html");
+                if (xhr.status === 401) window.location.assign("/app/login");
             });
             start(account);
         } catch (error) { showError(error); }

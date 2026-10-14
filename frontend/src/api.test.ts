@@ -3,6 +3,21 @@ import { ApiError, createApiClient, parseAccount } from './api';
 const admin = { id: 1, username: 'admin', role: 'ADMIN', operatorId: null, enabled: true, passwordChangeRequired: false };
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 describe('session API contract', () => {
+  it('uses anonymous CSRF for login and discovers a fresh token after session rotation', async () => {
+    const fetcher = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'before-login' }))
+      .mockResolvedValueOnce(json({ authenticated: true }))
+      .mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'after-login' }))
+      .mockResolvedValueOnce(json(admin))
+      .mockResolvedValueOnce(json({ headerName: 'X-CSRF-TOKEN', token: 'after-login' }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const client = createApiClient(fetcher);
+    expect(await client.login('admin', 'private test password', new AbortController().signal)).toEqual(admin);
+    expect(new Headers(fetcher.mock.calls[1]?.[1]?.headers).get('X-CSRF-TOKEN')).toBe('before-login');
+    expect(String(fetcher.mock.calls[1]?.[1]?.body)).toContain('username=admin');
+    await client.logout();
+    expect(new Headers(fetcher.mock.calls[5]?.[1]?.headers).get('X-CSRF-TOKEN')).toBe('after-login');
+  });
   it('loads and validates identity with same-origin no-store requests', async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(json(admin));
     expect(await createApiClient(fetcher).session(new AbortController().signal)).toEqual(admin);

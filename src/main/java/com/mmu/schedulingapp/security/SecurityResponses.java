@@ -19,7 +19,7 @@ final class SecurityResponses {
         if (request.getRequestURI().substring(request.getContextPath().length()).startsWith("/api/")) {
             json(response, 401, "{\"error\":\"Authentication required.\"}");
         } else {
-            response.sendRedirect(request.getContextPath() + "/html/login.html");
+            response.sendRedirect(request.getContextPath() + "/app/login");
         }
     }
 }
