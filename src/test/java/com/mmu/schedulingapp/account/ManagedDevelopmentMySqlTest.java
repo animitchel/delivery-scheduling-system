@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.account;
 
-import com.fasterxml.jackson.databind.*;
+import tools.jackson.databind.*;
 import com.mmu.schedulingapp.SchedulingAppApplication;
 import com.mmu.schedulingapp.model.*;
 import com.mmu.schedulingapp.repository.*;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 class ManagedDevelopmentMySqlTest {
     static final String PASSWORD="fresh managed administrator passphrase";
     String url;
-    final ObjectMapper json = new ObjectMapper();
+    final ObjectMapper json = tools.jackson.databind.json.JsonMapper.builder().build();
     @TestConfiguration(proxyBeanMethods=false)
     static class StubMaps {
         @Bean @Primary MapsProvider fixtureMaps() throws Exception {

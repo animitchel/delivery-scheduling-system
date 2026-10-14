@@ -37,7 +37,7 @@ class DeliveryPreparationIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired EntityManagerFactory factory;
     @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
-    @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    @Autowired tools.jackson.databind.ObjectMapper json;
     @MockitoBean MapsProvider provider;
     AccountPrincipal admin, driver;
     Integer recipientId, operatorId;

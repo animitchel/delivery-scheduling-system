@@ -1,7 +1,7 @@
 package com.mmu.schedulingapp.utility;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class GeocodingService {
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final Logger log = LoggerFactory.getLogger(GeocodingService.class);
 
     private GeocodingService() {
@@ -21,7 +22,7 @@ public class GeocodingService {
     static Optional<Coordinate> getCoordinates(String address, GoogleMapsClient.Request request) {
         try {
             String response = request.get(GoogleMapsClient.Api.GEOCODING, Map.of("address", address));
-            JsonNode root = new ObjectMapper().readTree(response);
+            JsonNode root = JSON.readTree(response);
             if (!"OK".equals(root.path("status").asText())) {
                 log.warn("Geocoding returned no usable result.");
                 return Optional.empty();
