@@ -133,6 +133,40 @@ async function assertFitsViewport(page) {
         await page.waitForURL("**/app/admin/recipients");
         await page.locator(".recipient-table tbody tr").first().waitFor();
         assert.equal(await page.locator(".recipient-table img").count(),0);
+        await page.setViewportSize({width:1440,height:1000});
+        await page.waitForTimeout(180); // Let the sidebar's short colour transition settle for the preview.
+        await page.screenshot({path:artifact("react-recipients-directory-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        // Empty-state preview uses an API-boundary fixture, never a persistent database mutation.
+        await page.route("**/api/admin/recipients?*", route => route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({recipients:[],page:0,size:20,totalElements:0,totalPages:0})}));
+        await page.getByRole("button", {name:"Reload directory",exact:true}).click();
+        await page.getByRole("heading", {name:"Your recipient directory starts here.",exact:true}).waitFor();
+        await page.screenshot({path:artifact("react-recipients-empty-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        await page.unroute("**/api/admin/recipients?*");
+        await page.getByRole("button", {name:"Reload directory",exact:true}).click();
+        await page.locator(".recipient-table tbody tr").first().waitFor();
+        await page.getByLabel("Search name or address", {exact:true}).fill("zzzzzz-recipient-not-found");
+        await page.getByRole("button", {name:"Search recipients",exact:true}).click();
+        await page.getByRole("heading", {name:"No recipients match your search.",exact:true}).waitFor();
+        await page.getByRole("button", {name:"Clear search",exact:true}).click();
+        await page.locator(".recipient-table tbody tr").first().waitFor();
+        assert.equal(await page.getByLabel("Search name or address", {exact:true}).inputValue(), "");
+
+        for (const width of [320,375,768]) {
+            await page.setViewportSize({width,height:900});
+            await assertFitsViewport(page);
+            const results = page.getByRole("table", { name: "Recipients", exact: true });
+            assert.equal(await results.evaluate(node => node.scrollWidth <= node.clientWidth), true);
+            assert.equal(await results.getByRole("rowheader").count(), await results.locator("tbody tr").count());
+            assert.equal(await page.locator(".recipient-mobile-label").filter({hasText:"Address"}).first().isVisible(), true);
+        }
+        await page.setViewportSize({width:375,height:900});
+        await page.screenshot({path:artifact("react-recipients-directory-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
+        await page.locator(".recipient-table tbody tr").first().evaluate(node => node.scrollIntoView({block:"center"}));
+        await page.screenshot({path:artifact("react-recipients-card-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
+        await page.evaluate(() => window.scrollTo(0,0));
+
+        await page.setViewportSize({width:1280,height:900});
+
         await page.locator(".recipient-table tbody button").first().click();
         await page.getByLabel("Contact number (optional)").fill("012345");
         let recipientWrites=0;
@@ -169,7 +203,12 @@ async function assertFitsViewport(page) {
         await page.getByRole("button",{name:"Reload directory",exact:true}).click();
         await page.locator(".recipient-table tbody tr").first().waitFor();
         // Provider failure is mocked at the API boundary; no live Maps request is made.
-        await page.getByRole("button",{name:"New recipient",exact:true}).click();
+        await page.getByRole("button",{name:"Add recipient",exact:true}).click();
+        await page.getByRole("button",{name:"Save recipient",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"Check the highlighted fields"}).waitFor();
+        assert.equal(await page.getByLabel("First name",{exact:true}).getAttribute("aria-invalid"),"true");
+        assert.equal(await page.getByLabel("First name",{exact:true}).evaluate(node => node === document.activeElement),true);
+
         await page.getByLabel("First name",{exact:true}).fill("Browser");
         await page.getByLabel("Last name",{exact:true}).fill("Recipient");
         await page.getByLabel("Address",{exact:true}).fill("Mock address");

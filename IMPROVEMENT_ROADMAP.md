@@ -241,3 +241,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Frontend visual foundation and navigation
 
 `aniM/frontend-design-navigation` introduces shared semantic design tokens, consistent common surfaces/controls and grouped role-aware navigation with an accessible mobile disclosure. See [FRONTEND_DESIGN.md](FRONTEND_DESIGN.md). Next modernize management-page layouts/forms and mobile directories in separate tested changes; then driver task hierarchy, loading/empty states and error recovery. Operational dashboard metrics require real API support. This visual foundation does not complete staging, accessibility or production release gates.
+
+### Recipient interface modernisation
+
+`aniM/recipient-interface-modernisation` applies the shared design foundation to recipient search, responsive records, empty states and grouped create/edit forms with accessible validation. Conditional writes and explicit uncertain-save recovery remain. See [RECIPIENT_INTERFACE.md](RECIPIENT_INTERFACE.md). Next apply the proven directory/form pattern to delivery preparation, warehouses, operators and accounts as separate focused PRs; retain each workflow's existing lifecycle and concurrency safeguards.
