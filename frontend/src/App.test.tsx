@@ -44,7 +44,7 @@ describe('authenticated workspace', () => {
   });
   it('provides sign-in for anonymous users', async () => {
     const client = clientFor(); client.session.mockRejectedValue(new ApiError(401)); mount(client);
-    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/html/login.html');
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/app/login');
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
   it('recovers from a failed session read only after an explicit retry', async () => {
@@ -80,7 +80,7 @@ describe('authenticated workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' })); fireEvent.click(screen.getByRole('button', { name: 'Signing out…' }));
     expect(client.logout).toHaveBeenCalledTimes(1); expect(screen.getByRole('button', { name: 'Signing out…' })).toBeDisabled();
     await act(async () => { pending.resolve(); await pending.promise; });
-    expect(redirect).toHaveBeenCalledWith('/html/login.html?loggedOut'); expect(screen.queryByText('admin')).not.toBeInTheDocument();
+    expect(redirect).toHaveBeenCalledWith('/app/login?loggedOut'); expect(screen.queryByText('admin')).not.toBeInTheDocument();
   });
   it('shows a fixed sign-out error and allows an explicit retry', async () => {
     const client = clientFor(); client.logout.mockRejectedValueOnce(new Error('private details')); mount(client);

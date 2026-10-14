@@ -82,9 +82,10 @@ class SessionSecurityIntegrationTest {
     }
     @Test void anonymousCannotReadIdentityAndHtmlRedirectsToLogin() throws Exception {
         mvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
-        mvc.perform(get("/html/admin.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/html/login.html"));
+        mvc.perform(get("/html/admin.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));
         mvc.perform(get("/html/operators.html")).andExpect(status().isFound());
-        mvc.perform(get("/html/login.html")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("loginForm")));
+        mvc.perform(get("/html/login.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));
+        mvc.perform(get("/html/login.html?passwordChanged")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login?passwordChanged"));
     }
     @Test void loginNormalizesUsernameErasesCredentialsAndRotatesSession() throws Exception {
         var token = token(null); String oldId = token.session().getId();

@@ -15,12 +15,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ currentPassword: form.elements.currentPassword.value, newPassword: form.elements.newPassword.value })
             });
-            if (response.status === 401) { window.location.assign("/html/login.html"); return; }
+            if (response.status === 401) { window.location.assign("/app/login"); return; }
             if (!response.ok) {
                 message.textContent = response.status === 403 ? "Current password verification failed." : "Choose a valid, different password and try again.";
                 return;
             }
-            window.location.assign("/html/login.html?passwordChanged");
+            window.location.assign("/app/login?passwordChanged");
         } catch (error) { message.textContent = error.message; }
         finally { form.reset(); button.disabled = false; }
     });

@@ -9,7 +9,7 @@ The React + TypeScript + Vite workspace is in `frontend/`. Spring remains respon
 | React entry | `/app/` | Loads the session and selects the administrator or driver overview |
 | Administrator overview | `/app/admin` | Responsive shell with links to scheduling, accounts and routes |
 | Driver overview | `/app/driver` | Assigned-routes entry point; administrator navigation is absent |
-| Sign-in | `/html/login.html` | Existing session/CSRF login, including account/password setup handling |
+| Sign-in | `/app/login` | React sign-in with session CSRF, role destinations and password setup |
 | Password setup | `/html/change-password.html` | Existing required password-change workflow |
 | Legacy scheduling | `/html/admin.html` | Direct-access compatibility page; absent from React navigation |
 | Accounts | `/app/admin/accounts` | React paginated account directory, eligible-operator search and protected driver actions |
@@ -85,3 +85,7 @@ React delivery creation and review are documented in [REACT_DELIVERIES.md](REACT
 ## Administrator entry point
 
 The existing CSRF-protected sign-in page redirects administrators directly to `/app/admin`. React overview/navigation use migrated delivery, recipient, operator, warehouse, account and route screens. Legacy scheduling remains accessible by its direct URL for compatibility, but is no longer an overview card or navigation link. Password setup and driver sign-in destinations are unchanged. Browser checks cover direct administrator entry and explicit legacy compatibility separately.
+
+## React sign-in
+
+`/app/login` is the canonical sign-in screen. The former `/html/login.html` address redirects there with recognized sign-out/password-change notices only. Protected HTML, React expiry/sign-out and password setup now link to the canonical screen. Passwords stay in component memory, clear after submission, and are never persisted. Sign-in fetches anonymous CSRF, submits URL-encoded credentials, discards the old token after session rotation and validates server identity before choosing the administrator, driver or required-password destination. There is no public registration or automatic retry.
