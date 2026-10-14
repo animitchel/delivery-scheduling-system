@@ -725,7 +725,35 @@ async function assertFitsViewport(page) {
         await page.getByRole("region", { name: `Route #${committedRouteId} overview`, exact: true }).waitFor();
         // Warehouse setup: actual writes, stale draft review and a committed delete with lost acknowledgement.
         await navigateWorkspace(page, "Warehouses");
-        await page.getByRole("button", { name: "New warehouse", exact: true }).click();
+        await page.route("**/api/admin/warehouses?*",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({warehouses:[],page:0,size:20,totalElements:0,totalPages:0})}));
+        await page.getByRole("button",{name:"Reload warehouses",exact:true}).click();
+        await page.getByRole("heading",{name:"Start with your first warehouse",exact:true}).waitFor();
+        await page.setViewportSize({width:1440,height:1000}); await page.evaluate(()=>window.scrollTo(0,0));
+        await page.screenshot({path:artifact("react-warehouse-empty-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        await page.unroute("**/api/admin/warehouses?*");
+        await page.getByRole("button",{name:"Reload warehouses",exact:true}).click();
+        await page.getByRole("button",{name:/Edit warehouse #[0-9]+/}).first().waitFor();
+        await page.getByLabel("Search warehouses",{exact:true}).fill("zzzzzz-depot-not-found");
+        await page.getByRole("button",{name:"Search warehouse directory",exact:true}).click();
+        await page.getByRole("heading",{name:"No warehouses match this search.",exact:true}).waitFor();
+        await page.getByRole("button",{name:"Clear warehouse search",exact:true}).click();
+        await page.getByRole("button",{name:/Edit warehouse #[0-9]+/}).first().waitFor();
+        for (const width of [320,375,768]) {
+            await page.setViewportSize({width,height:900}); await assertFitsViewport(page);
+            const records=page.getByRole("table",{name:"Warehouse records",exact:true});
+            assert.equal(await records.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+            assert.equal(await records.getByRole("rowheader").count(),await records.locator("tbody tr").count());
+        }
+        await page.setViewportSize({width:375,height:900});
+        await page.locator(".warehouse-directory-results tbody tr").first().evaluate(node=>node.scrollIntoView({block:"center"}));
+        await page.screenshot({path:artifact("react-warehouse-card-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
+        await page.setViewportSize({width:1280,height:900});
+
+        await page.getByRole("button", { name: "Add warehouse", exact: true }).click();
+        await page.getByRole("button",{name:"Save warehouse",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"Enter a name, address"}).waitFor();
+        assert.equal(await page.getByLabel("Warehouse name",{exact:true}).evaluate(node=>node===document.activeElement),true);
+
         await page.getByLabel("Warehouse name", { exact: true }).fill("Chrome warehouse");
         await page.getByLabel("Warehouse address", { exact: true }).fill("Chrome depot address");
         await page.getByLabel("Latitude", { exact: true }).fill("53.123456");
@@ -760,6 +788,9 @@ async function assertFitsViewport(page) {
         await page.getByText("Warehouse saved.", { exact: true }).waitFor();
         await page.getByRole("button", { name: `Delete warehouse #${assignedWarehouseId}`, exact: true }).click();
         await page.getByRole("dialog", { name: "Delete this warehouse?", exact: true }).waitFor();
+        assert.equal(await page.getByRole("button",{name:"Keep warehouse",exact:true}).evaluate(node=>node===document.activeElement),true);
+        await page.screenshot({path:artifact("react-warehouse-delete-dialog.png"),fullPage:false});
+
         await page.keyboard.press("Escape");
         await page.getByRole("button", { name: `Delete warehouse #${assignedWarehouseId}`, exact: true }).click();
         await page.getByRole("button", { name: "Confirm warehouse deletion", exact: true }).click();
