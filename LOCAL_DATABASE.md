@@ -1,6 +1,6 @@
 # Local MySQL with Docker
 
-This setup runs only the development database. Run Spring Boot from IntelliJ with Java 25.
+This document describes the original development database. For the separately verified fresh Flyway installation on port 3308, use [MANAGED_LOCAL_DATABASE.md](MANAGED_LOCAL_DATABASE.md). Preserve existing private files and volumes when switching. Run Spring Boot with Java 25.
 
 ## Prerequisites
 

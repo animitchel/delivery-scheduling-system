@@ -51,3 +51,5 @@ A Java 25 GitHub Actions workflow was prepared but is not included in this branc
 ## GitHub CI
 
 The disposable-MySQL harness uses the repository Maven wrapper. See [CI.md](CI.md) for the pinned hosted environment, bundled Chromium setup, required test evidence and merge-check configuration.
+
+For the separate fresh managed development database, use [MANAGED_LOCAL_DATABASE.md](MANAGED_LOCAL_DATABASE.md). Its helper selects private configuration explicitly, uses backend 8081 by default, and preserves an already running backend.
