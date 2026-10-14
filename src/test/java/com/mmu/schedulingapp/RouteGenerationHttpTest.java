@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.mmu.schedulingapp.account.AccountService;
 import com.mmu.schedulingapp.model.*;
 import com.mmu.schedulingapp.repository.*;

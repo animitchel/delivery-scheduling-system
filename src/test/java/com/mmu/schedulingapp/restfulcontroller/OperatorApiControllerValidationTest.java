@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.restfulcontroller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.mmu.schedulingapp.dto.operator.OperatorRequestDTO;
 import com.mmu.schedulingapp.dto.operator.OperatorResponseDTO;
 import com.mmu.schedulingapp.exception.GlobalExceptionHandler;
@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 class OperatorApiControllerValidationTest {
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = tools.jackson.databind.json.JsonMapper.builder().build();
     private RecordingService service;
     private MockMvc mvc;
 

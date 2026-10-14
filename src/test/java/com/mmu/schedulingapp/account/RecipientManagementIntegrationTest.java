@@ -36,7 +36,7 @@ class RecipientManagementIntegrationTest {
     @Autowired RecipientService service;
     @Autowired MockMvc mvc;
     @Autowired EntityManagerFactory factory;
-    @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    @Autowired tools.jackson.databind.ObjectMapper json;
     @MockitoBean MapsProvider provider;
     AccountPrincipal admin, driver;
     Integer id;
@@ -92,7 +92,7 @@ class RecipientManagementIntegrationTest {
     }
     @ParameterizedTest @ValueSource(strings={"blankName","longName","blankAddress","longAddress","longContact","missingPriority","invalidPriority"})
     void invalidWritableFieldsAreRejectedBeforeLookup(String kind) throws Exception {
-        var body=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(BODY);
+        var body=(tools.jackson.databind.node.ObjectNode)json.readTree(BODY);
         switch(kind) {
             case "blankName" -> body.put("firstName"," ");
             case "longName" -> body.put("lastName","x".repeat(51));
@@ -106,7 +106,7 @@ class RecipientManagementIntegrationTest {
     }
     @ParameterizedTest @ValueSource(strings={"firstName","lastName","address","contactNumber","priorityLevel"})
     void strictWriteFieldsRejectJsonCoercion(String field) throws Exception {
-        var body=(com.fasterxml.jackson.databind.node.ObjectNode)json.readTree(BODY); body.put(field,0);
+        var body=(tools.jackson.databind.node.ObjectNode)json.readTree(BODY); body.put(field,0);
         mvc.perform(post("/api/admin/recipients").with(user(admin)).with(csrf()).contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isBadRequest()); verifyNoInteractions(provider);
     }
     @ParameterizedTest @org.junit.jupiter.params.provider.CsvSource({"-1,20","10001,20","0,0","0,51"})

@@ -1,7 +1,7 @@
 package com.mmu.schedulingapp.database;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import java.sql.*;
 import java.util.*;
 import org.flywaydb.core.Flyway;
@@ -41,7 +41,7 @@ public final class SchemaAdoption {
         Map<String, List<String>> expected;
         try (var input = SchemaAdoption.class.getResourceAsStream("/db/schema-v1-contract.json")) {
             if (input == null) throw new IllegalStateException("Missing version-1 schema contract.");
-            expected = new ObjectMapper().readValue(input, new TypeReference<>() { });
+            expected = JsonMapper.builder().build().readValue(input, new TypeReference<>() { });
         }
         Map<String, List<String>> actual = inspect(connection);
         for (String category : expected.keySet()) {

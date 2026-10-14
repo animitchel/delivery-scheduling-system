@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.account;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.mmu.schedulingapp.model.Operator;
 import com.mmu.schedulingapp.repository.OperatorRepository;
 import org.junit.jupiter.api.Test;
@@ -60,10 +60,10 @@ class AccountServiceTest {
     @Test void accountSerializationAndStringExcludeCredentialsAndOperator() throws Exception {
         var summary = service.createAdministrator("private.admin", PASSWORD);
         var account = accounts.findById(summary.id()).orElseThrow();
-        String json = new ObjectMapper().writeValueAsString(account);
+        String json = JsonMapper.builder().build().writeValueAsString(account);
         assertThat(json).doesNotContain("\"password\"", "passwordHash", "password_hash", "bcrypt", "bootstrap", "operator", PASSWORD);
         assertThat(account.toString()).doesNotContain(account.getPasswordHash(), PASSWORD, "private.admin");
-        assertThat(new ObjectMapper().writeValueAsString(summary)).doesNotContain("\"password\"", "passwordHash", "password_hash", "bcrypt", PASSWORD);
+        assertThat(JsonMapper.builder().build().writeValueAsString(summary)).doesNotContain("\"password\"", "passwordHash", "password_hash", "bcrypt", PASSWORD);
     }
     @ParameterizedTest @NullAndEmptySource @ValueSource(strings={"ab", "bad user", "éadmin", "-admin", "admin@example.test"})
     void rejectsInvalidUsernames(String username) { assertThatThrownBy(() -> service.createAdministrator(username, PASSWORD)).isInstanceOf(IllegalArgumentException.class); assertThat(accounts.count()).isZero(); }
