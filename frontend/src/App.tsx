@@ -32,17 +32,17 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
     const controller = new AbortController(); pending.current = controller;
     void client.session(controller.signal).then(account => {
       if (controller.signal.aborted || request !== sequence.current) return;
-      if (account.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/html/change-password.html'); return; }
+      if (account.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/app/change-password'); return; }
       setSession({ kind: 'ready', account });
     }).catch((error: unknown) => {
       if (controller.signal.aborted || request !== sequence.current) return;
-      if (error instanceof ApiError && error.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/html/change-password.html'); }
+      if (error instanceof ApiError && error.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/app/change-password'); }
       else setSession(error instanceof ApiError && error.status === 401 ? { kind: 'anonymous' } : { kind: 'error' });
     });
   }, [client, redirect]);
   const handleAuthError = useCallback((error: ApiError) => {
     cancelLoad(); setSession({ kind: 'anonymous' });
-    if (error.passwordChangeRequired) redirect('/html/change-password.html');
+    if (error.passwordChangeRequired) redirect('/app/change-password');
   }, [cancelLoad, redirect]);
   const refresh = useCallback(() => {
     if (busy.current || mutationBusy.current) return;
@@ -61,7 +61,7 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
     try { await client.logout(); setSession({ kind: 'anonymous' }); redirect('/app/login?loggedOut'); }
     catch (error) {
       if (error instanceof ApiError && error.status === 401) setSession({ kind: 'anonymous' });
-      else if (error instanceof ApiError && error.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/html/change-password.html'); }
+      else if (error instanceof ApiError && error.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/app/change-password'); }
       else setLogoutError(true);
     } finally { busy.current = false; setSigningOut(false); }
   }

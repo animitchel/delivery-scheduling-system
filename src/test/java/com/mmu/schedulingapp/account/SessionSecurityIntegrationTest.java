@@ -82,6 +82,7 @@ class SessionSecurityIntegrationTest {
     }
     @Test void anonymousCannotReadIdentityAndHtmlRedirectsToLogin() throws Exception {
         mvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/app/change-password")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));
         mvc.perform(get("/html/admin.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));
         mvc.perform(get("/html/operators.html")).andExpect(status().isFound());
         mvc.perform(get("/html/login.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));

@@ -24,7 +24,7 @@ export function Login({ client = api, redirect = (path: string) => window.locati
     try {
       const account = await client.login(username, password, controller.signal);
       if (controller.signal.aborted || !alive.current) return;
-      redirect(account.passwordChangeRequired ? '/html/change-password.html' : account.role === 'ADMIN' ? '/app/admin' : '/app/driver/routes');
+      redirect(account.passwordChangeRequired ? '/app/change-password' : account.role === 'ADMIN' ? '/app/admin' : '/app/driver/routes');
     } catch (failure) {
       if (!alive.current || pending.current !== controller) return;
       setError(failure instanceof ApiError && failure.status === 401 ? 'Invalid username or password.' : 'Sign in could not be completed. Please try again.');

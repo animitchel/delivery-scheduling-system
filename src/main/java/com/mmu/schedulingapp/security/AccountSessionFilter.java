@@ -43,7 +43,7 @@ final class AccountSessionFilter extends OncePerRequestFilter {
             if (account.get().isPasswordChangeRequired() && !allowedDuringPasswordSetup(request)) {
                 if (request.getRequestURI().startsWith(request.getContextPath() + "/api/")) {
                     SecurityResponses.json(response, 403, "{\"error\":\"Password change required.\",\"passwordChangeRequired\":true}");
-                } else response.sendRedirect(request.getContextPath() + "/html/change-password.html");
+                } else response.sendRedirect(request.getContextPath() + "/app/change-password");
                 return;
             }
         }
@@ -53,8 +53,10 @@ final class AccountSessionFilter extends OncePerRequestFilter {
     private static boolean allowedDuringPasswordSetup(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
         if ("POST".equals(request.getMethod())) return "/api/auth/password".equals(path);
-        return "GET".equals(request.getMethod()) && java.util.Set.of("/api/auth/me", "/api/auth/csrf",
-                "/html/change-password.html", "/js/password.js", "/js/auth.js", "/css/login.css").contains(path);
+        if (!"GET".equals(request.getMethod())) return false;
+        return java.util.Set.of("/api/auth/me", "/api/auth/csrf",
+                "/html/change-password.html", "/app/change-password", "/app/index.html", "/js/auth.js").contains(path)
+                || path.startsWith("/app/assets/");
     }
 
     private static void revoke(HttpServletRequest request, HttpServletResponse response) throws IOException {

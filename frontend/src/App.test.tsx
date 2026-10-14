@@ -80,7 +80,7 @@ describe('authenticated workspace', () => {
   it.each([false, true])('routes mandatory password setup to the existing secure workflow', async forbidden => {
     const client = clientFor({ ...admin, passwordChangeRequired: true });
     if (forbidden) client.session.mockRejectedValue(new ApiError(403, true));
-    const redirect = mount(client); await waitFor(() => expect(redirect).toHaveBeenCalledWith('/html/change-password.html'));
+    const redirect = mount(client); await waitFor(() => expect(redirect).toHaveBeenCalledWith('/app/change-password'));
     expect(screen.queryByRole('link', { name: 'Open accounts' })).not.toBeInTheDocument();
   });
   it('prevents duplicate sign-out and clears the identity on success', async () => {

@@ -8,10 +8,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 /** Explicit SPA entry points: APIs, missing assets and unknown paths never receive index HTML. */
 @Controller
 public class FrontendController {
-    @GetMapping({"/app/login", "/app", "/app/", "/app/admin", "/app/admin/accounts", "/app/admin/recipients", "/app/admin/warehouses", "/app/admin/operators", "/app/admin/deliveries", "/app/admin/routes", "/app/admin/routes/generate", "/app/driver", "/app/driver/routes"})
+    @GetMapping({"/app/change-password", "/app/login", "/app", "/app/", "/app/admin", "/app/admin/accounts", "/app/admin/recipients", "/app/admin/warehouses", "/app/admin/operators", "/app/admin/deliveries", "/app/admin/routes", "/app/admin/routes/generate", "/app/driver", "/app/driver/routes"})
     public String app(HttpServletResponse response) {
         response.setHeader(HttpHeaders.CACHE_CONTROL, "no-store");
         return "forward:/app/index.html";
+    }
+    @GetMapping("/html/change-password.html")
+    public org.springframework.http.ResponseEntity<Void> legacyPasswordSetup() {
+        return org.springframework.http.ResponseEntity.status(302)
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header(HttpHeaders.LOCATION, "/app/change-password").build();
     }
     @GetMapping("/html/login.html")
     public org.springframework.http.ResponseEntity<Void> legacyLogin(
