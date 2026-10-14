@@ -2,6 +2,8 @@
 
 ## Workflow and merge gate
 
+**Live gate status (14 October 2026): blocked.** Main is unprotected; GitHub reports a plan restriction for this private repository and insufficient Actions/protection API permissions for the available credential. The owner chose to keep it private and document the block. See [CI_MERGE_GATE.md](CI_MERGE_GATE.md) for evidence, the reviewable policy and read-only verification tooling. Neither workflow YAML nor the committed policy template enables enforcement.
+
 `.github/workflows/ci.yml` runs **CI / Verify application** for pull requests, pushes to `main`, and manual dispatch. It uses an Ubuntu 24.04 hosted runner, read-only repository permissions, SHA-pinned actions, a 25-minute job limit and concurrency cancellation for superseded runs. Checkout does not persist Git credentials. There are no path filters that could leave documentation-only PR checks pending.
 
 The workflow verifies and packages the application. It does not deploy, modify branch protection, use live data or require application secrets. After opening this PR, confirm its first GitHub-hosted run is green. Once the check exists, use the repository's branch rules/ruleset for `main` to require **Verify application** before merging. Select the actual GitHub Actions check shown by that run. Workflow YAML alone does not make checks mandatory, and available branch-rule features depend on repository/account settings. The initial CI PR can run the new PR workflow; manual dispatch becomes available after the workflow reaches the default branch.
