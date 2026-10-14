@@ -32,13 +32,10 @@ async function assertFitsViewport(page) {
         await page.locator("#loginMessage").filter({ hasText: "Invalid username or password." }).waitFor();
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
-        await page.waitForURL("**/html/admin.html");
-        await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
-        await page.waitForFunction(() => document.querySelector("#recipientId option")?.textContent.includes("<img"));
-        assert.equal(await page.evaluate(() => window.__injected), undefined);
-        assert.equal(await page.locator("#recipientId img").count(), 0);
-        // React foundation: real Spring assets, session contract, deep links and safe shell.
-        await page.getByRole("link", { name: "Workspace", exact: true }).click();
+        await page.waitForURL("**/app/admin");
+        await page.locator(".username").filter({ hasText: "smoke.admin" }).waitFor();
+        // Sign-in lands directly in React; legacy navigation is no longer required.
+        assert.equal(await page.getByRole("link", { name: "Scheduling", exact: true }).count(), 0);
         await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
         await page.waitForURL("**/app/admin");
         assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).count(), 1);
@@ -88,8 +85,8 @@ async function assertFitsViewport(page) {
         await page.locator("#username").fill("smoke.admin");
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
-        await page.waitForURL("**/html/admin.html");
-        await page.locator("#sessionAccount").filter({ hasText: "smoke.admin" }).waitFor();
+        await page.waitForURL("**/app/admin");
+        await page.locator(".username").filter({ hasText: "smoke.admin" }).waitFor();
 
         // Recipient deep link, real conditional update, safe text and responsive form.
         await page.getByRole("link", {name:"Recipients",exact:true}).click();
@@ -199,10 +196,13 @@ async function assertFitsViewport(page) {
         await page.getByRole("button",{name:"I reviewed results; allow another submission",exact:true}).click();
         assert.equal(await page.getByRole("button",{name:"Create delivery",exact:true}).isEnabled(),true); assert.equal(deliveryPosts,2);
         page.off("request",countDeliveryPost);
-        await page.getByRole("link",{name:"Scheduling",exact:true}).click();
+        // Legacy scheduling remains accessible directly for compatibility checks.
+        await page.goto(`${target.origin}/html/admin.html`);
         await page.waitForURL("**/html/admin.html");
         await page.locator("#sessionAccount").filter({hasText:"smoke.admin"}).waitFor();
         await page.waitForFunction(() => document.querySelector("#recipientId option")?.textContent.includes("<img"));
+        assert.equal(await page.evaluate(() => window.__injected), undefined);
+        assert.equal(await page.locator("#recipientId img").count(), 0);
 
         // Check that CSRF reaches the server from the actual shared jQuery prefilter.
         const response = await page.evaluate(() => new Promise(resolve => {
@@ -394,7 +394,7 @@ async function assertFitsViewport(page) {
         await page.locator("#username").fill("smoke.admin");
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
-        await page.waitForURL("**/html/admin.html");
+        await page.waitForURL("**/app/admin");
         await page.getByRole("link", { name: "Accounts", exact: true }).click();
         await page.waitForURL("**/app/admin/accounts");
         await page.locator('[aria-label="accounts pagination"]').filter({ hasText: "Page 1 of 2" }).waitFor();
