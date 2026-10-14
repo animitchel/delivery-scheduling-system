@@ -87,3 +87,7 @@ The independent immutable-JAR check also passed Jackson 3-only core/databind pac
 `run-ci.sh` now runs `scripts/check-dependencies.sh` after application packaging/evidence validation. It scans resolved Maven dependencies, the actual packaged runtime and both npm lockfiles through OSV; all active unaccepted matches or incomplete checks fail the job. Dependency/SBOM/advisory diagnostics are included in the always-attempted report upload; application upload still requires overall job success. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md). This does not remove the documented GitHub plan/permission block for enforcing merges.
 
 Dependency baseline validation on 14 October 2026 passed 538 backend tests, 356 frontend tests, ten MySQL suites, browser/packaging checks and 52 Python tests. The final OSV check completed for 392 distinct package/version pairs with no matches or exceptions. The independent patched-JAR provisioning/schema/HTTP/restart checks and workflow/shell lint passed. Hosted GitHub verification remains unconfirmed.
+
+### Repository secret scanning
+
+`aniM/repository-secret-scanning` adds pinned, checksum-verified Gitleaks checks of tracked files and full HEAD history, location-only CI evidence and exact historical acknowledgements. The owner confirmed the previously exposed Maps credential was revoked or rotated on 2026-10-14; provider state was not independently verified. See [SECRET_SCANNING.md](SECRET_SCANNING.md). Staging HTTPS/configuration, readiness, recovery and blocked GitHub enforcement remain separate release gates.

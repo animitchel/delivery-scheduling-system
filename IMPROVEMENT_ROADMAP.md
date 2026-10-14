@@ -232,4 +232,8 @@ Read-only local inspection found no operational records and one user account. `a
 
 ### Dependency security baseline
 
-`aniM/dependency-security-checks` adds resolved-project/packaged-runtime/npm-lock advisory checks and expiring exact exceptions (initially empty). The first 391-package/version scan found 10 Jackson/Tomcat matches; narrow Jackson BOM 3.1.7 and Tomcat 11.0.27 overrides address their affected versions without a framework/frontend replacement. Vendor applicability and coverage limits are documented in [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md). Pending review/merge. Repository secret scanning is the next separate focused task; staging configuration, health/readiness, HTTPS, recovery and blocked GitHub enforcement remain release work.
+`aniM/dependency-security-checks` adds resolved-project/packaged-runtime/npm-lock advisory checks and expiring exact exceptions (initially empty). The first 391-package/version scan found 10 Jackson/Tomcat matches; narrow Jackson BOM 3.1.7 and Tomcat 11.0.27 overrides address their affected versions without a framework/frontend replacement. Vendor applicability and coverage limits are documented in [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md). Merged in PR #40. Repository secret scanning is covered by the focused change below; staging configuration, health/readiness, HTTPS, recovery and blocked GitHub enforcement remain release work.
+
+### Repository secret scanning
+
+`aniM/repository-secret-scanning` adds pinned, checksum-verified Gitleaks checks of tracked files and full HEAD history, location-only CI evidence and exact historical acknowledgements. The owner confirmed the previously exposed Maps credential was revoked or rotated on 2026-10-14; provider state was not independently verified. See [SECRET_SCANNING.md](SECRET_SCANNING.md). Staging HTTPS/configuration, readiness, recovery and blocked GitHub enforcement remain separate release gates.
