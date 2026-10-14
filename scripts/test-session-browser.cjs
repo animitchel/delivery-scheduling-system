@@ -219,9 +219,36 @@ async function assertFitsViewport(page) {
         // React delivery preparation: real creation plus a committed write with a lost acknowledgement.
         await page.getByRole("link",{name:"Deliveries",exact:true}).click();
         await page.waitForURL("**/app/admin/deliveries");
-        await page.getByRole("heading",{name:"Prepare the next delivery.",exact:true}).waitFor();
+        await page.getByRole("heading",{name:"Deliveries",exact:true}).waitFor();
+        // Render fresh-database guidance using response fixtures, without deleting any data.
+        await page.route("**/api/admin/recipients?*", route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({recipients:[],page:0,size:20,totalElements:0,totalPages:0})}));
+        await page.route("**/api/admin/deliveries?*", route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({deliveries:[],page:0,size:20,totalElements:0,totalPages:0})}));
+        await page.getByRole("button",{name:"Reload recipients",exact:true}).click();
+        await page.getByRole("button",{name:"Reload deliveries",exact:true}).click();
+        await page.getByRole("heading",{name:"Start with a recipient",exact:true}).waitFor();
+        await page.getByRole("heading",{name:"Your delivery workspace starts here.",exact:true}).waitFor();
+        await page.setViewportSize({width:1440,height:1000});
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.screenshot({path:artifact("react-delivery-empty-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        await page.unroute("**/api/admin/recipients?*"); await page.unroute("**/api/admin/deliveries?*");
+        await page.getByRole("button",{name:"Reload recipients",exact:true}).click();
+        await page.getByRole("button",{name:"Reload deliveries",exact:true}).click();
+        await page.locator(".delivery-recipient-list button").first().waitFor();
+        await page.setViewportSize({width:1280,height:900});
+
+        await page.getByRole("button", {name:"Prepare delivery",exact:true}).click();
+        assert.equal(await page.locator("#choose-recipient").evaluate(node => node === document.activeElement),true);
+        await page.getByLabel("Search recipient name or address",{exact:true}).fill("zzzzzz-delivery-recipient-not-found");
+        await page.getByRole("button",{name:"Search recipients",exact:true}).click();
+        await page.getByRole("heading",{name:"No recipients match your search.",exact:true}).waitFor();
+        await page.getByRole("button",{name:"Clear recipient search",exact:true}).click();
+
         await page.locator(".delivery-recipient-list button").first().click();
         await page.getByText(/Selected recipient:/).waitFor();
+        await page.getByRole("button",{name:"Create delivery",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"Enter a valid scheduled date"}).waitFor();
+        assert.equal(await page.locator("#delivery-date").evaluate(node => node === document.activeElement),true);
+
         await page.getByLabel("Scheduled date",{exact:true}).fill("2020-01-02");
         await page.getByLabel("Start time",{exact:true}).fill("09:00");
         await page.getByLabel("End time",{exact:true}).fill("12:00");
@@ -246,6 +273,21 @@ async function assertFitsViewport(page) {
         await creationMessage.waitFor();
         assert.equal(deliveryPosts,1); assert.equal(await page.locator("#delivery-details").count(),1);
         assert.equal(await page.locator(".delivery-details img").count(),0); assert.equal(await page.evaluate(()=>window.__injected),undefined);
+        await page.getByRole("button", {name:/View delivery [0-9]+/}).first().waitFor();
+        await page.setViewportSize({width:1440,height:1000});
+        await page.locator("#delivery-directory").evaluate(node=>node.scrollIntoView({block:"start"}));
+        await page.screenshot({path:artifact("react-delivery-directory-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        for (const width of [320,375,768]) {
+            await page.setViewportSize({width,height:900}); await assertFitsViewport(page);
+            const records=page.getByRole("table",{name:"Delivery records",exact:true});
+            assert.equal(await records.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+            assert.equal(await records.getByRole("rowheader").count(),await records.locator("tbody tr").count());
+        }
+        await page.setViewportSize({width:375,height:900});
+        await page.locator(".delivery-directory-results tbody tr").first().evaluate(node=>node.scrollIntoView({block:"center"}));
+        await page.screenshot({path:artifact("react-delivery-card-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
+        await page.setViewportSize({width:1280,height:900});
+
         await page.locator(".delivery-recipient-list button").first().click();
         await page.getByText(/Selected recipient:/).waitFor();
         await page.getByLabel("Scheduled date",{exact:true}).fill("2020-01-02");

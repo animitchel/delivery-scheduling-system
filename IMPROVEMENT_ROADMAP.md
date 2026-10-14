@@ -245,3 +245,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Recipient interface modernisation
 
 `aniM/recipient-interface-modernisation` applies the shared design foundation to recipient search, responsive records, empty states and grouped create/edit forms with accessible validation. Conditional writes and explicit uncertain-save recovery remain. See [RECIPIENT_INTERFACE.md](RECIPIENT_INTERFACE.md). Next apply the proven directory/form pattern to delivery preparation, warehouses, operators and accounts as separate focused PRs; retain each workflow's existing lifecycle and concurrency safeguards.
+
+### Delivery interface modernisation
+
+`aniM/delivery-interface-modernisation` applies shared styling to recipient selection, grouped delivery preparation, applied filters, responsive delivery cards and initial/filtered empty states. Existing uncertain-save reconciliation across all statuses remains explicit and tested. See [DELIVERY_INTERFACE.md](DELIVERY_INTERFACE.md). Next modernise Warehouses, Operators and Accounts in separate focused PRs, retaining conditional writes and lifecycle guards.

@@ -54,4 +54,73 @@ describe('React delivery preparation', () => {
     try { render(<Deliveries {...pair} onAuthError={vi.fn()} onBusyChange={vi.fn()} />); await act(async()=>{await vi.advanceTimersByTimeAsync(30000);}); expect(screen.getByText('Recipients could not be loaded. Reload or search again.')).toBeVisible(); expect(screen.getByText('Deliveries could not be loaded. Please reload the directory.')).toBeVisible(); expect(screen.getByRole('button',{name:'Reload deliveries'})).toBeEnabled(); } finally { vi.useRealTimers(); }
   });
 
+  it('focuses recipient selection from the primary action without creating work', async () => {
+    const pair = clients(); await mount(pair);
+    await userEvent.click(screen.getByRole('button', { name: 'Prepare delivery' }));
+    expect(screen.getByRole('heading', { name: 'Choose a recipient' })).toHaveFocus();
+    expect(pair.client.create).not.toHaveBeenCalled();
+    expect(screen.getByRole('group', { name: 'Schedule' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Priority and instructions' })).toBeVisible();
+  });
+  it('gives an empty database setup guidance without calling it a filtered result', async () => {
+    const pair = clients();
+    pair.recipientClient.directory.mockResolvedValue({ ...recipients, recipients: [], totalElements: 0, totalPages: 0 });
+    pair.client.directory.mockResolvedValue({ ...page, deliveries: [], totalElements: 0, totalPages: 0 });
+    render(<Deliveries {...pair} onAuthError={vi.fn()} onBusyChange={vi.fn()} />);
+    await screen.findByRole('heading', { name: 'Start with a recipient' });
+    await screen.findByRole('heading', { name: 'Your delivery workspace starts here.' });
+    expect(screen.getByRole('button', { name: 'Create delivery' })).toBeDisabled();
+    expect(screen.queryByRole('navigation', { name: 'deliveries pagination' })).not.toBeInTheDocument();
+  });
+  it('clears an unsuccessful recipient search and reloads the unfiltered first page', async () => {
+    const pair = clients(); await mount(pair);
+    pair.recipientClient.directory.mockResolvedValueOnce({ ...recipients, recipients: [], totalElements: 0, totalPages: 0 });
+    await userEvent.type(screen.getByLabelText('Search recipient name or address'), 'Missing');
+    await userEvent.click(screen.getByRole('button', { name: 'Search recipients' }));
+    await screen.findByRole('heading', { name: 'No recipients match your search.' });
+    await userEvent.click(screen.getByRole('button', { name: 'Clear recipient search' }));
+    await screen.findByRole('button', { name: 'Choose Alex Smith, recipient 1' });
+    expect(screen.getByLabelText('Search recipient name or address')).toHaveValue('');
+    expect(pair.recipientClient.directory.mock.calls.at(-1)?.slice(0, 2)).toEqual([0, '']);
+  });
+  it('associates date and window errors with controls and focuses the invalid field', async () => {
+    const pair = clients(); await mount(pair);
+    await userEvent.click(screen.getByRole('button', { name: 'Choose Alex Smith, recipient 1' }));
+    await screen.findByText('Selected recipient: Alex Smith');
+    await submit();
+    const date = screen.getByLabelText('Scheduled date');
+    expect(date).toHaveFocus(); expect(date).toHaveAttribute('aria-invalid', 'true');
+    expect(date).toHaveAccessibleDescription(/valid scheduled date/);
+    expect(pair.client.create).not.toHaveBeenCalled();
+    fireEvent.change(date, {target:{value:'2020-01-02'}});
+    fireEvent.change(screen.getByLabelText('Start time'), {target:{value:'09:00'}});
+    fireEvent.change(screen.getByLabelText('End time'), {target:{value:'08:00'}});
+    await submit();
+    expect(screen.getByLabelText('End time')).toHaveFocus();
+    expect(screen.getByLabelText('End time')).toHaveAccessibleDescription(/must end after/);
+    expect(pair.client.create).not.toHaveBeenCalled();
+  });
+  it('shows applied criteria rather than unsaved filter input and clears them explicitly', async () => {
+    const pair = clients(); await mount(pair);
+    await userEvent.selectOptions(screen.getByLabelText('Filter status'), 'COMPLETED');
+    expect(screen.queryByLabelText('Applied delivery filters')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await screen.findByRole('button', { name: 'View delivery 7' });
+    expect(screen.getByLabelText('Applied delivery filters')).toHaveTextContent('Status: completed');
+    await userEvent.selectOptions(screen.getByLabelText('Filter status'), 'PENDING');
+    expect(screen.getByLabelText('Applied delivery filters')).toHaveTextContent('Status: completed');
+    await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
+    await screen.findByRole('button', { name: 'View delivery 7' });
+    expect(screen.queryByLabelText('Applied delivery filters')).not.toBeInTheDocument();
+    expect(pair.client.directory.mock.calls.at(-1)?.[1]).toEqual({scheduledDate:'',status:'',recipientId:null});
+  });
+  it('retains one semantic delivery record and text status labels for responsive cards', async () => {
+    await mount();
+    const table = screen.getByRole('table', { name: 'Delivery records' });
+    expect(within(table).getAllByRole('rowheader')).toHaveLength(1);
+    expect(within(table).getByRole('rowheader')).toHaveTextContent('Delivery #7');
+    expect(within(table).getAllByRole('button', { name: 'View delivery 7' })).toHaveLength(1);
+    expect(within(table).getByRole('cell', { name: 'pending' })).toBeVisible();
+  });
+
 });
