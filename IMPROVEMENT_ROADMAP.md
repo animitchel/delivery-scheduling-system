@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 13 October 2026; merged through PR #22\
+**Progress reconciled:** 14 October 2026; merged main `61c9845`, migration foundation pending\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -201,15 +201,21 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | Operator management API: warehouse IDs, conditional edits, lifecycle/history guards and serialized account creation | PR #26 | Merged |
 | React warehouse setup: bounded directory, creation, conditional editing/deletion and explicit outcome review | PR #27 | Merged |
 | React operator setup: warehouse ID selection, conditional writes, assignment/history guards and separate account handoff | PR #28 | Merged |
-| GitHub Actions CI: pinned toolchains/browser, full disposable tests, explicit evidence gate and artifact retention | `aniM/github-actions-ci` | Implemented in this branch; GitHub-hosted run and merge pending |
+| GitHub Actions CI: pinned toolchains/browser, full disposable tests, explicit evidence gate and artifact retention | Commit `abe91fe` on merged main | Merged; required-check configuration remains a repository setting |
 
 ### Next implementation sequence
 
 1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
 2. Delivery preparation API merged in PR #21; strict creation and bounded reads are documented in [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
 3. React delivery preparation merged in PR #22; see [REACT_DELIVERIES.md](REACT_DELIVERIES.md). Route-generation API foundation merged in PR #23. React route generation merged in PR #24 with explicit assignment confirmation, configured timeout handling and all-status reconciliation after uncertainty. See [REACT_ROUTE_GENERATION.md](REACT_ROUTE_GENERATION.md) and [ROUTE_GENERATION_API.md](ROUTE_GENERATION_API.md).
-4. Warehouse API foundation merged in PR #25; see [WAREHOUSE_MANAGEMENT_API.md](WAREHOUSE_MANAGEMENT_API.md). Operator API foundation merged in PR #26 with warehouse IDs and guarded availability/account relationships; see [OPERATOR_MANAGEMENT_API.md](OPERATOR_MANAGEMENT_API.md). React warehouse setup merged in PR #27; see [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md). React operator setup merged in PR #28 with bounded warehouse ID selection and lifecycle-aware edits; see [REACT_OPERATORS.md](REACT_OPERATORS.md). Review `aniM/github-actions-ci`, verify its first GitHub run and require the check on `main`; see [CI.md](CI.md). Add history/archive workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
+4. Warehouse API foundation merged in PR #25; see [WAREHOUSE_MANAGEMENT_API.md](WAREHOUSE_MANAGEMENT_API.md). Operator API foundation merged in PR #26 with warehouse IDs and guarded availability/account relationships; see [OPERATOR_MANAGEMENT_API.md](OPERATOR_MANAGEMENT_API.md). React warehouse setup merged in PR #27; see [REACT_WAREHOUSES.md](REACT_WAREHOUSES.md). React operator setup merged in PR #28 with bounded warehouse ID selection and lifecycle-aware edits; see [REACT_OPERATORS.md](REACT_OPERATORS.md). CI is merged; verify GitHub execution and require the check on `main`; see [CI.md](CI.md). Add history/archive workflows only against agreed backend contracts; remove unused legacy scripts/CDN dependencies after cutover verification.
 5. Continue database/schema work, planner feasibility and bounded API reads from Phases C/E; do not mark a phase complete solely because one related PR merged.
-6. CI workflow is implemented in this branch; complete GitHub-hosted verification and required-check configuration to enforce backend, frontend and browser checks on subsequent changes; then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
+6. CI workflow is merged; complete GitHub-hosted verification and required-check configuration to enforce backend, frontend and browser checks on subsequent changes; then complete staging HTTPS/session checks, protected health/readiness, secrets/advisory checks, backup restore and release rollback evidence from Phase F.
 
 The deployed schema, provider-account restrictions, operational monitoring, backup/restore and live release behavior remain unverified by local/disposable tests. Production approval requires those gates as well as the remaining domain and UI acceptance checks.
+
+### Database migration foundation
+
+`aniM/database-migration-foundation` adds a Flyway V1 fresh-install schema, an opt-in `schema-managed` profile with Hibernate validation, a read-only structural adoption check and an explicitly confirmed baseline command. Disposable MySQL tests cover installation, restart, populated legacy adoption and rejection of incompatible/unsafe states. See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md). Implementation is pending review/merge; no existing application database has been inspected or changed.
+
+Next: inspect the actual schema read-only, reconcile any drift and rehearse adoption on a backed-up copy before deployment. Add new integrity constraints and indexes in separate migrations after data preflight. This foundation does not complete Phase C, prove production backup recovery or replace framework-support/staging release gates.

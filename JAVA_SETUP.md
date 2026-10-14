@@ -18,7 +18,7 @@ Maven validates that the build JDK is Java 25 before compiling. Setting the byte
 6. Leave annotation processing enabled; Maven declares the Lombok processor.
 7. Rebuild the project and run SchedulingAppApplication.
 
-Keep the working directory at the repository root. The local database profile still uses `-Dspring.profiles.active=local`; Java selection and database profile selection are independent. See [LOCAL_DATABASE.md](LOCAL_DATABASE.md) for Docker/credentials.
+Keep the working directory at the repository root. Fresh database setup uses `-Dspring.profiles.active=local,schema-managed`; existing databases need the adoption procedure in [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md) first. Java selection and database profile selection are independent. See [LOCAL_DATABASE.md](LOCAL_DATABASE.md) for Docker/credentials.
 
 Do not modify IntelliJ's own boot runtime just to select the project JDK.
 

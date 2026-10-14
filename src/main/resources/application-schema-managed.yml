@@ -1,0 +1,12 @@
+# Activate only for a fresh database or an explicitly checked/baselined existing schema.
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    clean-disabled: true
+    validate-on-migrate: true
+    validate-migration-naming: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
