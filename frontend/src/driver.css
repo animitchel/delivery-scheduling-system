@@ -22,15 +22,15 @@
   font:inherit;
   width:100%;
   padding:12px;
-  border:1px solid #cdd8ce;
-  border-radius:8px;
-  background:white
+  border:1px solid var(--color-input-border);
+  border-radius:var(--radius-control);
+  background:var(--color-surface)
 }
 .route-summary{
   overflow-wrap:anywhere;
-  padding:24px;
-  background:#e9efdf;
-  border-radius:12px;
+  padding:var(--space-6);
+  background:var(--color-surface-soft);
+  border-radius:var(--radius-panel);
   display:flex;
   gap:20px;
   flex-wrap:wrap;
@@ -62,10 +62,11 @@
   margin-top:24px
 }
 .stop-card{
-  background:white;
-  border:1px solid #dce4da;
-  border-radius:12px;
-  padding:24px;
+  background:var(--color-surface);
+  box-shadow:var(--shadow-panel);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-panel);
+  padding:var(--space-6);
   display:flex;
   gap:20px
 }
@@ -102,23 +103,23 @@
   margin-top:20px;
   padding:20px;
   background:#fff3e8;
-  border-radius:8px
+  border-radius:var(--radius-control)
 }
 .cancel-confirm button{
   margin:4px
 }
 .button.danger{
-  background:#893e2b;
-  border-color:#893e2b
+  background:var(--color-danger);
+  border-color:var(--color-danger)
 }
 .stop-dialog{
   border:1px solid #d0dbd1;
-  border-radius:14px;
+  border-radius:var(--radius-panel);
   width:min(560px,94vw);
   max-height:90vh;
-  padding:24px;
+  padding:var(--space-6);
   overflow:auto;
-  color:#172c28
+  color:var(--color-text)
 }
 .stop-dialog::backdrop{
   background:#10292188
@@ -139,9 +140,9 @@
 }
 .route-empty{
   padding:30px;
-  background:white;
-  border-radius:12px;
-  border:1px solid #dce4da
+  background:var(--color-surface);
+  border-radius:var(--radius-panel);
+  border:1px solid var(--color-border)
 }
 @media(max-width:520px){
   .driver-heading{
@@ -171,6 +172,6 @@
 }
 
 
-.route-directory { margin:24px 0; padding:24px; background:white; border:1px solid #dce4da; border-radius:12px; min-width:0 }
+.route-directory { margin:24px 0; padding:var(--space-6); background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-panel); min-width:0 }
 .admin-routes .route-summary { margin-top:32px }
 @media(max-width:520px) { .route-directory { padding:16px } }
