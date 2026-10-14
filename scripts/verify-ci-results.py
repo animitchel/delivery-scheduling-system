@@ -67,6 +67,10 @@ def verify(root):
         require(any(name.startswith('BOOT-INF/classes/static/app/assets/') and name.endswith('.js') for name in entries), 'Packaged frontend JavaScript is missing.')
         require(any(name.startswith('BOOT-INF/classes/static/app/assets/') and name.endswith('.css') for name in entries), 'Packaged frontend CSS is missing.')
         require('BOOT-INF/classes/com/mmu/schedulingapp/SchedulingAppApplication.class' in entries, 'Packaged backend is missing.')
+        for resource in ('db/migration/V1__initial_schema.sql', 'db/schema-v1-contract.json', 'application-schema-managed.yml'):
+            require('BOOT-INF/classes/' + resource in entries, f'Packaged migration resource is missing: {resource}')
+        for dependency in ('flyway-core-', 'flyway-mysql-'):
+            require(any(name.startswith('BOOT-INF/lib/' + dependency) and name.endswith('.jar') for name in entries), f'Packaged migration dependency is missing: {dependency}')
     return {'backendTests': total, 'frontendTests': len(frontend_cases), 'mysqlSuites': len(mysql), 'browserComplete': True, 'packagedApplication': True}
 
 

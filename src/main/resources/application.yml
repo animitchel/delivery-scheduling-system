@@ -1,0 +1,4 @@
+# Adoption is deliberate: existing local databases retain their current configuration.
+spring:
+  flyway:
+    enabled: false

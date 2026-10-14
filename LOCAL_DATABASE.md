@@ -42,7 +42,7 @@ Configure `SchedulingAppApplication` as follows:
 
 - JDK: Java 25.
 - Working directory: the repository root.
-- VM options: `-Dspring.profiles.active=local`.
+- VM options for a fresh database: `-Dspring.profiles.active=local,schema-managed`.
 - Environment variables: `DB_PASSWORD` matching `.env.mysql.local`; also set `DB_USER`, `DB_NAME` or `DB_PORT` if you changed their defaults.
 
 Docker Compose reads the env file, but Spring Boot does not automatically read it. Supply the variables in IntelliJ's run configuration; avoid publishing or sharing a run configuration containing credentials.
@@ -54,7 +54,7 @@ Run the application after the database reports healthy. Open:
 - Admin: http://localhost:8080/html/admin.html
 - Driver: http://localhost:8080/html/operators.html
 
-The local profile uses `spring.jpa.hibernate.ddl-auto=update` to initialize/update development tables. Use it only with this development database; production requires controlled migrations.
+Fresh installs now use Flyway through `schema-managed`, with Hibernate set to `validate`. Existing private local files are not rewritten. Before enabling this profile on a populated database, follow [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md): back up, inspect/check the schema, explicitly baseline a compatible copy, and rehearse startup. Never enable automatic baseline or use Hibernate update to repair a mismatch.
 
 ## Stop and restart
 
@@ -72,7 +72,7 @@ Restart using the same start command above. Do not remove the named volume if yo
 - **Port 3307 already in use:** set a free `DB_PORT` in both the Compose env file and IntelliJ environment.
 - **MySQL access denied:** check matching application credentials. Changing initialization env variables does not change users/passwords in an existing volume.
 - **Missing DB_PASSWORD:** set it in the IntelliJ environment as well as the Compose env file.
-- **Missing database or tables:** wait for MySQL initialization and check that the `local` Spring profile is active.
+- **Missing database or tables:** wait for MySQL initialization and check that `local,schema-managed` is active for a fresh database. Existing non-empty schemas require the documented adoption procedure.
 - **Recipient/route provider failures:** Google Maps configuration is separate from this local database setup.
 
 ## Validation scope
