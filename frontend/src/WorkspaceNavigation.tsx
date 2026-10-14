@@ -32,6 +32,14 @@ export function WorkspaceNavigation({ role, disabled, isBlocked }: {
   role: Role; disabled: boolean; isBlocked: () => boolean;
 }) {
   const location = useLocation();
+  const previousPage = useRef(location.pathname + location.search);
+  useEffect(() => {
+    const page = location.pathname + location.search;
+    if (previousPage.current === page) return;
+    previousPage.current = page;
+    // Run after the destination content commits; session and data refreshes do not navigate.
+    document.getElementById('main-content')?.focus();
+  }, [location.pathname, location.search]);
   const [mobile, setMobile] = useState(() => window.matchMedia?.(mobileQuery).matches ?? false);
   const [openAt, setOpenAt] = useState<string | null>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -50,7 +58,8 @@ export function WorkspaceNavigation({ role, disabled, isBlocked }: {
         if (isBlocked()) { event.preventDefault(); return; }
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         setOpenAt(null);
-        if (mobile) window.requestAnimationFrame(() => document.getElementById('main-content')?.focus());
+        // Closing the menu on the current page still needs a visible focus target.
+        if (mobile && location.pathname === path && !location.search) document.getElementById('main-content')?.focus();
       }}><Icon name={icon} /><span>{label}</span></NavLink>;
   }
   return <div className="workspace-navigation" onKeyDown={event => {

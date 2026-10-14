@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useSearchParams, useLocation } from 'react-router-dom';
 import { api, ApiError } from './api';
 import type { Account, Role, SessionClient } from './api';
 import './styles.css';
+import { invalidRouteLink, usePageTitle, workspacePageTitle } from './page-title';
 import { WorkspaceNavigation } from './WorkspaceNavigation';
 import { RouteGeneration } from './RouteGeneration';
 import { AdminRoutes } from './AdminRoutes';
@@ -18,6 +19,9 @@ const redirectTo = (path: string) => window.location.assign(path);
 const home = (role: Role) => role === 'ADMIN' ? '/admin' : '/driver';
 export function App({ client = api, redirect = redirectTo }: { client?: SessionClient; redirect?: (path: string) => void }) {
   const [session, setSession] = useState<Session>({ kind: 'loading' });
+  const location = useLocation();
+  usePageTitle(session.kind === 'ready' ? workspacePageTitle(location.pathname, location.search, session.account.role)
+    : session.kind === 'loading' ? 'Checking session' : session.kind === 'anonymous' ? 'Sign in required' : 'Workspace unavailable');
   const [signingOut, setSigningOut] = useState(false);
   const [logoutError, setLogoutError] = useState(false);
   const [mutationPending, setMutationPending] = useState(false);
@@ -120,7 +124,7 @@ function Forbidden({ destination }: { destination: string }) { return <section c
 
 function AdminRoutePage({ onAuthError, onBusyChange }: { onAuthError: (error: ApiError) => void; onBusyChange: (busy: boolean) => void }) {
   const [params] = useSearchParams(); const values = params.getAll('routeId'); const value = values[0];
-  if (values.length > 1 || value !== undefined && (!/^[1-9][0-9]*$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) > 2147483647))
+  if (invalidRouteLink(params))
     return <section className="page-intro"><h1>Invalid route link.</h1><p role="alert">Choose a route from the directory.</p><Link to="/admin/routes">Open route directory</Link></section>;
   const id = value === undefined ? undefined : Number(value);
   return <AdminRoutes key={id ?? 'directory'} initialRouteId={id} onAuthError={onAuthError} onBusyChange={onBusyChange} />;

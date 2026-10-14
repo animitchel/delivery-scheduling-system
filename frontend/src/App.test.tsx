@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError } from './api';
@@ -25,7 +25,7 @@ function mount(client: SessionClient, path = '/', redirect = vi.fn<(path: string
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 describe('authenticated workspace', () => {
   it('shows loading before administrator tools and links to working pages', async () => {
-    mount(clientFor()); expect(screen.getByRole('status')).toHaveTextContent('Preparing');
+    mount(clientFor()); expect(screen.getByRole('status')).toHaveTextContent('Preparing'); expect(document.title).toBe('Checking session | Dispatch');
     expect(await screen.findByRole('heading', { name: 'Keep deliveries moving.' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open accounts' })).toHaveAttribute('href', '/app/admin/accounts');
     expect(screen.getByRole('link', { name: 'Open recipients' })).toHaveAttribute('href', '/app/admin/recipients');
@@ -48,6 +48,7 @@ describe('authenticated workspace', () => {
   });
   it('rejects the wrong workspace without mounting its tools', async () => {
     mount(clientFor(driver), '/admin'); await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' });
+    expect(document.title).toBe('Access restricted | Dispatch');
     expect(screen.queryByRole('link', { name: 'Open accounts' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open your workspace' })).toHaveAttribute('href', '/driver');
   });
@@ -58,7 +59,7 @@ describe('authenticated workspace', () => {
   });
   it('recovers from a failed session read only after an explicit retry', async () => {
     const client = clientFor(); client.session.mockRejectedValueOnce(new ApiError(500)); mount(client);
-    await screen.findByRole('alert'); expect(client.session).toHaveBeenCalledTimes(1);
+    await screen.findByRole('alert'); expect(document.title).toBe('Workspace unavailable | Dispatch'); expect(client.session).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByRole('heading', { name: 'Keep deliveries moving.' });
   });
@@ -66,7 +67,7 @@ describe('authenticated workspace', () => {
     const client = clientFor(); client.session.mockResolvedValueOnce(admin).mockRejectedValue(new ApiError(401)); mount(client);
     await screen.findByRole('heading', { name: 'Keep deliveries moving.' });
     act(() => { window.dispatchEvent(new Event('focus')); });
-    await screen.findByRole('link', { name: 'Sign in' }); expect(screen.queryByText('admin')).not.toBeInTheDocument();
+    await screen.findByRole('link', { name: 'Sign in' }); expect(document.title).toBe('Sign in required | Dispatch'); expect(screen.queryByText('admin')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
   it.each(['focus', 'visibility', 'manual'])('preserves an unsaved draft through %s revalidation without writing', async trigger => {
@@ -82,9 +83,11 @@ describe('authenticated workspace', () => {
       vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
       act(() => document.dispatchEvent(new Event('visibilitychange')));
     } else act(() => window.dispatchEvent(new Event('focus')));
-    expect(client.session).toHaveBeenCalledTimes(2); expect(input).toBeInTheDocument(); expect(input).toHaveValue('Unsaved depot');
+    expect(document.title).toBe('Warehouses | Dispatch');
+    input.focus(); expect(client.session).toHaveBeenCalledTimes(2); expect(input).toBeInTheDocument(); expect(input).toHaveValue('Unsaved depot');
     await act(async () => { check.resolve({ ...admin }); await check.promise; });
     expect(screen.getByLabelText('Warehouse name')).toBe(input); expect(input).toHaveValue('Unsaved depot');
+    expect(input).toHaveFocus(); expect(document.title).toBe('Warehouses | Dispatch');
     expect(reads).toHaveBeenCalledTimes(1); expect(writes).not.toHaveBeenCalled();
   });
   it.each(['identity', 'role', 'expired', 'password', 'failed'])('clears the previous draft after %s session change', async change => {
@@ -182,6 +185,23 @@ describe('authenticated workspace', () => {
     client.session.mockRejectedValue(new ApiError(401)); act(() => { window.dispatchEvent(new Event('focus')); });
     await screen.findByRole('link', { name: 'Sign in' }); expect(screen.queryByText('Alex')).not.toBeInTheDocument();
   });
+  it('updates titles and focus through navigation and history without exposing identity text', async () => {
+    function History() { const navigate = useNavigate(); return <><button onClick={() => navigate(-1)}>History back</button><button onClick={() => navigate(1)}>History forward</button></>; }
+    vi.spyOn(warehousesApi, 'directory').mockResolvedValue({ warehouses: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    render(<MemoryRouter initialEntries={['/admin/warehouses']}><App client={clientFor({ ...admin, username: 'Private identity' })} redirect={vi.fn()} /><History /></MemoryRouter>);
+    await screen.findByRole('heading', { name: 'Warehouses' }); expect(document.title).toBe('Warehouses | Dispatch');
+    await userEvent.click(screen.getByRole('link', { name: 'Overview' }));
+    expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'History back' }));
+    expect(document.title).toBe('Warehouses | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', { name: 'History forward' }));
+    expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    expect(document.title).not.toContain('Private identity');
+  });
+  it('titles a missing page on a direct link', async () => {
+    mount(clientFor(), '/missing?private=value'); await screen.findByRole('heading', { name: 'Page not found.' });
+    expect(document.title).toBe('Page not found | Dispatch');
+  });
   it('renders HTML-looking usernames as text', async () => {
     const attack = '<img src=x onerror=alert(1)>'; mount(clientFor({ ...admin, username: attack }));
     await screen.findByText(attack); expect(document.querySelector('img')).toBeNull();
@@ -219,7 +239,7 @@ describe('authenticated workspace', () => {
   it.each(['0', '-1', '01', '2147483648', 'abc', '1&routeId=2'])('rejects invalid route link %s without loading a different route', async value => {
     const reads = vi.spyOn(adminRoutesApi, 'directory'); const details = vi.spyOn(adminRoutesApi, 'route');
     mount(clientFor(), `/admin/routes?routeId=${value}`);
-    await screen.findByRole('heading', { name: 'Invalid route link.' });
+    await screen.findByRole('heading', { name: 'Invalid route link.' }); expect(document.title).toBe('Invalid route link | Dispatch');
     expect(reads).not.toHaveBeenCalled(); expect(details).not.toHaveBeenCalled();
   });
   it('holds the workspace during generation and clears recovery after session expiry', async () => {
