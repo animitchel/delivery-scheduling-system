@@ -24,6 +24,8 @@ async function assertFitsViewport(page) {
         await page.getByRole("link", { name, exact: true }).click();
     }
     const browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE });
+    const review = require('./frontend-review.cjs').reporter(artifactRoot);
+    await review.instrument(browser);
     let page;
     try {
         const context = await browser.newContext();
@@ -70,6 +72,10 @@ async function assertFitsViewport(page) {
         await page.evaluate(() => window.scrollTo(0,0));
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await page.screenshot({ path: artifact("react-workspace-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
+        await page.evaluate(()=>document.documentElement.style.fontSize='200%');
+        await page.screenshot({path:artifact('review-overview-text-200-percent.png'),fullPage:false});
+        await page.evaluate(()=>document.documentElement.style.removeProperty('font-size'));
+
         const mobileMenu = page.getByRole("button", { name: "Menu", exact: true });
         assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
         assert.equal(await page.getByRole("navigation", { name: "Main navigation" }).count(), 0);
@@ -131,6 +137,9 @@ async function assertFitsViewport(page) {
         // Recipient deep link, real conditional update, safe text and responsive form.
         await page.getByRole("link", {name:"Recipients",exact:true}).click();
         await page.waitForURL("**/app/admin/recipients");
+        await page.getByRole("heading",{name:"Recipients",exact:true}).waitFor();
+        review.observe('desktopNavigationFocus',await page.evaluate(()=>({tag:document.activeElement.tagName,id:document.activeElement.id,href:document.activeElement.getAttribute('href')})));
+
         await page.locator(".recipient-table tbody tr").first().waitFor();
         assert.equal(await page.locator(".recipient-table img").count(),0);
         await page.setViewportSize({width:1440,height:1000});
@@ -362,6 +371,9 @@ async function assertFitsViewport(page) {
         await page.locator(".stop-card").first().scrollIntoViewIfNeeded();
         await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
         await page.screenshot({path:artifact("react-admin-routes-mobile.png"),clip:{x:0,y:0,width:375,height:800}});
+        await page.locator('.route-directory').evaluate(node=>node.scrollIntoView({block:'start'}));
+        await page.screenshot({path:artifact('review-admin-route-table-mobile.png'),clip:{x:0,y:0,width:375,height:800}});
+
         // A real driver's competing update wins; the administrator must reload before writing again.
         const competing=await browser.newContext();
         let competingCsrf=await (await competing.request.get(`${target.origin}/api/auth/csrf`)).json();
@@ -596,6 +608,9 @@ async function assertFitsViewport(page) {
 
         const temporary = await page.locator("#temporary-driver-password").inputValue();
         assert.equal(temporary.length, 32);
+        await review.record(page,'credential-privacy-check');
+        assert.equal(fs.readFileSync(artifact('frontend-review.json'),'utf8').includes(temporary),false);
+
         assert.ok((await page.getByText(/^Expires /).textContent()).includes("Expires"));
         await context.grantPermissions(["clipboard-read", "clipboard-write"]);
         await page.getByRole("button",{name:"Copy password",exact:true}).click();
@@ -732,6 +747,9 @@ async function assertFitsViewport(page) {
         assert.equal(await page.locator(".generation-stops img").count(), 0);
         await page.setViewportSize({ width: 375, height: 900 });
         await page.screenshot({ path: artifact("react-generation-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
+        await page.getByRole('region',{name:'Generation route directory',exact:true}).evaluate(node=>node.scrollIntoView({block:'start'}));
+        await page.screenshot({path:artifact('review-generation-table-mobile.png'),clip:{x:0,y:0,width:375,height:780}});
+
         await assertFitsViewport(page);
         await page.getByRole("button", { name: "I reviewed results; allow another request", exact: true }).click();
         assert.equal(generationPosts, 2);
@@ -764,6 +782,19 @@ async function assertFitsViewport(page) {
         await page.setViewportSize({width:1280,height:900});
 
         await page.getByRole("button", { name: "Add warehouse", exact: true }).click();
+        await page.getByLabel("Warehouse name",{exact:true}).fill("Unsaved review draft");
+        await page.screenshot({path:artifact("review-draft-before-focus.png"),fullPage:false});
+        const focusedSession = page.waitForResponse(response=>new URL(response.url()).pathname==='/api/auth/me' && response.status()===200);
+        await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+        await (await focusedSession).finished();
+        await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+        await page.getByRole("button",{name:"Add warehouse",exact:true}).waitFor({state:'visible'});
+        const draftSurvived = await page.getByLabel("Warehouse name",{exact:true}).count()===1;
+        review.observe('warehouseDraftAfterWindowFocus', {editorPresent:draftSurvived});
+        await page.screenshot({path:artifact("review-draft-after-focus.png"),fullPage:false});
+        if (draftSurvived) await page.getByRole("button",{name:"Cancel warehouse edit",exact:true}).click();
+        await page.getByRole("button",{name:"Add warehouse",exact:true}).click();
+
         await page.getByRole("button",{name:"Save warehouse",exact:true}).click();
         await page.getByRole("alert").filter({hasText:"Enter a name, address"}).waitFor();
         assert.equal(await page.getByLabel("Warehouse name",{exact:true}).evaluate(node=>node===document.activeElement),true);
@@ -923,6 +954,7 @@ async function assertFitsViewport(page) {
         assert.equal(await page.locator(".accounts-table").count(),0);
         assert.deepEqual(errors, []);
         console.log("Browser admin/driver login, ownership, route selection, status updates, CSRF, safe rendering and logout passed.");
+        review.complete();
         fs.writeFileSync(artifact("journey-complete.json"), JSON.stringify({ complete: true }));
     } catch (error) {
         if (page && !page.isClosed()) { try { await page.screenshot({ path: artifact("failure.png"), fullPage: false, mask: [page.locator('input[type="password"], #temporary-driver-password')] }); } catch { /* Preserve the original error. */ } }

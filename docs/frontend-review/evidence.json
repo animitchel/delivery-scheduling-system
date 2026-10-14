@@ -1,0 +1,1636 @@
+{
+  "complete": true,
+  "snapshots": [
+    {
+      "label": "react-login-desktop.png",
+      "pathname": "/app/login",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "p.login-footer",
+          "ratio": 3.664197800506647,
+          "minimum": 4.5,
+          "fontSize": 11,
+          "foreground": [
+            115,
+            134,
+            122
+          ],
+          "background": [
+            248,
+            249,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-login-mobile.png",
+      "pathname": "/app/login",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "p.login-footer",
+          "ratio": 3.664197800506647,
+          "minimum": 4.5,
+          "fontSize": 11,
+          "foreground": [
+            115,
+            134,
+            122
+          ],
+          "background": [
+            248,
+            249,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-workspace-desktop.png",
+      "pathname": "/app/admin",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-workspace-mobile.png",
+      "pathname": "/app/admin",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "review-overview-text-200-percent.png",
+      "pathname": "/app/admin",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "32px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-navigation-mobile-open.png",
+      "pathname": "/app/admin",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-directory-desktop.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "A",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-empty-desktop.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-directory-mobile.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-card-mobile.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-desktop.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "recipient-editor",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-recipients-mobile.png",
+      "pathname": "/app/admin/recipients",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "recipient-editor",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-delivery-empty-desktop.png",
+      "pathname": "/app/admin/deliveries",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-deliveries-desktop.png",
+      "pathname": "/app/admin/deliveries",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "TEXTAREA",
+      "activeId": "delivery-instructions",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-deliveries-mobile.png",
+      "pathname": "/app/admin/deliveries",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "TEXTAREA",
+      "activeId": "delivery-instructions",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-delivery-directory-desktop.png",
+      "pathname": "/app/admin/deliveries",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "delivery-details",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-delivery-card-mobile.png",
+      "pathname": "/app/admin/deliveries",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "delivery-details",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-admin-routes-desktop.png",
+      "pathname": "/app/admin/routes",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-admin-routes-mobile.png",
+      "pathname": "/app/admin/routes",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [
+        {
+          "selector": "div.accounts-table",
+          "clientWidth": 309,
+          "scrollWidth": 647
+        }
+      ],
+      "smallFormFonts": []
+    },
+    {
+      "label": "review-admin-route-table-mobile.png",
+      "pathname": "/app/admin/routes",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [
+        {
+          "selector": "div.accounts-table",
+          "clientWidth": 309,
+          "scrollWidth": 647
+        }
+      ],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-driver-desktop.png",
+      "pathname": "/app/driver/routes",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-driver-mobile.png",
+      "pathname": "/app/driver/routes",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-accounts-desktop.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "create-title",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-accounts-mobile.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 390,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "create-title",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-accounts-mobile-directory.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 390,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "create-title",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-account-card-mobile.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 390,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "DIV",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-accounts-create-mobile.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 390,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "DIV",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-accounts-create-fields-mobile.png",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 390,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "DIV",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "credential-privacy-check",
+      "pathname": "/app/admin/accounts",
+      "title": "Delivery workspace",
+      "width": 1280,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-password-desktop.png",
+      "pathname": "/app/change-password",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "p.login-footer",
+          "ratio": 3.664197800506647,
+          "minimum": 4.5,
+          "fontSize": 11,
+          "foreground": [
+            115,
+            134,
+            122
+          ],
+          "background": [
+            248,
+            249,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-password-mobile.png",
+      "pathname": "/app/change-password",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "p.login-footer",
+          "ratio": 3.664197800506647,
+          "minimum": 4.5,
+          "fontSize": 11,
+          "foreground": [
+            115,
+            134,
+            122
+          ],
+          "background": [
+            248,
+            249,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-generation-confirmation.png",
+      "pathname": "/app/admin/routes/generate",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": true,
+      "contrastCandidates": [],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-generation-mobile.png",
+      "pathname": "/app/admin/routes/generate",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "generation-stops",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [
+        {
+          "selector": "div.recipient-table",
+          "clientWidth": 309,
+          "scrollWidth": 650
+        }
+      ],
+      "smallFormFonts": []
+    },
+    {
+      "label": "review-generation-table-mobile.png",
+      "pathname": "/app/admin/routes/generate",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "generation-stops",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [
+        {
+          "selector": "div.recipient-table",
+          "clientWidth": 309,
+          "scrollWidth": 650
+        }
+      ],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-warehouse-empty-desktop.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-warehouse-card-mobile.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "review-draft-before-focus.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 1280,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "INPUT",
+      "activeId": "warehouse-name",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "review-draft-after-focus.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 1280,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-warehouses-desktop.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "INPUT",
+      "activeId": "warehouse-longitude",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-warehouses-mobile.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-warehouse-delete-dialog.png",
+      "pathname": "/app/admin/warehouses",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-operator-empty-desktop.png",
+      "pathname": "/app/admin/operators",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-operator-card-mobile.png",
+      "pathname": "/app/admin/operators",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BODY",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-operators-desktop.png",
+      "pathname": "/app/admin/operators",
+      "title": "Delivery workspace",
+      "width": 1440,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "span.workspace-label",
+          "ratio": 4.462479061431578,
+          "minimum": 4.5,
+          "fontSize": 13.44,
+          "foreground": [
+            107,
+            123,
+            115
+          ],
+          "background": [
+            255,
+            255,
+            255
+          ]
+        },
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-operators-mobile.png",
+      "pathname": "/app/admin/operators",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "H2",
+      "activeId": "operator-editor",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [
+        {
+          "selector": "div.session-footer > span",
+          "ratio": 4.242775584244968,
+          "minimum": 4.5,
+          "fontSize": 12,
+          "foreground": [
+            106,
+            121,
+            107
+          ],
+          "background": [
+            244,
+            246,
+            245
+          ]
+        }
+      ],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    },
+    {
+      "label": "react-operator-delete-dialog.png",
+      "pathname": "/app/admin/operators",
+      "title": "Delivery workspace",
+      "width": 375,
+      "rootFontSize": "16px",
+      "pageOverflow": false,
+      "activeTag": "BUTTON",
+      "activeId": "",
+      "generationPrimaryFocused": false,
+      "contrastCandidates": [],
+      "overflowingRegions": [],
+      "smallFormFonts": []
+    }
+  ],
+  "observations": {
+    "desktopNavigationFocus": {
+      "tag": "A",
+      "id": "",
+      "href": "/app/admin/recipients"
+    },
+    "warehouseDraftAfterWindowFocus": {
+      "editorPresent": false
+    }
+  }
+}
