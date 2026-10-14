@@ -56,3 +56,6 @@ application-local.properties
 /tests/browser/node_modules/
 /.ci-artifacts/
 /scripts/__pycache__/
+
+### Private managed development setup ###
+/.local/managed/

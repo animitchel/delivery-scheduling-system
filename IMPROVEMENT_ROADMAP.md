@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 14 October 2026; merged main `61c9845`, migration foundation pending\
+**Progress reconciled:** 14 October 2026; merged through PR #32, fresh managed development setup pending\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -216,6 +216,6 @@ The deployed schema, provider-account restrictions, operational monitoring, back
 
 ### Database migration foundation
 
-`aniM/database-migration-foundation` adds a Flyway V1 fresh-install schema, an opt-in `schema-managed` profile with Hibernate validation, a read-only structural adoption check and an explicitly confirmed baseline command. Disposable MySQL tests cover installation, restart, populated legacy adoption and rejection of incompatible/unsafe states. See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md). Implementation is pending review/merge; no existing application database has been inspected or changed.
+`aniM/database-migration-foundation` adds a Flyway V1 fresh-install schema, an opt-in `schema-managed` profile with Hibernate validation, a read-only structural adoption check and an explicitly confirmed baseline command. Disposable MySQL tests cover installation, restart, populated legacy adoption and rejection of incompatible/unsafe states. See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md). Merged in PR #32. Existing database adoption remains deliberate; the original local database is preserved.
 
-Next: inspect the actual schema read-only, reconcile any drift and rehearse adoption on a backed-up copy before deployment. Add new integrity constraints and indexes in separate migrations after data preflight. This foundation does not complete Phase C, prove production backup recovery or replace framework-support/staging release gates.
+Read-only local inspection found no operational records and one user account. `aniM/fresh-managed-development-database` provides a separate clean MySQL/Flyway installation, private setup helper and provisioning-to-completion/restart regression; see [MANAGED_LOCAL_DATABASE.md](MANAGED_LOCAL_DATABASE.md). This fresh-development path avoids adopting the original database and preserves its account. The new setup is pending review/merge. Production database adoption still requires actual-schema and backup/recovery evidence. Add new integrity constraints and indexes in separate migrations after data preflight. This foundation does not complete Phase C, prove production backup recovery or replace framework-support/staging release gates.

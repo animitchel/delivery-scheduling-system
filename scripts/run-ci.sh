@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-python3 -m unittest discover -s scripts -p 'test_verify_ci_results.py'
+python3 -m unittest discover -s scripts -p 'test_*.py'
 ci_node=$(command -v node)
 if [[ "$("$ci_node" --version)" != "v24.20.0" ]]; then echo 'CI requires Node 24.20.0.' >&2; exit 1; fi
 export SESSION_BROWSER_ARTIFACTS_DIR="$PWD/.ci-artifacts/browser"

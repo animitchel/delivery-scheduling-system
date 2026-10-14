@@ -1,0 +1,22 @@
+# Separate from delivery-scheduling-local: original container and volume are preserved.
+name: delivery-scheduling-managed
+services:
+  mysql:
+    image: mysql:8.4.11
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:?Run scripts/managed-local.py prepare}
+      MYSQL_USER: ${DB_USER:?Run scripts/managed-local.py prepare}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Run scripts/managed-local.py prepare}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Run scripts/managed-local.py prepare}
+    ports:
+      - "127.0.0.1:${DB_PORT:?Run scripts/managed-local.py prepare}:3306"
+    volumes:
+      - managed_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql --protocol=TCP --host=127.0.0.1 --user="$${MYSQL_USER}" --database="$${MYSQL_DATABASE}" --execute="SELECT 1" >/dev/null 2>&1']
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+volumes:
+  managed_mysql_data:
