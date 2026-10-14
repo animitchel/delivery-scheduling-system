@@ -47,7 +47,9 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   }, [cancelLoad, redirect]);
   const refresh = useCallback(() => {
     if (busy.current || mutationBusy.current) return;
-    setSession({ kind: 'loading' }); setLogoutError(false); void load();
+    // Keep same-session editors mounted while revalidating in the background.
+    setSession(current => current.kind === 'ready' ? current : { kind: 'loading' });
+    setLogoutError(false); void load();
   }, [load]);
   useEffect(() => {
     void load();
@@ -72,7 +74,9 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
       : <><h1>Your workspace couldn’t be loaded.</h1><p role="alert">We couldn’t check your session. Please try again.</p><button className="button" onClick={refresh}>Try again</button></>}
   </main></div>;
   const { account } = session;
-  return <div className="workspace"><a className="skip-link" href="#main-content">Skip to content</a>
+  // A changed identity or permission scope must discard the previous workspace state.
+  const workspaceKey = JSON.stringify([account.id, account.username, account.role, account.operatorId]);
+  return <div key={workspaceKey} className="workspace"><a className="skip-link" href="#main-content">Skip to content</a>
     <aside className="sidebar"><Brand /><WorkspaceNavigation role={account.role} disabled={mutationPending} isBlocked={() => mutationBusy.current} />
       <div className="sidebar-note"><span className="status-dot" />Delivery scheduling workspace</div></aside>
     <div className="workspace-body"><header className="topbar"><span className="workspace-label">Delivery workspace</span><div className="session-actions">

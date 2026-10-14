@@ -69,6 +69,46 @@ describe('authenticated workspace', () => {
     await screen.findByRole('link', { name: 'Sign in' }); expect(screen.queryByText('admin')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
+  it.each(['focus', 'visibility', 'manual'])('preserves an unsaved draft through %s revalidation without writing', async trigger => {
+    const reads = vi.spyOn(warehousesApi, 'directory').mockResolvedValue({ warehouses: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    const writes = vi.spyOn(warehousesApi, 'create');
+    const check = deferred<Account>(); const client = clientFor(); client.session.mockResolvedValueOnce(admin).mockReturnValueOnce(check.promise);
+    mount(client, '/admin/warehouses'); await userEvent.click(await screen.findByRole('button', { name: 'Add warehouse' }));
+    const input = screen.getByLabelText('Warehouse name'); fireEvent.change(input, { target: { value: 'Unsaved depot' } });
+    if (trigger === 'manual') await userEvent.click(screen.getByRole('button', { name: 'Refresh session' }));
+    else if (trigger === 'visibility') {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+      act(() => document.dispatchEvent(new Event('visibilitychange'))); expect(client.session).toHaveBeenCalledTimes(1);
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+      act(() => document.dispatchEvent(new Event('visibilitychange')));
+    } else act(() => window.dispatchEvent(new Event('focus')));
+    expect(client.session).toHaveBeenCalledTimes(2); expect(input).toBeInTheDocument(); expect(input).toHaveValue('Unsaved depot');
+    await act(async () => { check.resolve({ ...admin }); await check.promise; });
+    expect(screen.getByLabelText('Warehouse name')).toBe(input); expect(input).toHaveValue('Unsaved depot');
+    expect(reads).toHaveBeenCalledTimes(1); expect(writes).not.toHaveBeenCalled();
+  });
+  it.each(['identity', 'role', 'expired', 'password', 'failed'])('clears the previous draft after %s session change', async change => {
+    vi.spyOn(warehousesApi, 'directory').mockResolvedValue({ warehouses: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
+    const client = clientFor(); const redirect = mount(client, '/admin/warehouses');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add warehouse' }));
+    fireEvent.change(screen.getByLabelText('Warehouse name'), { target: { value: 'Private draft' } });
+    if (change === 'expired' || change === 'failed') client.session.mockRejectedValue(new ApiError(change === 'expired' ? 401 : 500));
+    else client.session.mockResolvedValue(change === 'identity' ? { ...admin, id: 2 } : change === 'role' ? driver : { ...admin, passwordChangeRequired: true });
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(screen.queryByLabelText('Warehouse name')).not.toBeInTheDocument());
+    expect(screen.queryByDisplayValue('Private draft')).not.toBeInTheDocument();
+    if (change === 'expired') expect(screen.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    if (change === 'password') expect(redirect).toHaveBeenCalledWith('/app/change-password');
+    if (change === 'failed') expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
+  });
+  it('reloads driver route state when the operator assignment changes for the same account', async () => {
+    const reads = vi.spyOn(driverApi, 'routes').mockResolvedValue([]);
+    const client = clientFor(driver); mount(client, '/driver/routes');
+    await screen.findByRole('heading', { name: 'Assigned routes' }); await waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+    client.session.mockResolvedValue({ ...driver, operatorId: 2 });
+    act(() => window.dispatchEvent(new Event('focus')));
+    await waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
+  });
   it('ignores a delayed identity response after a newer session check', async () => {
     const old = deferred<Account>(); const client = clientFor(driver); client.session.mockReturnValueOnce(old.promise); mount(client);
     act(() => { window.dispatchEvent(new Event('focus')); });
