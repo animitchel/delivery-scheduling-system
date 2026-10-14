@@ -792,7 +792,9 @@ async function assertFitsViewport(page) {
         const draftSurvived = await page.getByLabel("Warehouse name",{exact:true}).count()===1;
         review.observe('warehouseDraftAfterWindowFocus', {editorPresent:draftSurvived});
         await page.screenshot({path:artifact("review-draft-after-focus.png"),fullPage:false});
-        if (draftSurvived) await page.getByRole("button",{name:"Cancel warehouse edit",exact:true}).click();
+        assert.equal(draftSurvived,true,'Successful session refresh must preserve the warehouse editor');
+        assert.equal(await page.getByLabel("Warehouse name",{exact:true}).inputValue(),"Unsaved review draft");
+        await page.getByRole("button",{name:"Cancel warehouse edit",exact:true}).click();
         await page.getByRole("button",{name:"Add warehouse",exact:true}).click();
 
         await page.getByRole("button",{name:"Save warehouse",exact:true}).click();
