@@ -11,13 +11,13 @@ The React + TypeScript + Vite workspace is in `frontend/`. Spring remains respon
 | Driver overview | `/app/driver` | Assigned-routes entry point; administrator navigation is absent |
 | Sign-in | `/html/login.html` | Existing session/CSRF login, including account/password setup handling |
 | Password setup | `/html/change-password.html` | Existing required password-change workflow |
-| Scheduling | `/html/admin.html` | Existing recipient/delivery forms and route generation |
+| Legacy scheduling | `/html/admin.html` | Direct-access compatibility page; absent from React navigation |
 | Accounts | `/app/admin/accounts` | React paginated account directory, eligible-operator search and protected driver actions |
 | Driver route execution | `/app/driver/routes` | React assigned routes, on-demand stop details and terminal delivery actions |
 | Administrator route review | `/app/admin/routes` | Bounded route directory, selected stops and terminal delivery actions |
 | Legacy route rollback | `/html/operators.html` | Existing role-authorized route page |
 
-Driver sign-in now opens `/app/driver/routes`. Administrator sign-in and operational pages retain their existing destinations. The driver journey is documented in `REACT_DRIVER_ROUTES.md`; the legacy route page remains available for rollback.
+Driver sign-in now opens `/app/driver/routes`. Administrator sign-in now opens `/app/admin` directly. React navigation uses migrated screens; the legacy scheduling page remains available at `/html/admin.html` for compatibility. The driver journey is documented in `REACT_DRIVER_ROUTES.md`; the legacy route page remains available for rollback.
 
 ## Session and API contracts
 
@@ -81,3 +81,7 @@ React delivery creation and review are documented in [REACT_DELIVERIES.md](REACT
 ## Administrator operator setup
 
 `/app/admin/operators` provides driver-record setup, bounded warehouse ID selection, conditional edits/deletion and a separate Accounts handoff. See [REACT_OPERATORS.md](REACT_OPERATORS.md) for assignment safeguards, recovery and end-to-end verification.
+
+## Administrator entry point
+
+The existing CSRF-protected sign-in page redirects administrators directly to `/app/admin`. React overview/navigation use migrated delivery, recipient, operator, warehouse, account and route screens. Legacy scheduling remains accessible by its direct URL for compatibility, but is no longer an overview card or navigation link. Password setup and driver sign-in destinations are unchanged. Browser checks cover direct administrator entry and explicit legacy compatibility separately.
