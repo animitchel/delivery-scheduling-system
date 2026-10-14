@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 14 October 2026; merged through PR #34; Jackson 3 migration pending review\
+**Progress reconciled:** 14 October 2026; merged through PR #35; live GitHub merge gate blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -224,4 +224,8 @@ Read-only local inspection found no operational records and one user account. `a
 
 `aniM/spring-boot-supported-baseline` upgrades to Spring Boot 4.1.1, migrates modular MVC/JPA/security test and Flyway dependencies and server imports, and adopts the managed Hibernate/Flyway versions. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md). Merged in PR #34. Preserve the immutable V1 migration and existing API/session contracts.
 
-`aniM/jackson3-migration` removes the temporary Jackson 2 compatibility module, migrates custom readers and offline/provider JSON parsing to Boot-managed Jackson 3, and verifies strict field rejection, privacy, ISO dates/times and decimal precision. Pending review/merge; see [JACKSON3_MIGRATION.md](JACKSON3_MIGRATION.md). Next verify GitHub CI enforcement and staging HTTPS, configuration, health/readiness, dependency advisories, restore and rollback before release approval. Local tests do not establish production readiness.
+`aniM/jackson3-migration` removes the temporary Jackson 2 compatibility module, migrates custom readers and offline/provider JSON parsing to Boot-managed Jackson 3, and verifies strict field rejection, privacy, ISO dates/times and decimal precision. Merged in PR #35; see [JACKSON3_MIGRATION.md](JACKSON3_MIGRATION.md). Next verify GitHub CI enforcement and staging HTTPS, configuration, health/readiness, dependency advisories, restore and rollback before release approval. Local tests do not establish production readiness.
+
+### GitHub merge-gate verification
+
+`aniM/ci-merge-gate-verification` records live evidence that main is unprotected, this private repository's current plan blocks branch rules, and the available credential cannot read Actions or manage protection. The owner elected to keep the repository private and document enforcement as blocked. A proposed classic protection policy and tested GET-only verifier are prepared; neither applies settings. See [CI_MERGE_GATE.md](CI_MERGE_GATE.md). This branch is pending review/merge; hosted CI success and enforcement remain unverified. Complete the documented plan/permission and live acceptance steps before marking this release gate complete.
