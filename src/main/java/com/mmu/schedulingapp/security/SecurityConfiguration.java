@@ -21,7 +21,7 @@ public class SecurityConfiguration {
         http.authenticationProvider(provider)
                 .authorizeHttpRequests(access -> access
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/html/login.html", "/js/login.js", "/js/auth.js",
+                        .requestMatchers(HttpMethod.GET, "/html/login.html", "/js/auth.js",
                                 "/css/login.css", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.GET, "/app", "/app/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
@@ -33,7 +33,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v1/scheduling-app/**", "/html/**", "/js/admin.js",
                                 "/js/operators.js", "/js/accounts.js", "/css/accounts.css").hasRole("ADMIN")
                         .anyRequest().denyAll())
-                .formLogin(form -> form.loginPage("/html/login.html").loginProcessingUrl("/api/auth/login")
+                .formLogin(form -> form.loginPage("/app/login").loginProcessingUrl("/api/auth/login")
                         .successHandler((request, response, authentication) ->
                                 SecurityResponses.json(response, 200, "{\"authenticated\":true}"))
                         .failureHandler((request, response, exception) ->

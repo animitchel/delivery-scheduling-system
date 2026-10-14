@@ -6,7 +6,8 @@ The application now authenticates persisted accounts and restricts all existing 
 
 | Request | Behaviour |
 | --- | --- |
-| GET `/html/login.html` | Public sign-in page |
+| GET `/app/login` | Public React sign-in page |
+| GET `/html/login.html` | Compatibility redirect to React sign-in |
 | GET `/api/auth/csrf` | Public same-origin session CSRF discovery: `headerName`, `parameterName`, masked `token` |
 | POST `/api/auth/login` | URL-encoded `username` and `password`, with CSRF header; 200 on success, generic 401 for invalid or disabled accounts |
 | GET `/api/auth/me` | Signed-in account summary: ID, username, role, operator ID and enabled flag; no credentials |
@@ -26,7 +27,7 @@ Spring's form-login filter handles authentication, session context persistence a
 4. Run one application instance for now. Sessions are held in memory and restart invalidates them. Horizontal scaling needs a deliberately configured shared session store or suitable routing before rollout.
 5. Before public deployment, configure login throttling at the trusted ingress, restrict direct backend access, and validate HTTPS/proxy behaviour in staging. Application-level throttling, email password recovery, frontend migration and the wider audit items remain separate work.
 
-For local development with your existing local database configuration, start the built application explicitly in the local profile and open `/html/login.html`:
+For local development with your existing local database configuration, start the built application explicitly in the local profile and open `/app/login`:
 
 ```sh
 java -jar target/schedulingApp-0.0.1-SNAPSHOT.jar \

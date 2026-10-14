@@ -26,6 +26,19 @@ async function assertFitsViewport(page) {
         const errors = [];
         page.on("pageerror", error => errors.push(error.message));
         await page.goto(`${target.origin}/html/login.html`);
+        await page.waitForURL("**/app/login");
+        await page.getByRole("heading", { name: "Welcome back.", exact: true }).waitFor();
+        await page.setViewportSize({ width: 1440, height: 1000 });
+        await page.screenshot({ path: artifact("react-login-desktop.png"), fullPage: true });
+        for (const width of [320, 375, 768]) {
+            await page.setViewportSize({ width, height: 900 });
+            await assertFitsViewport(page);
+        }
+        await page.setViewportSize({ width: 375, height: 900 });
+        await assertFitsViewport(page);
+        await page.screenshot({ path: artifact("react-login-mobile.png"), fullPage: true });
+        await page.setViewportSize({ width: 1280, height: 900 });
+
         await page.locator("#username").fill("smoke.admin");
         await page.locator("#password").fill("incorrect administrator passphrase");
         await page.locator("#loginButton").click();
@@ -77,7 +90,7 @@ async function assertFitsViewport(page) {
         const countLogout=request => { if(request.method()==="POST" && new URL(request.url()).pathname==="/api/auth/logout") shellLogouts++; };
         page.on("request",countLogout);
         await page.getByRole("button", { name: "Sign out", exact: true }).evaluate(button => { button.click(); button.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
-        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.waitForURL("**/app/login?loggedOut");
         page.off("request",countLogout);
         assert.equal(shellLogouts,1);
         assert.equal((await context.request.get(`${target.origin}/api/auth/me`)).status(),401);
@@ -282,7 +295,7 @@ async function assertFitsViewport(page) {
         assert.equal(await page.evaluate(() => window.__injected), undefined);
         assert.equal(await page.locator("#deliveriesBody [onclick], #deliveriesBody [onmouseover]").count(), 0);
         await page.locator("#logoutButton").click();
-        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.waitForURL("**/app/login?loggedOut");
         assert.equal((await context.request.get(`${target.origin}/api/auth/me`)).status(), 401);
         // Driver login selects only owned routes; another driver's IDs remain unavailable.
         await page.locator("#username").fill("smoke.driver");
@@ -382,14 +395,14 @@ async function assertFitsViewport(page) {
         await page.locator("#rh-routeId").filter({ hasText: `#${owned[1].routeId}` }).waitFor();
         await page.locator(".d-status").filter({ hasText: "CANCELLED" }).waitFor();
         await page.locator("#logoutButton").click();
-        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.waitForURL("**/app/login?loggedOut");
         await page.locator("#username").fill("empty.driver");
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
         await page.waitForURL("**/app/driver/routes");
         await page.getByRole("heading",{name:"No assigned routes",exact:true}).waitFor();
         await page.getByRole("button",{name:"Sign out",exact:true}).click();
-        await page.waitForURL("**/html/login.html?loggedOut");
+        await page.waitForURL("**/app/login?loggedOut");
         // Accounts screen: pagination, safe rendering, failures and one-time credentials.
         await page.locator("#username").fill("smoke.admin");
         await page.locator("#password").fill("smoke test administrator passphrase");
@@ -497,7 +510,7 @@ async function assertFitsViewport(page) {
             await driverPage.locator("#newPassword").fill(replacement);
             await driverPage.locator("#confirmPassword").fill(replacement);
             await driverPage.locator("#passwordButton").click();
-            await driverPage.waitForURL("**/html/login.html?passwordChanged");
+            await driverPage.waitForURL("**/app/login?passwordChanged");
         }
         const permanent = "browser permanent driver passphrase";
         await driverLogin(temporary, "change-password.html");
@@ -686,7 +699,7 @@ async function assertFitsViewport(page) {
         }
         await operatorLogin(operatorTemporary); await operatorPage.waitForURL("**/html/change-password.html");
         const operatorPermanent = "disposable chrome operator permanent passphrase";
-        await operatorPage.locator("#currentPassword").fill(operatorTemporary); await operatorPage.locator("#newPassword").fill(operatorPermanent); await operatorPage.locator("#confirmPassword").fill(operatorPermanent); await operatorPage.locator("#passwordButton").click(); await operatorPage.waitForURL("**/html/login.html?passwordChanged");
+        await operatorPage.locator("#currentPassword").fill(operatorTemporary); await operatorPage.locator("#newPassword").fill(operatorPermanent); await operatorPage.locator("#confirmPassword").fill(operatorPermanent); await operatorPage.locator("#passwordButton").click(); await operatorPage.waitForURL("**/app/login?passwordChanged");
         await operatorLogin(operatorPermanent); await operatorPage.waitForURL("**/app/driver/routes"); await operatorPage.getByRole("heading", { name: "No assigned routes", exact: true }).waitFor();
         const planningHeaders = await (await context.request.get(`${target.origin}/api/admin/routes?size=50`)).json();
         const busyOperators = new Set(planningHeaders.routes.filter(route => route.routeStatus !== "COMPLETED").map(route => route.operatorId));
