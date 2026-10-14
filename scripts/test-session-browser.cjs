@@ -525,6 +525,9 @@ async function assertFitsViewport(page) {
         await page.getByRole("button", {name:"Previous accounts",exact:true}).click();
         await page.locator('[aria-label="accounts pagination"]').filter({ hasText: "Page 1 of 2" }).waitFor();
         await page.waitForFunction(() => document.querySelectorAll("#account-operator option").length === 3);
+        await page.getByRole("button",{name:"Add driver account",exact:true}).click();
+        assert.equal(await page.locator("#create-title").evaluate(node=>node===document.activeElement),true);
+
         assert.ok((await page.locator("#account-operator option").allTextContents()).some(text => text.includes("<img")));
         assert.equal(await page.locator("#account-operator img").count(), 0);
         assert.equal(await page.evaluate(() => window.__injected), undefined);
@@ -544,8 +547,11 @@ async function assertFitsViewport(page) {
         await page.screenshot({ path: artifact("react-accounts-mobile-directory.png") });
         await assertFitsViewport(page);
         await page.getByRole("region",{name:"Account directory table",exact:true}).focus();
-        await page.keyboard.press("ArrowRight");
-        await page.waitForFunction(()=>document.querySelector(".accounts-table").scrollLeft>0);
+        const accountRecords=page.getByRole("table",{name:"Accounts and driver access controls",exact:true});
+        assert.equal(await accountRecords.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+        assert.equal(await accountRecords.getByRole("rowheader").count(),await accountRecords.locator("tbody tr").count());
+        await page.locator(".account-directory-results tbody tr").nth(1).evaluate(node=>node.scrollIntoView({block:"center"}));
+        await page.screenshot({path:artifact("react-account-card-mobile.png"),clip:{x:0,y:0,width:390,height:780}});
         await page.getByRole("heading",{name:"Create driver account",exact:true}).scrollIntoViewIfNeeded();
         await page.screenshot({path:artifact("react-accounts-create-mobile.png"),clip:{x:0,y:0,width:390,height:780}});
         await page.locator(".create-account").scrollIntoViewIfNeeded();
@@ -558,6 +564,12 @@ async function assertFitsViewport(page) {
         await page.getByLabel("Search eligible operators",{exact:true}).fill("");
         await page.getByRole("button",{name:"Search operators",exact:true}).click();
         await page.waitForFunction(()=>document.querySelectorAll("#account-operator option").length===3);
+        await page.getByLabel("Search eligible operators",{exact:true}).fill("zzzzzz-eligible-operator-not-found");
+        await page.getByRole("button",{name:"Search operators",exact:true}).click();
+        await page.getByRole("heading",{name:"No eligible operators match this search.",exact:true}).waitFor();
+        await page.getByRole("button",{name:"Clear operator search",exact:true}).click();
+        await page.waitForFunction(()=>document.querySelectorAll("#account-operator option").length===3);
+
         const operatorValue = await page.locator("#account-operator option").filter({ hasText: "Onboarding operator" }).getAttribute("value");
         await page.locator("#account-username").fill("onboarding.driver");
         await page.locator("#account-operator").selectOption(operatorValue);
@@ -580,6 +592,8 @@ async function assertFitsViewport(page) {
         await page.evaluate(() => document.querySelector(".create-account").dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
         await page.locator('[aria-labelledby="credential-title"][open]').waitFor();
         assert.equal(creations, 1);
+        assert.equal(await page.getByRole("button",{name:"Done",exact:true}).evaluate(node=>node===document.activeElement),true);
+
         const temporary = await page.locator("#temporary-driver-password").inputValue();
         assert.equal(temporary.length, 32);
         assert.ok((await page.getByText(/^Expires /).textContent()).includes("Expires"));
@@ -911,7 +925,7 @@ async function assertFitsViewport(page) {
         console.log("Browser admin/driver login, ownership, route selection, status updates, CSRF, safe rendering and logout passed.");
         fs.writeFileSync(artifact("journey-complete.json"), JSON.stringify({ complete: true }));
     } catch (error) {
-        if (page && !page.isClosed()) { try { await page.screenshot({ path: artifact("failure.png"), fullPage: false }); } catch { /* Preserve the original error. */ } }
+        if (page && !page.isClosed()) { try { await page.screenshot({ path: artifact("failure.png"), fullPage: false, mask: [page.locator('input[type="password"], #temporary-driver-password')] }); } catch { /* Preserve the original error. */ } }
         throw error;
     } finally { await browser.close(); }
 })().catch(error => { console.error(error.stack ?? error.message); process.exitCode = 1; });

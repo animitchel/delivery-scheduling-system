@@ -78,4 +78,64 @@ describe('React administrator accounts', () => {
     const client = clientFor(); client.create.mockImplementation((_u,_o,_p,signal)=>new Promise((_resolve,reject)=>{signal.addEventListener('abort',()=>reject(new DOMException('Cancelled','AbortError')));})); await mount(client); await fillCreation(); vi.useFakeTimers();
     try { fireEvent.click(screen.getByRole('button',{name:'Create driver account'})); await act(async()=>{await vi.advanceTimersByTimeAsync(15000);}); expect(screen.getByRole('alert')).toHaveTextContent('outcome could not be confirmed'); expect(client.create).toHaveBeenCalledTimes(1); } finally { vi.useRealTimers(); }
   });
+  it('focuses account setup from the primary action without submitting', async () => {
+    const client=clientFor(); await mount(client);
+    await userEvent.click(screen.getByRole('button',{name:'Add driver account'}));
+    expect(screen.getByRole('heading',{name:'Create driver account'})).toHaveFocus();
+    expect(screen.getByRole('group',{name:'Driver identity'})).toBeVisible();
+    expect(screen.getByRole('group',{name:'Administrator confirmation'})).toBeVisible();
+    expect(client.create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Driver username')).toHaveAccessibleDescription(/3–64 lowercase/);
+  });
+  it('clears a no-result eligible-operator search from page zero', async () => {
+    const client=clientFor(); await mount(client);
+    client.operators.mockResolvedValueOnce(page<EligibleOperator>([],50));
+    await userEvent.type(screen.getByLabelText('Search eligible operators'),'Missing');
+    await userEvent.click(screen.getByRole('button',{name:'Search operators'}));
+    await screen.findByRole('heading',{name:'No eligible operators match this search.'});
+    await userEvent.click(screen.getByRole('button',{name:'Clear operator search'}));
+    await waitFor(()=>expect(screen.getByLabelText('Eligible operator')).toBeEnabled());
+    expect(screen.getByLabelText('Search eligible operators')).toHaveValue('');
+    expect(client.operators.mock.calls.at(-1)?.slice(0,2)).toEqual([0,'']);
+    expect(screen.getByRole('button',{name:'Create driver account'})).toBeDisabled();
+  });
+  it('uses one semantic account record with readable access and setup states', async () => {
+    const client=clientFor(); client.accounts.mockResolvedValue(page([admin,{...driver,enabled:false,passwordChangeRequired:true}],20));
+    await mount(client); const table=screen.getByRole('table',{name:'Accounts and driver access controls'});
+    expect(within(table).getAllByRole('rowheader')).toHaveLength(2);
+    const record=within(table).getByRole('row',{name:/test.driver DRIVER/});
+    expect(within(record).getByRole('cell',{name:'Disabled'})).toBeVisible();
+    expect(within(record).getByRole('cell',{name:'Required'})).toBeVisible();
+    expect(within(record).getByRole('button',{name:'Enable'})).toHaveAccessibleDescription('test.driver');
+  });
+  it('explicitly focuses Done and clears the credential before returning focus to setup', async () => {
+    await mount(); await create(); await screen.findByRole('dialog',{name:'Temporary driver password'});
+    expect(screen.getByRole('button',{name:'Done'})).toHaveFocus();
+    await userEvent.click(screen.getByRole('button',{name:'Done'}));
+    expect(screen.getByLabelText('Temporary password')).toHaveValue('');
+    expect(screen.getByRole('heading',{name:'Create driver account'})).toHaveFocus();
+    expect(localStorage.length+sessionStorage.length).toBe(0);
+  });
+  it('restores action focus on Escape and clears the reauthentication field', async () => {
+    await mount(); const trigger=screen.getByRole('button',{name:'Disable'}); await userEvent.click(trigger);
+    const dialog=await screen.findByRole('dialog',{name:'Disable test.driver'});
+    await userEvent.type(within(dialog).getByLabelText('Your administrator password'),'do not retain this');
+    fireEvent(dialog,new Event('cancel',{cancelable:true}));
+    act(()=>{(dialog as HTMLDialogElement).close();});
+    expect(document.querySelector<HTMLInputElement>('#action-current-password')?.value).toBe('');
+    expect(trigger).toHaveFocus();
+  });
+
+  it('explains that operator-search recovery still requires a full account reload', async () => {
+    const client=clientFor(); await mount(client); client.operators.mockRejectedValueOnce(new ApiError(500));
+    await userEvent.click(screen.getByRole('button',{name:'Search operators'}));
+    await screen.findByText('Eligible operators could not be loaded. Reload accounts to try again.');
+    await userEvent.click(screen.getByRole('button',{name:'Search operators'}));
+    await screen.findByText('Reload accounts before another action to review current access and eligible operators.');
+    expect(screen.getByRole('button',{name:'Add driver account'})).toBeDisabled();
+    await userEvent.click(screen.getByRole('button',{name:'Reload accounts'}));
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Add driver account'})).toBeEnabled());
+    expect(client.create).not.toHaveBeenCalled();
+  });
+
 });
