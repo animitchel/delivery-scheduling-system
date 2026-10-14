@@ -23,7 +23,7 @@ class CoverageGateTests(unittest.TestCase):
         self.write('target/frontend-reports/vitest.xml', self.suite('src/example.test.ts', 'test'))
         self.write('.ci-artifacts/browser/journey-complete.json', json.dumps({'complete': True}))
         with zipfile.ZipFile(self.root / 'target/schedulingApp-0.0.1-SNAPSHOT.jar', 'w') as archive:
-            for name in ['BOOT-INF/classes/static/app/index.html', 'BOOT-INF/classes/static/app/assets/app.js', 'BOOT-INF/classes/static/app/assets/app.css', 'BOOT-INF/classes/com/mmu/schedulingapp/SchedulingAppApplication.class']:
+            for name in ['BOOT-INF/classes/static/app/index.html', 'BOOT-INF/classes/static/app/assets/app.js', 'BOOT-INF/classes/static/app/assets/app.css', 'BOOT-INF/classes/com/mmu/schedulingapp/SchedulingAppApplication.class', 'BOOT-INF/classes/db/migration/V1__initial_schema.sql', 'BOOT-INF/classes/db/schema-v1-contract.json', 'BOOT-INF/classes/application-schema-managed.yml', 'BOOT-INF/lib/flyway-core-fixture.jar', 'BOOT-INF/lib/flyway-mysql-fixture.jar']:
                 archive.writestr(name, 'fixture')
 
     def write(self, path, text):
@@ -64,6 +64,22 @@ class CoverageGateTests(unittest.TestCase):
     def test_missing_packaged_frontend_fails(self):
         with zipfile.ZipFile(self.root / 'target/schedulingApp-0.0.1-SNAPSHOT.jar', 'w') as archive: archive.writestr('META-INF/MANIFEST.MF', '')
         with self.assertRaises(ValueError): checker.verify(self.root)
+
+    def test_missing_migration_resource_fails(self):
+        path = self.root / 'target/schedulingApp-0.0.1-SNAPSHOT.jar'
+        with zipfile.ZipFile(path) as archive:
+            entries = {name: archive.read(name) for name in archive.namelist() if name != 'BOOT-INF/classes/db/migration/V1__initial_schema.sql'}
+        with zipfile.ZipFile(path, 'w') as archive:
+            for name, content in entries.items(): archive.writestr(name, content)
+        with self.assertRaisesRegex(ValueError, 'Packaged migration resource'): checker.verify(self.root)
+
+    def test_missing_migration_dependency_fails(self):
+        path = self.root / 'target/schedulingApp-0.0.1-SNAPSHOT.jar'
+        with zipfile.ZipFile(path) as archive:
+            entries = {name: archive.read(name) for name in archive.namelist() if name != 'BOOT-INF/lib/flyway-mysql-fixture.jar'}
+        with zipfile.ZipFile(path, 'w') as archive:
+            for name, content in entries.items(): archive.writestr(name, content)
+        with self.assertRaisesRegex(ValueError, 'Packaged migration dependency'): checker.verify(self.root)
 
     def test_root_frontend_error_counter_fails(self):
         self.write('target/frontend-reports/vitest.xml', '<testsuites errors="1">' + self.suite('src/example.test.ts', 'test') + '</testsuites>')
