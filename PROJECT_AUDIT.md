@@ -1049,3 +1049,9 @@ The following inventory identifies the exact current-tree scope rather than impl
 - [src/main/resources/static/html/operators.html](https://github.com/animitchel/delivery-scheduling-system/blob/98dba9eac39c453ae9b29b8a70f16e4d16770cb0/src/main/resources/static/html/operators.html)
 - [src/main/resources/static/js/admin.js](https://github.com/animitchel/delivery-scheduling-system/blob/98dba9eac39c453ae9b29b8a70f16e4d16770cb0/src/main/resources/static/js/admin.js)
 - [src/main/resources/static/js/operators.js](https://github.com/animitchel/delivery-scheduling-system/blob/98dba9eac39c453ae9b29b8a70f16e4d16770cb0/src/main/resources/static/js/operators.js)
+
+## Implementation follow-up: supported framework baseline (14 October 2026)
+
+The original audit above records its inspected revision. `aniM/spring-boot-supported-baseline` now replaces Boot 3.5.16 with 4.1.1 in `pom.xml`, uses Boot's modular MVC/JPA/security tests and Flyway starter, and removes the old Flyway override. Pending review/merge. `AccountManagementService` explicitly uses READ_COMMITTED for locked credential mutations to preserve revisions under Hibernate 7 refresh behavior; existing MySQL concurrency assertions pass unchanged. V1 and its structural contract remain unchanged.
+
+The temporary deprecated Jackson 2 module and `application.yml` converter preference preserve strict write deserializers. This remains maintenance debt: migrate to Jackson 3 in a separate focused PR before upstream removal. The full local gate passed 536 backend tests, 349 frontend tests, ten MySQL suites and the browser journey; 19 Python tests passed. Resolved dependency/SBOM generation supports subsequent advisory review but does not establish vulnerability clearance. Production staging, configuration, advisories, restore/rollback and remaining domain/UI findings stay open. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md) and [IMPROVEMENT_ROADMAP.md](IMPROVEMENT_ROADMAP.md).

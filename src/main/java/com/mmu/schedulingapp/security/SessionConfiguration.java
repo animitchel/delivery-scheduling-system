@@ -1,9 +1,9 @@
 package com.mmu.schedulingapp.security;
 
-import org.springframework.boot.web.servlet.server.Session;
+import org.springframework.boot.web.server.servlet.Session;
 import org.springframework.boot.web.server.Cookie;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
-import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory;
+import org.springframework.boot.web.server.servlet.ConfigurableServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
