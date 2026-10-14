@@ -249,3 +249,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Delivery interface modernisation
 
 `aniM/delivery-interface-modernisation` applies shared styling to recipient selection, grouped delivery preparation, applied filters, responsive delivery cards and initial/filtered empty states. Existing uncertain-save reconciliation across all statuses remains explicit and tested. See [DELIVERY_INTERFACE.md](DELIVERY_INTERFACE.md). Next modernise Warehouses, Operators and Accounts in separate focused PRs, retaining conditional writes and lifecycle guards.
+
+### Warehouse interface modernisation
+
+`aniM/warehouse-interface-modernisation` applies shared styling to warehouse search, responsive records, grouped coordinate forms and explicit deletion/recovery guidance. Latest-record/ETag reads, assigned-operator deletion guards and uncertain-write review remain. See [WAREHOUSE_INTERFACE.md](WAREHOUSE_INTERFACE.md). Next modernise Operators and Accounts separately while retaining account handoff, assignment and concurrency safeguards.
