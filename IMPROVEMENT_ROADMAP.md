@@ -261,3 +261,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Account interface modernisation
 
 `aniM/account-interface-modernisation` applies shared styling to grouped driver-account setup, eligible-operator guidance, responsive account records and access/reset dialogs. Reauthentication, blocked-read/write recovery, session revocation and one-time credential clearing remain. See [ACCOUNT_INTERFACE.md](ACCOUNT_INTERFACE.md). Next perform a frontend consistency/accessibility review before choosing the next focused improvement; staging and production release gates remain separate.
+
+### Frontend consistency and accessibility review
+
+`aniM/frontend-consistency-accessibility-review` records browser/source findings and masked evidence in [FRONTEND_REVIEW.md](FRONTEND_REVIEW.md), without changing application behavior. Prioritise valid-session revalidation that preserves drafts (FR-01), followed by navigation focus/titles, measured contrast, render-error recovery and route-directory mobile consistency. Keep implementations in separate tested `aniM/` branches. Manual screen-reader, native zoom, cross-browser and operational production acceptance remain outstanding.
