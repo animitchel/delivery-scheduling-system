@@ -527,3 +527,9 @@ h1 {
 .login-help { font-size: 13px; margin-top: 24px; }
 .login-footer { font-size: 11px; margin-top: 48px; color: #73867a; }
 @media (max-width: 760px) { .login-page { grid-template-columns: minmax(0, 1fr); } .login-story { padding: 24px; gap: 20px; } .login-story h1 { font-size: 32px; } .login-route, .login-story-footer { display: none; } .login-story p { margin-bottom: 0; } .login-form-panel { padding: 32px 24px; } }
+.password-guidance { font-size: 12px; margin: 8px 0; color: #586b65; }
+.password-session-actions { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin-top: 24px; font-size: 13px; }
+.password-story-note { display: flex; gap: 16px; align-items: center; border-top: 1px solid #ffffff30; padding-top: 24px; }
+.password-story-note span { font-size: 32px; color: #cde69e; }
+.password-story-note p { font-size: 13px; margin: 0; }
+#passwordMessage { color: #953e35; font-size: 13px; overflow-wrap: anywhere; }

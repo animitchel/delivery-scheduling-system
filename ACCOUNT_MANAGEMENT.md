@@ -22,7 +22,7 @@ Reset does not enable a disabled account. Re-enabling preserves the existing cre
 
 ## Password setup and permanent revocation
 
-New/reset driver accounts have `passwordChangeRequired=true`. Before expiry they can sign in, but the backend permits only session identity, CSRF, password setup and logout; scheduling APIs and ordinary application pages remain unavailable. The login page routes them to `/html/change-password.html`. They verify the temporary password, choose a different valid password, then sign in again with the permanent password. Users with normal credentials can also use this page to change their own password.
+New/reset driver accounts have `passwordChangeRequired=true`. Before expiry they can sign in, but the backend permits only session identity, CSRF, password setup and logout; scheduling APIs and ordinary application pages remain unavailable. The login page routes them to `/app/change-password`. They verify the temporary password, choose a different valid password, then sign in again with the permanent password. Users with normal credentials can also use this page to change their own password.
 
 Passwords retain the existing 15-character minimum, valid Unicode requirement and 72 UTF-8-byte bcrypt limit. Current-password verification is required for own changes; reusing the current password is rejected. Expired temporary credentials fail login and invalidate existing restricted sessions.
 
