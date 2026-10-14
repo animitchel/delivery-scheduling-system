@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -31,6 +31,15 @@ describe('authenticated workspace', () => {
     expect(screen.getByRole('link', { name: 'Open recipients' })).toHaveAttribute('href', '/app/admin/recipients');
     expect(screen.queryByRole('link', { name: 'Open scheduling' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open deliveries' })).toHaveAttribute('href', '/app/admin/deliveries');
+    expect(within(screen.getByRole('navigation', { name: 'Main navigation' })).getAllByRole('link').map(link => link.textContent)).toEqual([
+      'Overview', 'Warehouses', 'Operators', 'Accounts', 'Recipients', 'Deliveries', 'Generate routes', 'Routes',
+    ]);
+    const cards = within(screen.getByRole('region', { name: 'Delivery tools' })).getAllByRole('article');
+    expect(cards.map(card => within(card).getByRole('heading').textContent)).toEqual([
+      'Manage warehouses', 'Manage operators', 'Manage accounts', 'Manage recipients', 'Prepare deliveries', 'Generate routes', 'Review routes',
+    ]);
+    expect(cards.map(card => card.querySelector('.card-number')?.textContent)).toEqual(['01', '02', '03', '04', '05', '06', '07']);
+
   });
   it('shows driver tools without administrator navigation', async () => {
     mount(clientFor(driver)); await screen.findByRole('heading', { name: 'Your next stop starts here.' });
