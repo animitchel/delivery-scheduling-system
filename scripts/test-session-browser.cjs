@@ -18,6 +18,11 @@ async function assertFitsViewport(page) {
     const target = new URL(process.argv[2]);
     assert.equal(target.protocol, "http:");
     assert.equal(target.hostname, "127.0.0.1");
+    async function navigateWorkspace(page, name) {
+        const menu = page.getByRole("button", { name: "Menu", exact: true });
+        if (await menu.isVisible()) await menu.click();
+        await page.getByRole("link", { name, exact: true }).click();
+    }
     const browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE });
     let page;
     try {
@@ -65,6 +70,28 @@ async function assertFitsViewport(page) {
         await page.evaluate(() => window.scrollTo(0,0));
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await page.screenshot({ path: artifact("react-workspace-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
+        const mobileMenu = page.getByRole("button", { name: "Menu", exact: true });
+        assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
+        assert.equal(await page.getByRole("navigation", { name: "Main navigation" }).count(), 0);
+        await mobileMenu.click();
+        await page.getByRole("navigation", { name: "Main navigation" }).waitFor();
+        await assertFitsViewport(page);
+        await page.screenshot({ path: artifact("react-navigation-mobile-open.png"), fullPage: true });
+        await page.keyboard.press("Tab");
+        assert.equal(await page.evaluate(() => document.activeElement.textContent), "Overview");
+        await page.keyboard.press("Escape");
+        assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
+        assert.equal(await mobileMenu.evaluate(node => node === document.activeElement), true);
+        await mobileMenu.click();
+        await page.getByRole("link", { name: "Accounts", exact: true }).click();
+        await page.getByRole("heading", { name: "Accounts", exact: true }).waitFor();
+        assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
+        await page.waitForFunction(() => document.activeElement.id === "main-content");
+        await mobileMenu.click();
+        assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).getAttribute("aria-current"), "page");
+        await page.getByRole("link", { name: "Overview", exact: true }).click();
+        await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
+
         await page.setViewportSize({ width: 1280, height: 900 });
         await page.reload();
         await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
@@ -224,7 +251,7 @@ async function assertFitsViewport(page) {
         }));
         assert.equal(response, 400); // Domain validation was reached, rather than CSRF 403.
         // Administrator route review uses bounded summaries and selected-route details.
-        await page.getByRole("link",{name:"Routes",exact:true}).click();
+        await navigateWorkspace(page, "Routes");
         await page.waitForURL("**/app/admin/routes");
         await page.getByRole("heading",{name:"Routes",exact:true}).waitFor();
         await page.getByRole("button",{name:"Next routes",exact:true}).click();
@@ -408,7 +435,7 @@ async function assertFitsViewport(page) {
         await page.locator("#password").fill("smoke test administrator passphrase");
         await page.locator("#loginButton").click();
         await page.waitForURL("**/app/admin");
-        await page.getByRole("link", { name: "Accounts", exact: true }).click();
+        await navigateWorkspace(page, "Accounts");
         await page.waitForURL("**/app/admin/accounts");
         await page.locator('[aria-label="accounts pagination"]').filter({ hasText: "Page 1 of 2" }).waitFor();
         assert.equal(await page.locator(".accounts-table tbody tr").first().getByRole("button").count(), 0);
@@ -571,7 +598,7 @@ async function assertFitsViewport(page) {
         // Real generation with deterministic Maps and a committed, lost acknowledgement.
         let generationPosts = 0;
         page.on("request", request => { if (request.method() === "POST" && new URL(request.url()).pathname === "/api/admin/routes/generate") generationPosts++; });
-        await page.getByRole("link", { name: "Generate routes", exact: true }).click();
+        await navigateWorkspace(page, "Generate routes");
         await page.getByLabel("Planning cutoff date", { exact: true }).fill("2020-01-02");
         await page.getByRole("button", { name: "Review assignment", exact: true }).click();
         await page.getByRole("dialog", { name: "Generate and assign routes?" }).waitFor();
@@ -616,7 +643,7 @@ async function assertFitsViewport(page) {
         await page.getByRole("link", { name: `Open route #${committedRouteId}`, exact: true }).click();
         await page.getByRole("region", { name: `Route #${committedRouteId} overview`, exact: true }).waitFor();
         // Warehouse setup: actual writes, stale draft review and a committed delete with lost acknowledgement.
-        await page.getByRole("link", { name: "Warehouses", exact: true }).click();
+        await navigateWorkspace(page, "Warehouses");
         await page.getByRole("button", { name: "New warehouse", exact: true }).click();
         await page.getByLabel("Warehouse name", { exact: true }).fill("Chrome warehouse");
         await page.getByLabel("Warehouse address", { exact: true }).fill("Chrome depot address");
@@ -677,7 +704,7 @@ async function assertFitsViewport(page) {
 
 
         // Operator onboarding uses the existing Accounts screen, then a real assignment/lifecycle handover.
-        await page.getByRole("link", { name: "Operators", exact: true }).click();
+        await navigateWorkspace(page, "Operators");
         await page.getByRole("button", { name: "New operator", exact: true }).click();
         await page.getByLabel("Operator name", { exact: true }).fill("Chrome operator");
         await page.getByLabel("Phone number", { exact: true }).fill("+447123456789");
@@ -719,8 +746,8 @@ async function assertFitsViewport(page) {
         const eligibleCount = operatorRows.operators.filter(o => o.availabilityStatus === "AVAILABLE" && !busyOperators.has(o.operatorId)).length;
         const operatorCsrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
         for (let i = 0; i < eligibleCount; i++) assert.equal((await context.request.post(`${target.origin}/api/admin/deliveries`, { headers: { [operatorCsrf.headerName]: operatorCsrf.token }, data: { recipientId, scheduledDate: "1990-01-02", startTimeWindow: "09:00", endTimeWindow: "12:00", priorityLevel: "MEDIUM", specialInstructions: "Operator handover fixture" } })).status(), 201);
-        await page.getByRole("link", { name: "Generate routes", exact: true }).click(); await page.getByLabel("Planning cutoff date", { exact: true }).fill("1990-01-02"); await page.getByRole("button", { name: "Review assignment", exact: true }).click(); await page.getByRole("button", { name: "Confirm generation and assignment", exact: true }).click(); await page.getByRole("heading", { name: "Generated routes", exact: true }).waitFor();
-        await page.getByRole("link", { name: "Operators", exact: true }).click(); await page.getByRole("button", { name: `Edit operator #${chromeOperatorId}`, exact: true }).click(); await page.getByLabel("Operator name", { exact: true }).waitFor();
+        await navigateWorkspace(page, "Generate routes"); await page.getByLabel("Planning cutoff date", { exact: true }).fill("1990-01-02"); await page.getByRole("button", { name: "Review assignment", exact: true }).click(); await page.getByRole("button", { name: "Confirm generation and assignment", exact: true }).click(); await page.getByRole("heading", { name: "Generated routes", exact: true }).waitFor();
+        await navigateWorkspace(page, "Operators"); await page.getByRole("button", { name: `Edit operator #${chromeOperatorId}`, exact: true }).click(); await page.getByLabel("Operator name", { exact: true }).waitFor();
         assert.equal(await page.getByLabel("Availability", { exact: true }).isDisabled(), true); assert.equal(await page.getByLabel("Vehicle type", { exact: true }).isDisabled(), true);
         await page.setViewportSize({ width: 375, height: 900 }); await page.locator("#operator-editor").evaluate(node => node.scrollIntoView({ block: "start" })); await page.screenshot({ path: artifact("react-operators-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
         await assertFitsViewport(page);
@@ -729,7 +756,7 @@ async function assertFitsViewport(page) {
         await operatorPage.goto(`${target.origin}/app/admin/operators`); await operatorPage.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor(); await operatorContext.close();
         await page.getByRole("button", { name: "Cancel operator edit", exact: true }).click(); await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("dialog", { name: "Delete this operator?", exact: true }).waitFor(); await page.keyboard.press("Escape");
         await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("button", { name: "Confirm operator deletion", exact: true }).click(); await page.getByRole("alert").filter({ hasText: "history cannot be deleted" }).waitFor();
-        await page.getByRole("link", { name: "Accounts", exact: true }).click();
+        await navigateWorkspace(page, "Accounts");
         await page.getByRole("button", { name: "Reload accounts", exact: true }).waitFor();
         const csrf = await (await context.request.get(`${target.origin}/api/auth/csrf`)).json();
         assert.equal((await context.request.post(`${target.origin}/api/auth/logout`, { headers: { [csrf.headerName]: csrf.token } })).status(), 204);
