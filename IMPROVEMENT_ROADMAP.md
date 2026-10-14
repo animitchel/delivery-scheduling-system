@@ -237,3 +237,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Repository secret scanning
 
 `aniM/repository-secret-scanning` adds pinned, checksum-verified Gitleaks checks of tracked files and full HEAD history, location-only CI evidence and exact historical acknowledgements. The owner confirmed the previously exposed Maps credential was revoked or rotated on 2026-10-14; provider state was not independently verified. See [SECRET_SCANNING.md](SECRET_SCANNING.md). Staging HTTPS/configuration, readiness, recovery and blocked GitHub enforcement remain separate release gates.
+
+### Frontend visual foundation and navigation
+
+`aniM/frontend-design-navigation` introduces shared semantic design tokens, consistent common surfaces/controls and grouped role-aware navigation with an accessible mobile disclosure. See [FRONTEND_DESIGN.md](FRONTEND_DESIGN.md). Next modernize management-page layouts/forms and mobile directories in separate tested changes; then driver task hierarchy, loading/empty states and error recovery. Operational dashboard metrics require real API support. This visual foundation does not complete staging, accessibility or production release gates.

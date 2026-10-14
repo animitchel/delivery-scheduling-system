@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import { api, ApiError } from './api';
 import type { Account, Role, SessionClient } from './api';
 import './styles.css';
+import { WorkspaceNavigation } from './WorkspaceNavigation';
 import { RouteGeneration } from './RouteGeneration';
 import { AdminRoutes } from './AdminRoutes';
 import { Deliveries } from './Deliveries';
@@ -72,10 +73,8 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   </main></div>;
   const { account } = session;
   return <div className="workspace"><a className="skip-link" href="#main-content">Skip to content</a>
-    <aside className="sidebar"><Brand /><p className="nav-label">Workspace</p><nav aria-label="Main navigation">
-      <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} end to={home(account.role)} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Overview</NavLink>
-      {account.role === 'ADMIN' ? <><NavLink to="/admin/warehouses" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Warehouses</NavLink><NavLink to="/admin/operators" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Operators</NavLink><NavLink to="/admin/accounts" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Accounts</NavLink><NavLink to="/admin/recipients" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Recipients</NavLink><NavLink to="/admin/deliveries" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Deliveries</NavLink><NavLink to="/admin/routes/generate" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Generate routes</NavLink><NavLink end to="/admin/routes" className={({ isActive }) => isActive ? 'nav-home' : undefined} aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Routes</NavLink></> : <NavLink className={({ isActive }) => isActive ? 'nav-home' : undefined} to="/driver/routes" aria-disabled={mutationPending} onClick={event => { if (mutationBusy.current) event.preventDefault(); }}>Assigned routes</NavLink>}
-    </nav><div className="sidebar-note"><span className="status-dot" />Signed in securely</div></aside>
+    <aside className="sidebar"><Brand /><WorkspaceNavigation role={account.role} disabled={mutationPending} isBlocked={() => mutationBusy.current} />
+      <div className="sidebar-note"><span className="status-dot" />Delivery scheduling workspace</div></aside>
     <div className="workspace-body"><header className="topbar"><span className="workspace-label">Delivery workspace</span><div className="session-actions">
       <div className="identity"><span className="username" title={account.username}>{account.username}</span><span className="role-label">{account.role === 'ADMIN' ? 'Administrator' : 'Driver'}</span></div>
       <button className="button secondary" disabled={signingOut || mutationPending} onClick={() => { void signOut(); }}>{signingOut ? 'Signing out…' : 'Sign out'}</button>
