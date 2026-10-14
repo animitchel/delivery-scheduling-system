@@ -191,7 +191,7 @@ async function assertFitsViewport(page) {
         assert.equal(reviewQuery.searchParams.get("status"),null); assert.equal(reviewQuery.searchParams.get("scheduledDate"),"2020-01-02"); assert.equal(reviewQuery.searchParams.get("recipientId"),String(recipientId));
         await page.getByRole("button",{name:`View delivery ${uncertainDeliveryId}`,exact:true}).waitFor();
         await page.getByRole("button",{name:`View delivery ${uncertainDeliveryId}`,exact:true}).click();
-        await page.getByText("Review this uncertain creation",{exact:true}).waitFor();
+        await page.locator(".delivery-details").getByText("Review this uncertain creation",{exact:true}).waitFor();
         assert.equal(deliveryPosts,2);
         await page.setViewportSize({width:320,height:900});
         await assertFitsViewport(page);
