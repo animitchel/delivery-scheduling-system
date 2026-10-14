@@ -58,7 +58,7 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
     if (busy.current || mutationBusy.current) return;
     busy.current = true; setSigningOut(true); setLogoutError(false);
     cancelLoad();
-    try { await client.logout(); setSession({ kind: 'anonymous' }); redirect('/html/login.html?loggedOut'); }
+    try { await client.logout(); setSession({ kind: 'anonymous' }); redirect('/app/login?loggedOut'); }
     catch (error) {
       if (error instanceof ApiError && error.status === 401) setSession({ kind: 'anonymous' });
       else if (error instanceof ApiError && error.passwordChangeRequired) { setSession({ kind: 'anonymous' }); redirect('/html/change-password.html'); }
@@ -67,7 +67,7 @@ export function App({ client = api, redirect = redirectTo }: { client?: SessionC
   }
   if (session.kind !== 'ready') return <div className="entry"><Brand /><main className="entry-panel">
     {session.kind === 'loading' ? <><p className="eyebrow">Delivery workspace</p><h1>Checking your session…</h1><p role="status">Preparing your workspace.</p></>
-      : session.kind === 'anonymous' ? <><p className="eyebrow">Welcome</p><h1>Sign in to your workspace.</h1><p>Access your delivery tools with your existing account.</p><a className="button" href="/html/login.html">Sign in</a></>
+      : session.kind === 'anonymous' ? <><p className="eyebrow">Welcome</p><h1>Sign in to your workspace.</h1><p>Access your delivery tools with your existing account.</p><a className="button" href="/app/login">Sign in</a></>
       : <><h1>Your workspace couldn’t be loaded.</h1><p role="alert">We couldn’t check your session. Please try again.</p><button className="button" onClick={refresh}>Try again</button></>}
   </main></div>;
   const { account } = session;

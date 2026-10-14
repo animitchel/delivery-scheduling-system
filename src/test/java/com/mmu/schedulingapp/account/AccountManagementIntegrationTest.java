@@ -169,7 +169,7 @@ class AccountManagementIntegrationTest {
         mvc.perform(get("/html/accounts.html").session(driver)).andExpect(status().isForbidden());
         mvc.perform(get("/js/accounts.js").session(driver)).andExpect(status().isForbidden());
         mvc.perform(get("/css/accounts.css").session(driver)).andExpect(status().isForbidden());
-        mvc.perform(get("/html/accounts.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/html/login.html"));
+        mvc.perform(get("/html/accounts.html")).andExpect(status().isFound()).andExpect(redirectedUrl("/app/login"));
         var admin=login("test.admin");
         mvc.perform(get("/html/accounts.html").session(admin)).andExpect(status().isOk());
         mvc.perform(get("/js/accounts.js").session(admin)).andExpect(status().isOk());
