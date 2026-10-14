@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.server.ResponseStatusException;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -54,7 +55,9 @@ public class AccountManagementService {
                 .map(operator -> new EligibleOperator(operator.getOperatorId(), operator.getName()));
     }
 
-    @Transactional
+    // Hibernate 7 may refresh an already locked row with a non-locking read.
+    // READ_COMMITTED keeps that read current; explicit row locks still serialize credential writes.
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public TemporaryCredential createDriver(AccountPrincipal actor, String currentPassword, String username, Integer operatorId) {
         administrator(actor, currentPassword);
         String normalized = AccountService.normalizeUsername(username);
@@ -72,7 +75,7 @@ public class AccountManagementService {
         return new TemporaryCredential(AccountSummary.from(account), temporary, expiry);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public AccountSummary enabled(AccountPrincipal actor, String currentPassword, Long id, boolean enabled) {
         administrator(actor, currentPassword);
         var account = driverForUpdate(id);
@@ -84,7 +87,7 @@ public class AccountManagementService {
         return AccountSummary.from(account);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public TemporaryCredential reset(AccountPrincipal actor, String currentPassword, Long id) {
         administrator(actor, currentPassword);
         var account = driverForUpdate(id);
@@ -96,7 +99,7 @@ public class AccountManagementService {
         return new TemporaryCredential(AccountSummary.from(account), temporary, expiry);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void changeOwnPassword(AccountPrincipal actor, String currentPassword, String newPassword) {
         var account = current(actor, true);
         verifyPassword(currentPassword, account);

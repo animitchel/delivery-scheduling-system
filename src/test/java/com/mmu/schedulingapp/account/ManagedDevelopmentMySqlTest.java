@@ -78,7 +78,7 @@ class ManagedDevelopmentMySqlTest {
         }
         int deliveryId,routeId,operatorId;
         try(var app=start(false)) {
-            String base="http://127.0.0.1:"+((org.springframework.boot.web.context.WebServerApplicationContext)app).getWebServer().getPort();
+            String base="http://127.0.0.1:"+((org.springframework.boot.web.server.context.WebServerApplicationContext)app).getWebServer().getPort();
             var admin=new Session(base); admin.login("fresh.admin",PASSWORD);
             assertThat(admin.get("/app/admin/deliveries").statusCode()).isEqualTo(200);
             int warehouseId=admin.post("/api/admin/warehouses","{\"name\":\"Fresh depot\",\"address\":\"Test depot\",\"latitude\":53.1,\"longitude\":-2.1}").path("warehouseId").asInt();

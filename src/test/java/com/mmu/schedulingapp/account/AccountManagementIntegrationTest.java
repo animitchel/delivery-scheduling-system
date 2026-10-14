@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,6 +31,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop"})
 @AutoConfigureMockMvc
 class AccountManagementIntegrationTest {
+    @Autowired org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter handlerAdapter;
+
+    @Test
+    void mvcUsesTheStrictJackson2MapperDuringTheFrameworkTransition() {
+        var converters = handlerAdapter.getMessageConverters();
+        assertThat(converters).anyMatch(converter ->
+                converter instanceof org.springframework.http.converter.json.MappingJackson2HttpMessageConverter);
+        var requestType = com.mmu.schedulingapp.dto.delivery.DeliveryCreateRequest.class;
+        var selected = converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON))
+                .findFirst().orElseThrow();
+        assertThat(selected).isInstanceOf(org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class);
+        assertThat(converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON)))
+                .noneMatch(converter -> converter instanceof org.springframework.http.converter.json.JacksonJsonHttpMessageConverter);
+    }
+
     private static final String PASSWORD = "private integration passphrase";
     private static final String HASH = "{bcrypt}" + new BCryptPasswordEncoder(12).encode(PASSWORD);
     private static final String BOUNDARY_PASSWORD = "a".repeat(72);
