@@ -817,12 +817,44 @@ async function assertFitsViewport(page) {
 
         // Operator onboarding uses the existing Accounts screen, then a real assignment/lifecycle handover.
         await navigateWorkspace(page, "Operators");
-        await page.getByRole("button", { name: "New operator", exact: true }).click();
+        await page.route("**/api/admin/operators?*",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({operators:[],page:0,size:20,totalElements:0,totalPages:0})}));
+        await page.getByRole("button",{name:"Reload operators",exact:true}).click();
+        await page.getByRole("heading",{name:"Start with your first operator",exact:true}).waitFor();
+        await page.setViewportSize({width:1440,height:1000}); await page.evaluate(()=>window.scrollTo(0,0));
+        await page.screenshot({path:artifact("react-operator-empty-desktop.png"),clip:{x:0,y:0,width:1440,height:900}});
+        await page.unroute("**/api/admin/operators?*");
+        await page.getByRole("button",{name:"Reload operators",exact:true}).click();
+        await page.getByRole("button",{name:/Edit operator #[0-9]+/}).first().waitFor();
+        await page.getByLabel("Search operators",{exact:true}).fill("zzzzzz-operator-not-found");
+        await page.getByRole("button",{name:"Search operator directory",exact:true}).click();
+        await page.getByRole("heading",{name:"No operators match this search.",exact:true}).waitFor();
+        await page.getByRole("button",{name:"Clear operator search",exact:true}).click();
+        await page.getByRole("button",{name:/Edit operator #[0-9]+/}).first().waitFor();
+        for(const width of [320,375,768]) {
+            await page.setViewportSize({width,height:900}); await assertFitsViewport(page);
+            const records=page.getByRole("table",{name:"Operator records",exact:true});
+            assert.equal(await records.evaluate(node=>node.scrollWidth<=node.clientWidth),true);
+            assert.equal(await records.getByRole("rowheader").count(),await records.locator("tbody tr").count());
+        }
+        await page.setViewportSize({width:375,height:900});
+        await page.locator(".operator-directory-results tbody tr").first().evaluate(node=>node.scrollIntoView({block:"center"}));
+        await page.screenshot({path:artifact("react-operator-card-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
+        await page.setViewportSize({width:1280,height:900});
+
+        await page.getByRole("button", { name: "Add operator", exact: true }).click();
+        await page.getByRole("button",{name:"Save operator",exact:true}).click();
+        await page.getByRole("alert").filter({hasText:"Enter valid contact details"}).waitFor();
+        assert.equal(await page.getByLabel("Operator name",{exact:true}).evaluate(node=>node===document.activeElement),true);
+
         await page.getByLabel("Operator name", { exact: true }).fill("Chrome operator");
         await page.getByLabel("Phone number", { exact: true }).fill("+447123456789");
         await page.getByLabel("Operator email", { exact: true }).fill("chrome.operator@example.test");
         await page.getByLabel("Vehicle type", { exact: true }).fill("Van");
         await page.getByLabel("Maximum capacity", { exact: true }).fill("25");
+        await page.getByLabel("Search warehouses for operator",{exact:true}).fill("zzzzzz-assignment-depot-not-found");
+        await page.getByLabel("Search warehouses for operator",{exact:true}).press("Enter");
+        await page.getByRole("heading",{name:"No warehouses match this search.",exact:true}).waitFor();
+        await page.getByRole("button",{name:"Clear warehouse search",exact:true}).click();
         await page.getByRole("button", { name: `Choose warehouse #${assignedWarehouseId}`, exact: true }).click();
         for (const width of [320, 375, 768, 1440]) {
             await page.setViewportSize({ width, height: 1000 });
@@ -866,7 +898,7 @@ async function assertFitsViewport(page) {
         await operatorPage.getByRole("button", { name: "Reload routes", exact: true }).click(); await operatorPage.getByRole("button", { name: "Mark completed", exact: true }).click(); await operatorPage.getByRole("status").filter({ hasText: "1 of 1 stops finished" }).waitFor();
         assert.equal((await (await context.request.get(`${target.origin}/api/admin/operators/${chromeOperatorId}`)).json()).availabilityStatus, "AVAILABLE");
         await operatorPage.goto(`${target.origin}/app/admin/operators`); await operatorPage.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor(); await operatorContext.close();
-        await page.getByRole("button", { name: "Cancel operator edit", exact: true }).click(); await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("dialog", { name: "Delete this operator?", exact: true }).waitFor(); await page.keyboard.press("Escape");
+        await page.getByRole("button", { name: "Cancel operator edit", exact: true }).click(); await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("dialog", { name: "Delete this operator?", exact: true }).waitFor(); assert.equal(await page.getByRole("button",{name:"Keep operator",exact:true}).evaluate(node=>node===document.activeElement),true); await page.screenshot({path:artifact("react-operator-delete-dialog.png"),fullPage:false}); await page.keyboard.press("Escape");
         await page.getByRole("button", { name: `Delete operator #${chromeOperatorId}`, exact: true }).click(); await page.getByRole("button", { name: "Confirm operator deletion", exact: true }).click(); await page.getByRole("alert").filter({ hasText: "history cannot be deleted" }).waitFor();
         await navigateWorkspace(page, "Accounts");
         await page.getByRole("button", { name: "Reload accounts", exact: true }).waitFor();
