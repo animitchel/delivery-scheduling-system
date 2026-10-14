@@ -42,6 +42,7 @@ jobs:
             target/frontend-reports/
             .ci-artifacts/browser/
             .ci-artifacts/coverage-summary.json
+            .ci-artifacts/dependencies/
           retention-days: 7
           include-hidden-files: true
           if-no-files-found: warn

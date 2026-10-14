@@ -28,6 +28,9 @@
     </scm>
     <properties>
         <java.version>25</java.version>
+        <!-- Security patch overrides: remove when Boot manages these versions or newer. -->
+        <jackson-bom.version>3.1.7</jackson-bom.version>
+        <tomcat.version>11.0.27</tomcat.version>
         <lombok.version>1.18.48</lombok.version>
         <frontend.node.version>v24.20.0</frontend.node.version>
         <frontend.npm.version>11.19.0</frontend.npm.version>
