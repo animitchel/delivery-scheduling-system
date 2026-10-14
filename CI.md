@@ -67,3 +67,9 @@ The migration-foundation runner passed locally on 14 October 2026 on macOS with 
 `ManagedDevelopmentMySqlTest` is required by the existing source-discovered evidence gate and verifies the fresh MySQL/Flyway provisioning-to-completion/restart journey with mocked Maps. The runner now includes all `test_*.py` helper/evidence tests, including the new managed-local setup guards. Real local managed installation is documented in [MANAGED_LOCAL_DATABASE.md](MANAGED_LOCAL_DATABASE.md); CI never connects to either persistent development database.
 
 Fresh managed setup verification: 535 backend tests, 349 frontend tests, ten MySQL suites and the full browser journey passed locally. The final Python helper/evidence run passed 19 tests. The persistent local setup separately passed two immutable-JAR starts and administrator login without retaining operational fixtures. GitHub-hosted verification remains required on the PR.
+
+## Supported framework verification
+
+The Spring Boot 4.1.1 upgrade passed the full local runner on 14 October 2026: **536 backend tests**, **349 frontend tests**, **ten MySQL suites**, the bundled-Chromium journey and packaged-resource evidence gate. All **19 Python helper/evidence tests** passed. This includes the concrete DTO converter-selection regression, strict payload/privacy checks, account concurrency, fresh Flyway installation, legacy adoption and managed lifecycle/restart. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md). GitHub-hosted PR checks and required-check configuration remain to be verified.
+
+An independent immutable-JAR check also passed fresh disposable MySQL migration, repeat provisioning, both schema-adoption wrapper commands against an unversioned V1-shaped schema, and HTTP login/assets/logout across restart. All temporary servers and containers were removed.

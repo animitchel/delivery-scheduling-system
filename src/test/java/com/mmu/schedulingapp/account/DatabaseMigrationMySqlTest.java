@@ -59,6 +59,20 @@ class DatabaseMigrationMySqlTest {
     @Test void reviewedLegacySchemaCanBeExplicitlyAdoptedWithoutLosingWork() throws Exception {
         // Independent legacy path: Hibernate base plus the previously reviewed account SQL.
         try (var app=application("--spring.flyway.enabled=false","--spring.jpa.hibernate.ddl-auto=create")) { assertThat(app.isActive()).isTrue(); }
+        // Hibernate 7 adds an order-column check absent from the reviewed Hibernate 6 schema.
+        // Remove only that generated addition when reconstructing the historical fixture.
+        try (var db=connection(url); var statement=db.createStatement();
+             var checks=statement.executeQuery("SELECT tc.CONSTRAINT_NAME, cc.CHECK_CLAUSE FROM information_schema.TABLE_CONSTRAINTS tc JOIN information_schema.CHECK_CONSTRAINTS cc ON cc.CONSTRAINT_SCHEMA=tc.CONSTRAINT_SCHEMA AND cc.CONSTRAINT_NAME=tc.CONSTRAINT_NAME WHERE tc.TABLE_SCHEMA=DATABASE() AND tc.TABLE_NAME='route_deliveries' AND tc.CONSTRAINT_TYPE='CHECK'")) {
+            var names=new java.util.ArrayList<String>();
+            while(checks.next()) {
+                assertThat(checks.getString(2)).isEqualTo("(`delivery_order` >= 0)");
+                names.add(checks.getString(1));
+            }
+            assertThat(names).hasSize(1);
+            for(var name:names) sql("ALTER TABLE route_deliveries DROP CHECK `"+name.replace("`","``")+"`");
+        }
+        // Hibernate 6 generated microsecond TIME columns; Hibernate 7 defaults LocalTime to TIME(0).
+        sql("ALTER TABLE deliveries MODIFY start_time_window TIME(6), MODIFY end_time_window TIME(6)");
         sql("DROP TABLE user_accounts");
         sql(Files.readString(Path.of("db/changes/001-create-user-accounts.sql")));
         sql("DROP TABLE account_audit_events");

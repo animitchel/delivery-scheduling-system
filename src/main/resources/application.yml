@@ -1,4 +1,7 @@
 # Adoption is deliberate: existing local databases retain their current configuration.
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   flyway:
     enabled: false
