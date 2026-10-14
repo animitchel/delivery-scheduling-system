@@ -1,0 +1,7 @@
+{
+  "name": "delivery-scheduling-browser-checks",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=24.20.0 <25" },
+  "dependencies": { "playwright": "1.64.0" }
+}

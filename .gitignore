@@ -51,3 +51,8 @@ application-local.properties
 /frontend/dist/
 /frontend/coverage/
 /frontend/*.tsbuildinfo
+
+### CI browser tooling and diagnostics ###
+/tests/browser/node_modules/
+/.ci-artifacts/
+/scripts/__pycache__/
