@@ -11,7 +11,7 @@
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "vitest run",
+    "test": "vitest run --reporter=default --reporter=junit --outputFile=../target/frontend-reports/vitest.xml",
     "build": "vite build",
     "check": "npm run typecheck && npm run lint && npm test",
     "preview": "vite preview --host 127.0.0.1"

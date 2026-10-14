@@ -23,6 +23,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 @EnabledIfSystemProperty(named="account.mysql.url",matches="jdbc:mysql://127\\.0\\.0\\.1:[0-9]+/account_foundation_test")
 class OperatorManagementMySqlTest {
+    @org.junit.jupiter.api.extension.RegisterExtension
+    final TestWorkers workers = new TestWorkers();
     static ConfigurableApplicationContext context;
     static String url;
     OperatorService service;
@@ -54,14 +56,14 @@ class OperatorManagementMySqlTest {
     }
     @Test void concurrentEditsHaveOneWinner() throws Exception {
         String before=etag();var start=new CountDownLatch(1);
-        var one=CompletableFuture.supplyAsync(()->edit(start,before,"First"));var two=CompletableFuture.supplyAsync(()->edit(start,before,"Second"));start.countDown();
+        var one=workers.supplyAsync(()->edit(start,before,"First"));var two=workers.supplyAsync(()->edit(start,before,"Second"));start.countDown();
         assertThat(List.of(one.get(5,TimeUnit.SECONDS),two.get(5,TimeUnit.SECONDS))).containsExactlyInAnyOrder(200,412);
     }
     int edit(CountDownLatch start,String before,String name) { try { if(!start.await(5,TimeUnit.SECONDS)) throw new IllegalStateException("Writer did not start.");service.replace(id,request(name,Operator.AvailabilityStatus.AVAILABLE),before);return 200; } catch(org.springframework.web.server.ResponseStatusException failure) { return failure.getStatusCode().value(); } catch(InterruptedException failure) { Thread.currentThread().interrupt();throw new IllegalStateException(failure); } }
     @Test void staleOsivEntitiesCannotOverwriteCommittedAvailability() throws Exception {
         var factory=context.getBean(EntityManagerFactory.class);var manager=factory.createEntityManager();TransactionSynchronizationManager.bindResource(factory,new EntityManagerHolder(manager));
         try {
-            String before=etag();CompletableFuture.supplyAsync(()->service.replace(id,request("Winner",Operator.AvailabilityStatus.UNAVAILABLE),before)).get(5,TimeUnit.SECONDS);
+            String before=etag();workers.supplyAsync(()->service.replace(id,request("Winner",Operator.AvailabilityStatus.UNAVAILABLE),before)).get(5,TimeUnit.SECONDS);
             assertThatThrownBy(()->service.replace(id,request("Loser",Operator.AvailabilityStatus.AVAILABLE),before)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         } finally { TransactionSynchronizationManager.unbindResource(factory);manager.close(); }
         assertThat(service.snapshot(id).orElseThrow().status()).isEqualTo(Operator.AvailabilityStatus.UNAVAILABLE);
@@ -74,7 +76,7 @@ class OperatorManagementMySqlTest {
     @Test void operatorEditDuringCalculationInvalidatesTheRoutePlan() throws Exception {
         pendingDelivery();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);
         doAnswer(call->{((PlanningGuard.Budget)call.getArgument(4)).countProviderCall();entered.countDown();if(!release.await(5,TimeUnit.SECONDS)) throw new AssertionError("Missing provider release.");return new DistanceResult(1,"1 min",60);}).when(maps).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
-        var planning=CompletableFuture.supplyAsync(this::generate);
+        var planning=workers.supplyAsync(this::generate);
         try { assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();service.replace(id,request("Original",Operator.AvailabilityStatus.UNAVAILABLE),etag()); } finally { release.countDown(); }
         assertThat(planning.get(5,TimeUnit.SECONDS)).isEqualTo(409);assertThat(context.getBean(RouteRepository.class).count()).isZero();assertThat(service.snapshot(id).orElseThrow().status()).isEqualTo(Operator.AvailabilityStatus.UNAVAILABLE);
     }
@@ -92,9 +94,9 @@ class OperatorManagementMySqlTest {
         try(var db=connection();var sql=db.createStatement()) {
             db.setAutoCommit(false);sql.executeQuery("SELECT operator_id FROM operators WHERE operator_id="+id+" FOR UPDATE").close();
             int blocker=connectionId(sql);
-            var account=CompletableFuture.supplyAsync(()->{started.countDown();return createAccount(path,actor,password);});assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();awaitWaiters(blocker,1);
+            var account=workers.supplyAsync(()->{started.countDown();return createAccount(path,actor,password);});assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();awaitWaiters(blocker,1);
             assertThatThrownBy(()->account.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
-            var deletion=CompletableFuture.supplyAsync(()->service.delete(id,before));
+            var deletion=workers.supplyAsync(()->service.delete(id,before));
             try { assertThatThrownBy(()->deletion.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class); } finally { db.commit(); }
             assertThat(account.get(5,TimeUnit.SECONDS)).isNotNull();assertThatThrownBy(()->deletion.get(5,TimeUnit.SECONDS)).hasCauseInstanceOf(org.springframework.web.server.ResponseStatusException.class);
         }
@@ -110,8 +112,8 @@ class OperatorManagementMySqlTest {
         try(var db=connection();var sql=db.createStatement()) {
             db.setAutoCommit(false);sql.executeQuery("SELECT operator_id FROM operators WHERE operator_id="+id+" FOR UPDATE").close();
             int blocker=connectionId(sql);
-            var deletion=CompletableFuture.supplyAsync(()->service.delete(id,before));awaitWaiters(blocker,1);assertThatThrownBy(()->deletion.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
-            var account=CompletableFuture.supplyAsync(()->createAccount(path,actor,password));
+            var deletion=workers.supplyAsync(()->service.delete(id,before));awaitWaiters(blocker,1);assertThatThrownBy(()->deletion.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+            var account=workers.supplyAsync(()->createAccount(path,actor,password));
             awaitWaiters(blocker,2);
             try { assertThatThrownBy(()->account.get(400,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class); } finally { db.commit(); }
             assertThat(deletion.get(5,TimeUnit.SECONDS)).isTrue();assertThatThrownBy(()->account.get(5,TimeUnit.SECONDS)).satisfies(error->assertThat(error.getCause()).isInstanceOfAny(IllegalArgumentException.class,org.springframework.web.server.ResponseStatusException.class));
@@ -122,7 +124,7 @@ class OperatorManagementMySqlTest {
         String before=etag();var started=new CountDownLatch(1);
         try(var db=connection();var sql=db.createStatement()) {
             db.setAutoCommit(false);sql.executeUpdate("DELETE FROM operators WHERE operator_id="+id);
-            var pending=CompletableFuture.supplyAsync(()->{started.countDown();return service.replace(id,request("Late",Operator.AvailabilityStatus.AVAILABLE),before);});
+            var pending=workers.supplyAsync(()->{started.countDown();return service.replace(id,request("Late",Operator.AvailabilityStatus.AVAILABLE),before);});
             try { assertThat(started.await(5,TimeUnit.SECONDS)).isTrue();assertThatThrownBy(()->pending.get(200,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class); } finally { db.commit(); }
             assertThat(pending.get(5,TimeUnit.SECONDS)).isEmpty();
         }
