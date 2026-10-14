@@ -12,6 +12,7 @@ describe('React sign-in', () => {
   ])('uses the server identity destination %#', async (identity, destination) => {
     const login = vi.fn().mockResolvedValue(identity), redirect = vi.fn();
     render(<Login client={{ login }} redirect={redirect} />);
+    expect(document.title).toBe('Sign in | Dispatch');
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Username'), 'admin');
     await user.type(screen.getByLabelText('Password'), 'private test password');
@@ -26,6 +27,7 @@ describe('React sign-in', () => {
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'incorrect' } });
     fireEvent.submit(document.querySelector('form')!);
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid username or password.');
+    expect(document.title).toBe('Sign in | Dispatch');
     expect(screen.getByLabelText('Password')).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
   });
