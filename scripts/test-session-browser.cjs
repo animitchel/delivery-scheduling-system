@@ -503,7 +503,7 @@ async function assertFitsViewport(page) {
             await driverPage.locator("#username").fill("onboarding.driver");
             await driverPage.locator("#password").fill(password);
             await driverPage.locator("#loginButton").click();
-            await driverPage.waitForURL(destination === "routes" ? "**/app/driver/routes" : `**/html/${destination}`);
+            await driverPage.waitForURL(destination === "routes" ? "**/app/driver/routes" : `**/${destination}`);
         }
         async function choosePassword(current, replacement) {
             await driverPage.locator("#currentPassword").fill(current);
@@ -513,7 +513,20 @@ async function assertFitsViewport(page) {
             await driverPage.waitForURL("**/app/login?passwordChanged");
         }
         const permanent = "browser permanent driver passphrase";
-        await driverLogin(temporary, "change-password.html");
+        await driverLogin(temporary, "app/change-password");
+        await driverPage.getByRole("heading", { name: "Set your password.", exact: true }).waitFor();
+        await driverPage.waitForFunction(() => !document.querySelector("#currentPassword").disabled);
+        await driverPage.setViewportSize({ width: 1440, height: 1000 });
+        await driverPage.screenshot({ path: artifact("react-password-desktop.png"), fullPage: true });
+        for (const width of [320, 375, 768]) {
+            await driverPage.setViewportSize({ width, height: 900 });
+            assert.equal(await driverPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        }
+        await driverPage.setViewportSize({ width: 375, height: 1000 });
+        await driverPage.screenshot({ path: artifact("react-password-mobile.png"), fullPage: true });
+        await driverPage.goto(`${target.origin}/html/change-password.html`);
+        await driverPage.waitForURL("**/app/change-password");
+
         assert.equal((await driverContext.request.get(`${target.origin}/api/driver/routes`)).status(), 403);
         await choosePassword(temporary, permanent);
         await driverLogin(permanent, "routes");
@@ -545,7 +558,7 @@ async function assertFitsViewport(page) {
         assert.equal((await page.locator("#temporary-driver-password").inputValue()).length, 0);
         assert.equal(await page.locator("#action-current-password").inputValue(), "");
         assert.equal((await driverContext.request.get(`${target.origin}/api/auth/me`)).status(), 401);
-        await driverLogin(resetPassword, "change-password.html");
+        await driverLogin(resetPassword, "app/change-password");
         await choosePassword(resetPassword, "browser second permanent passphrase");
         await driverContext.close();
         // Read failures can be retried, while an expired session redirects to sign-in.
@@ -697,7 +710,7 @@ async function assertFitsViewport(page) {
         async function operatorLogin(password) {
             await operatorPage.goto(`${target.origin}/html/login.html`); await operatorPage.locator("#username").fill("chrome.operator.driver"); await operatorPage.locator("#password").fill(password); await operatorPage.locator("#loginButton").click();
         }
-        await operatorLogin(operatorTemporary); await operatorPage.waitForURL("**/html/change-password.html");
+        await operatorLogin(operatorTemporary); await operatorPage.waitForURL("**/app/change-password");
         const operatorPermanent = "disposable chrome operator permanent passphrase";
         await operatorPage.locator("#currentPassword").fill(operatorTemporary); await operatorPage.locator("#newPassword").fill(operatorPermanent); await operatorPage.locator("#confirmPassword").fill(operatorPermanent); await operatorPage.locator("#passwordButton").click(); await operatorPage.waitForURL("**/app/login?passwordChanged");
         await operatorLogin(operatorPermanent); await operatorPage.waitForURL("**/app/driver/routes"); await operatorPage.getByRole("heading", { name: "No assigned routes", exact: true }).waitFor();

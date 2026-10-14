@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (!response.ok) {
             const body = await response.json().catch(() => ({}));
-            if (body.passwordChangeRequired) redirect("/html/change-password.html");
+            if (body.passwordChangeRequired) redirect("/app/change-password");
             const errors = {
                 400: "Check the username, selected operator and required fields.",
                 403: options.method ? "Your administrator password was not accepted, or you no longer have access." : "Administrator access is required.",

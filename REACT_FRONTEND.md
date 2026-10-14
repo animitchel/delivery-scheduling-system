@@ -10,7 +10,7 @@ The React + TypeScript + Vite workspace is in `frontend/`. Spring remains respon
 | Administrator overview | `/app/admin` | Responsive shell with links to scheduling, accounts and routes |
 | Driver overview | `/app/driver` | Assigned-routes entry point; administrator navigation is absent |
 | Sign-in | `/app/login` | React sign-in with session CSRF, role destinations and password setup |
-| Password setup | `/html/change-password.html` | Existing required password-change workflow |
+| Password setup | `/app/change-password` | React password setup with current-password verification and session revocation |
 | Legacy scheduling | `/html/admin.html` | Direct-access compatibility page; absent from React navigation |
 | Accounts | `/app/admin/accounts` | React paginated account directory, eligible-operator search and protected driver actions |
 | Driver route execution | `/app/driver/routes` | React assigned routes, on-demand stop details and terminal delivery actions |
@@ -89,3 +89,7 @@ The existing CSRF-protected sign-in page redirects administrators directly to `/
 ## React sign-in
 
 `/app/login` is the canonical sign-in screen. The former `/html/login.html` address redirects there with recognized sign-out/password-change notices only. Protected HTML, React expiry/sign-out and password setup now link to the canonical screen. Passwords stay in component memory, clear after submission, and are never persisted. Sign-in fetches anonymous CSRF, submits URL-encoded credentials, discards the old token after session rotation and validates server identity before choosing the administrator, driver or required-password destination. There is no public registration or automatic retry.
+
+## React password setup
+
+`/app/change-password` replaces the static password page and uses the same responsive visual system as sign-in. `/html/change-password.html` redirects to it for signed-in accounts. Temporary-password sessions can load only this screen, its public assets, session identity/CSRF and password actions; scheduling authorization remains enforced by Spring. The existing password endpoint verifies current credentials, enforces password rules, and revokes prior sessions. Successful changes return to React sign-in. Passwords are cleared after attempts and never persisted; mutations are not automatically retried.

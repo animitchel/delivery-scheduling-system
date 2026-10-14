@@ -8,7 +8,7 @@ describe('React sign-in', () => {
   it.each([
     [account, '/app/admin'],
     [{ ...account, role: 'DRIVER' as const, operatorId: 4 }, '/app/driver/routes'],
-    [{ ...account, passwordChangeRequired: true }, '/html/change-password.html'],
+    [{ ...account, passwordChangeRequired: true }, '/app/change-password'],
   ])('uses the server identity destination %#', async (identity, destination) => {
     const login = vi.fn().mockResolvedValue(identity), redirect = vi.fn();
     render(<Login client={{ login }} redirect={redirect} />);

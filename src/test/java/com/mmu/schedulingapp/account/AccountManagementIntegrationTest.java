@@ -249,8 +249,10 @@ class AccountManagementIntegrationTest {
         var session=(MockHttpSession)logged.getRequest().getSession();
         mvc.perform(get("/api/auth/me").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.passwordChangeRequired").value(true));
         mvc.perform(get("/api/driver/routes").session(session)).andExpect(status().isForbidden());
-        mvc.perform(get("/html/operators.html").session(session)).andExpect(status().isFound()).andExpect(redirectedUrl("/html/change-password.html"));
-        mvc.perform(get("/html/change-password.html").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/html/operators.html").session(session)).andExpect(status().isFound()).andExpect(redirectedUrl("/app/change-password"));
+        mvc.perform(get("/html/change-password.html").session(session)).andExpect(status().isFound()).andExpect(redirectedUrl("/app/change-password"));
+        mvc.perform(get("/app/change-password").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/app/admin").session(session)).andExpect(status().isFound()).andExpect(redirectedUrl("/app/change-password"));
         mvc.perform(get("/api/admin/accounts").session(session)).andExpect(status().isForbidden());
         var token=token(session);
         mvc.perform(post("/api/auth/logout").session(session).header(token.header(),token.value())).andExpect(status().isNoContent());

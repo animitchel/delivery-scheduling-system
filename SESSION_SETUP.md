@@ -43,3 +43,5 @@ With Java 25, `mvn -B verify` runs H2-backed real-account/filter tests and real 
 `./scripts/test-account-mysql.sh` runs the same suite plus the existing disposable MySQL schema tests; it forwards Maven arguments. To include the browser checks, pass `-Dsession.browser.node=<node executable>`, `-Dsession.browser.modules=<directory containing playwright>`, and `-Dsession.browser.executable=<Chrome/Chromium executable>` to that script. Browser tests run only against the randomly bound localhost test server, use test-only credentials, and verify login, CSRF transmission, safe rendering and logout.
 
 No live database, real account or Google Maps request is needed for these checks.
+
+Password setup now uses `/app/change-password`. Its HTML shell requires authentication, and restricted temporary-password sessions may load only that screen and its static assets alongside the existing identity/CSRF/password endpoints. The former `/html/change-password.html` redirects there. Password mutation and permanent revocation are unchanged.
