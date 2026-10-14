@@ -257,3 +257,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Operator interface modernisation
 
 `aniM/operator-interface-modernisation` applies shared styling to operator search, responsive records, grouped contact/operational fields, warehouse selection and the separate Accounts handoff. ON_DELIVERY locks, latest-version assignment recovery and account/history deletion guards remain. See [OPERATOR_INTERFACE.md](OPERATOR_INTERFACE.md). Next modernise Accounts while retaining reauthentication and one-time credential safeguards.
+
+### Account interface modernisation
+
+`aniM/account-interface-modernisation` applies shared styling to grouped driver-account setup, eligible-operator guidance, responsive account records and access/reset dialogs. Reauthentication, blocked-read/write recovery, session revocation and one-time credential clearing remain. See [ACCOUNT_INTERFACE.md](ACCOUNT_INTERFACE.md). Next perform a frontend consistency/accessibility review before choosing the next focused improvement; staging and production release gates remain separate.
