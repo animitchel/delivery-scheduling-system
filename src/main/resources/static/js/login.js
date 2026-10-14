@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!identity.ok) throw new Error("Unable to check your session. Please try again.");
             const account = await identity.json();
             if (account.passwordChangeRequired) window.location.assign("/html/change-password.html");
-            else if (account.role === "ADMIN") window.location.assign("/html/admin.html");
+            else if (account.role === "ADMIN") window.location.assign("/app/admin");
             else if (account.role === "DRIVER") window.location.assign("/app/driver/routes");
             else throw new Error("Unsupported account role.");
         } catch (error) { message.textContent = error.message; }

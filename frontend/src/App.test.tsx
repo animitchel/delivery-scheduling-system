@@ -29,7 +29,8 @@ describe('authenticated workspace', () => {
     expect(await screen.findByRole('heading', { name: 'Keep deliveries moving.' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Open accounts' })).toHaveAttribute('href', '/app/admin/accounts');
     expect(screen.getByRole('link', { name: 'Open recipients' })).toHaveAttribute('href', '/app/admin/recipients');
-    expect(screen.getByRole('link', { name: 'Open scheduling' })).toHaveAttribute('href', '/html/admin.html');
+    expect(screen.queryByRole('link', { name: 'Open scheduling' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open deliveries' })).toHaveAttribute('href', '/app/admin/deliveries');
   });
   it('shows driver tools without administrator navigation', async () => {
     mount(clientFor(driver)); await screen.findByRole('heading', { name: 'Your next stop starts here.' });
