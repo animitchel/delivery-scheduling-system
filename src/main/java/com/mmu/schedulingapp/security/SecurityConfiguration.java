@@ -22,10 +22,11 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(access -> access
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/html/login.html", "/js/auth.js",
-                                "/css/login.css", "/api/auth/csrf").permitAll()
+                                "/api/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/app/change-password").authenticated()
                         .requestMatchers(HttpMethod.GET, "/app", "/app/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/html/change-password.html", "/js/password.js").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/html/change-password.html").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password").authenticated()
                         .requestMatchers("/api/admin/operators", "/api/admin/operators/**", "/api/admin/warehouses", "/api/admin/warehouses/**", "/api/admin/accounts/**", "/api/admin/recipients", "/api/admin/recipients/**", "/api/admin/deliveries", "/api/admin/deliveries/**", "/api/admin/routes", "/api/admin/routes/**").hasRole("ADMIN")
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
