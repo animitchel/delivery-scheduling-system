@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.account;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.mmu.schedulingapp.model.Operator;
 import com.mmu.schedulingapp.repository.OperatorRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,16 +34,39 @@ class AccountManagementIntegrationTest {
     @Autowired org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter handlerAdapter;
 
     @Test
-    void mvcUsesTheStrictJackson2MapperDuringTheFrameworkTransition() {
+    void mvcUsesJackson3ForStrictWriteRequests() {
         var converters = handlerAdapter.getMessageConverters();
         assertThat(converters).anyMatch(converter ->
-                converter instanceof org.springframework.http.converter.json.MappingJackson2HttpMessageConverter);
-        var requestType = com.mmu.schedulingapp.dto.delivery.DeliveryCreateRequest.class;
-        var selected = converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON))
-                .findFirst().orElseThrow();
-        assertThat(selected).isInstanceOf(org.springframework.http.converter.json.MappingJackson2HttpMessageConverter.class);
-        assertThat(converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON)))
-                .noneMatch(converter -> converter instanceof org.springframework.http.converter.json.JacksonJsonHttpMessageConverter);
+                converter instanceof org.springframework.http.converter.json.JacksonJsonHttpMessageConverter);
+        for (var requestType : java.util.List.of(
+                com.mmu.schedulingapp.dto.delivery.DeliveryCreateRequest.class,
+                com.mmu.schedulingapp.dto.route.RouteGenerationRequest.class,
+                com.mmu.schedulingapp.dto.warehouse.WarehouseWriteRequest.class,
+                com.mmu.schedulingapp.dto.operator.OperatorWriteRequest.class,
+                com.mmu.schedulingapp.dto.recipient.RecipientWriteRequest.class)) {
+            var selected = converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON))
+                    .findFirst().orElseThrow();
+            assertThat(selected).isInstanceOf(org.springframework.http.converter.json.JacksonJsonHttpMessageConverter.class);
+            assertThat(converters.stream().filter(converter -> converter.canRead(requestType, MediaType.APPLICATION_JSON)))
+                    .noneMatch(converter -> converter.getClass().getName().contains("MappingJackson2"));
+        }
+    }
+
+    @Test
+    void jsonPreservesIsoDatesTimesAndExactCoordinateDecimals() {
+        var warehouse = json.readValue("{\"name\":\"Warehouse\",\"address\":\"Saved address\",\"latitude\":53.123456,\"longitude\":-2.654321}",
+                com.mmu.schedulingapp.dto.warehouse.WarehouseWriteRequest.class);
+        assertThat(warehouse.getLatitude()).isEqualByComparingTo("53.123456");
+        assertThat(warehouse.getLongitude()).isEqualByComparingTo("-2.654321");
+        var encoded = json.readTree(json.writeValueAsString(java.util.Map.of(
+                "date", java.time.LocalDate.of(2026, 10, 14),
+                "time", java.time.LocalTime.of(9, 30, 15),
+                "instant", java.time.Instant.parse("2026-10-14T09:30:15Z"),
+                "latitude", warehouse.getLatitude())));
+        assertThat(encoded.get("date").asString()).isEqualTo("2026-10-14");
+        assertThat(encoded.get("time").asString()).isEqualTo("09:30:15");
+        assertThat(encoded.get("instant").asString()).isEqualTo("2026-10-14T09:30:15Z");
+        assertThat(encoded.get("latitude").decimalValue()).isEqualByComparingTo("53.123456");
     }
 
     private static final String PASSWORD = "private integration passphrase";

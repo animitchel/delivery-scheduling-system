@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.account;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.mmu.schedulingapp.model.Operator;
 import com.mmu.schedulingapp.repository.OperatorRepository;
 import org.junit.jupiter.api.BeforeEach;

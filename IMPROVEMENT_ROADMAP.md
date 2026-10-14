@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 14 October 2026; merged through PR #33; supported framework upgrade pending review\
+**Progress reconciled:** 14 October 2026; merged through PR #34; Jackson 3 migration pending review\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -222,6 +222,6 @@ Read-only local inspection found no operational records and one user account. `a
 
 ### Supported framework baseline
 
-`aniM/spring-boot-supported-baseline` upgrades to Spring Boot 4.1.1, migrates modular MVC/JPA/security test and Flyway dependencies and server imports, and adopts the managed Hibernate/Flyway versions. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md). Pending review/merge. Preserve the immutable V1 migration and existing API/session contracts.
+`aniM/spring-boot-supported-baseline` upgrades to Spring Boot 4.1.1, migrates modular MVC/JPA/security test and Flyway dependencies and server imports, and adopts the managed Hibernate/Flyway versions. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md). Merged in PR #34. Preserve the immutable V1 migration and existing API/session contracts.
 
-Next: migrate the temporary deprecated Jackson 2 compatibility module to Jackson 3 in a separate focused PR, retaining strict malformed/duplicate/unknown-field rejection and response privacy. Then verify GitHub CI enforcement and staging HTTPS, configuration, health/readiness, dependency advisories, restore and rollback before release approval. Local tests do not establish production readiness.
+`aniM/jackson3-migration` removes the temporary Jackson 2 compatibility module, migrates custom readers and offline/provider JSON parsing to Boot-managed Jackson 3, and verifies strict field rejection, privacy, ISO dates/times and decimal precision. Pending review/merge; see [JACKSON3_MIGRATION.md](JACKSON3_MIGRATION.md). Next verify GitHub CI enforcement and staging HTTPS, configuration, health/readiness, dependency advisories, restore and rollback before release approval. Local tests do not establish production readiness.

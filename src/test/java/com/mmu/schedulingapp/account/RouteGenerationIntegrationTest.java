@@ -46,7 +46,7 @@ class RouteGenerationIntegrationTest {
     @Autowired PlanningGuard planning;
     @Autowired MapsLimits limits;
     @Autowired MockMvc mvc;
-    @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    @Autowired tools.jackson.databind.ObjectMapper json;
     @MockitoBean MapsProvider maps;
     AccountPrincipal admin, driver;
     Integer operatorId, recipientId, warehouseId, deliveryId;

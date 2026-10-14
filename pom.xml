@@ -121,11 +121,6 @@
             <artifactId>spring-boot-starter-security-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Temporary compatibility: preserve strict Jackson 2 API contracts during the framework upgrade. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-jackson2</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

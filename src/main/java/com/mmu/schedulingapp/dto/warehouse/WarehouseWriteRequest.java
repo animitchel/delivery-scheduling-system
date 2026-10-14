@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp.dto.warehouse;
 import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import java.math.BigDecimal;
 import java.util.*;
 /** Full create/replace contract: IDs and operator membership cannot be supplied. */
