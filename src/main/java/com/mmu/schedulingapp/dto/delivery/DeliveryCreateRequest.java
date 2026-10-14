@@ -1,11 +1,10 @@
 package com.mmu.schedulingapp.dto.delivery;
 
-import com.fasterxml.jackson.core.*;
-import com.fasterxml.jackson.databind.*;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.core.*;
+import tools.jackson.databind.*;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import com.mmu.schedulingapp.model.Delivery;
 import jakarta.validation.constraints.*;
-import java.io.IOException;
 import java.time.*;
 import java.util.HashSet;
 
@@ -21,16 +20,16 @@ public record DeliveryCreateRequest(@NotNull @Positive Integer recipientId,
         if (!value.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) throw new IllegalArgumentException("Invalid scheduled date.");
         return LocalDate.parse(value);
     }
-    public static final class Reader extends JsonDeserializer<DeliveryCreateRequest> {
-        @Override public DeliveryCreateRequest deserialize(JsonParser parser, DeserializationContext context) throws IOException {
-            if (!parser.hasToken(JsonToken.START_OBJECT)) throw JsonMappingException.from(parser, "Delivery must be a JSON object.");
+    public static final class Reader extends ValueDeserializer<DeliveryCreateRequest> {
+        @Override public DeliveryCreateRequest deserialize(JsonParser parser, DeserializationContext context) {
+            if (!parser.hasToken(JsonToken.START_OBJECT)) throw DatabindException.from(parser, "Delivery must be a JSON object.");
             Integer recipient = null; LocalDate date = null; LocalTime start = null, end = null;
             Delivery.PriorityLevel priority = null; String instructions = null;
             var seen = new HashSet<String>();
             while (parser.nextToken() != JsonToken.END_OBJECT) {
-                if (!parser.hasToken(JsonToken.FIELD_NAME)) throw JsonMappingException.from(parser, "Invalid delivery fields.");
+                if (!parser.hasToken(JsonToken.PROPERTY_NAME)) throw DatabindException.from(parser, "Invalid delivery fields.");
                 String field = parser.currentName();
-                if (!seen.add(field)) throw JsonMappingException.from(parser, "Duplicate delivery field.");
+                if (!seen.add(field)) throw DatabindException.from(parser, "Duplicate delivery field.");
                 parser.nextToken();
                 try {
                     switch (field) {
@@ -46,14 +45,14 @@ public record DeliveryCreateRequest(@NotNull @Positive Integer recipientId,
                         default -> throw new IllegalArgumentException();
                     }
                 } catch (IllegalArgumentException | java.time.format.DateTimeParseException failure) {
-                    throw JsonMappingException.from(parser, "Invalid delivery fields.");
+                    throw DatabindException.from(parser, "Invalid delivery fields.");
                 }
             }
             return new DeliveryCreateRequest(recipient, date, start, end, priority, instructions);
         }
-        private static String text(JsonParser parser) throws IOException {
+        private static String text(JsonParser parser) {
             if (!parser.hasToken(JsonToken.VALUE_STRING)) throw new IllegalArgumentException();
-            return parser.getText();
+            return parser.getString();
         }
         private static LocalTime time(String value) {
             if (!value.matches("[0-9]{2}:[0-9]{2}(:[0-9]{2})?")) throw new IllegalArgumentException();

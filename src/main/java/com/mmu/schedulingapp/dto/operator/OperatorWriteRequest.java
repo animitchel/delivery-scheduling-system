@@ -1,7 +1,7 @@
 package com.mmu.schedulingapp.dto.operator;
 import com.mmu.schedulingapp.model.Operator;
 import com.fasterxml.jackson.annotation.*;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import tools.jackson.databind.annotation.JsonDeserialize;
 import java.util.*;
 public final class OperatorWriteRequest {
     private final Set<String> seen=new HashSet<>();

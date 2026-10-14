@@ -1,6 +1,6 @@
 package com.mmu.schedulingapp;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.mmu.schedulingapp.account.AccountService;
 import com.mmu.schedulingapp.model.Recipient;
 import com.mmu.schedulingapp.repository.*;
@@ -55,4 +55,16 @@ class DeliveryPreparationHttpTest {
         var result=http.send(write("/api/admin/deliveries").header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(bad)).build(),HttpResponse.BodyHandlers.ofString());
         assertThat(result.statusCode()).isEqualTo(400); assertThat(result.body()).doesNotContain("private-value-do-not-expose"); assertThat(deliveries.count()).isZero(); verifyNoInteractions(maps);
     }
+    @Test void actualHttpRejectsTrailingDocumentsAndOverflowWithoutWriting() throws Exception {
+        for (String invalid : java.util.List.of(body + " {}", body + " private-trailing-value",
+                body.replaceFirst("\"recipientId\":\\d+", "\"recipientId\":2147483648"))) {
+            var result=http.send(write("/api/admin/deliveries").header("Content-Type","application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(invalid)).build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(result.statusCode()).isEqualTo(400);
+            assertThat(result.body()).doesNotContain("private-trailing-value", "2147483648");
+            assertThat(deliveries.count()).isZero();
+        }
+        verifyNoInteractions(maps);
+    }
+
 }

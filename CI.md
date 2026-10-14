@@ -73,3 +73,9 @@ Fresh managed setup verification: 535 backend tests, 349 frontend tests, ten MyS
 The Spring Boot 4.1.1 upgrade passed the full local runner on 14 October 2026: **536 backend tests**, **349 frontend tests**, **ten MySQL suites**, the bundled-Chromium journey and packaged-resource evidence gate. All **19 Python helper/evidence tests** passed. This includes the concrete DTO converter-selection regression, strict payload/privacy checks, account concurrency, fresh Flyway installation, legacy adoption and managed lifecycle/restart. See [SPRING_BOOT_UPGRADE.md](SPRING_BOOT_UPGRADE.md). GitHub-hosted PR checks and required-check configuration remain to be verified.
 
 An independent immutable-JAR check also passed fresh disposable MySQL migration, repeat provisioning, both schema-adoption wrapper commands against an unversioned V1-shaped schema, and HTTP login/assets/logout across restart. All temporary servers and containers were removed.
+
+## Jackson 3 verification
+
+On 14 October 2026 the final Jackson 3 runner passed **538 backend tests**, **349 frontend tests**, **ten MySQL suites**, the bundled browser journey, packaged-resource checks and all **19 Python tests**. Converter selection, precision/temporal output and real HTTP trailing-document/overflow regressions supplement the existing strict validation/privacy tests. Dependency tree and CycloneDX generation succeeded; Jackson 2 core/databind and the compatibility module are absent. See [JACKSON3_MIGRATION.md](JACKSON3_MIGRATION.md). GitHub-hosted PR checks remain required before merge.
+
+The independent immutable-JAR check also passed Jackson 3-only core/databind packaging, unchanged V1 bytes, fresh disposable MySQL migration, repeat provisioning, schema check/baseline commands, strict HTTP JSON/private errors, login/assets/logout and restart. Temporary servers and containers were removed.
