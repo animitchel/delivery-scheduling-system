@@ -253,3 +253,7 @@ Read-only local inspection found no operational records and one user account. `a
 ### Warehouse interface modernisation
 
 `aniM/warehouse-interface-modernisation` applies shared styling to warehouse search, responsive records, grouped coordinate forms and explicit deletion/recovery guidance. Latest-record/ETag reads, assigned-operator deletion guards and uncertain-write review remain. See [WAREHOUSE_INTERFACE.md](WAREHOUSE_INTERFACE.md). Next modernise Operators and Accounts separately while retaining account handoff, assignment and concurrency safeguards.
+
+### Operator interface modernisation
+
+`aniM/operator-interface-modernisation` applies shared styling to operator search, responsive records, grouped contact/operational fields, warehouse selection and the separate Accounts handoff. ON_DELIVERY locks, latest-version assignment recovery and account/history deletion guards remain. See [OPERATOR_INTERFACE.md](OPERATOR_INTERFACE.md). Next modernise Accounts while retaining reauthentication and one-time credential safeguards.
