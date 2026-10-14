@@ -81,3 +81,9 @@ An independent immutable-JAR check also passed fresh disposable MySQL migration,
 On 14 October 2026 the final Jackson 3 runner passed **538 backend tests**, **349 frontend tests**, **ten MySQL suites**, the bundled browser journey, packaged-resource checks and all **19 Python tests**. Converter selection, precision/temporal output and real HTTP trailing-document/overflow regressions supplement the existing strict validation/privacy tests. Dependency tree and CycloneDX generation succeeded; Jackson 2 core/databind and the compatibility module are absent. See [JACKSON3_MIGRATION.md](JACKSON3_MIGRATION.md). GitHub-hosted PR checks remain required before merge.
 
 The independent immutable-JAR check also passed Jackson 3-only core/databind packaging, unchanged V1 bytes, fresh disposable MySQL migration, repeat provisioning, schema check/baseline commands, strict HTTP JSON/private errors, login/assets/logout and restart. Temporary servers and containers were removed.
+
+## Dependency advisory gate
+
+`run-ci.sh` now runs `scripts/check-dependencies.sh` after application packaging/evidence validation. It scans resolved Maven dependencies, the actual packaged runtime and both npm lockfiles through OSV; all active unaccepted matches or incomplete checks fail the job. Dependency/SBOM/advisory diagnostics are included in the always-attempted report upload; application upload still requires overall job success. See [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md). This does not remove the documented GitHub plan/permission block for enforcing merges.
+
+Dependency baseline validation on 14 October 2026 passed 538 backend tests, 356 frontend tests, ten MySQL suites, browser/packaging checks and 52 Python tests. The final OSV check completed for 392 distinct package/version pairs with no matches or exceptions. The independent patched-JAR provisioning/schema/HTTP/restart checks and workflow/shell lint passed. Hosted GitHub verification remains unconfirmed.
