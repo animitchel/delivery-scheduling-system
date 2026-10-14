@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 14 October 2026; merged through PR #35; live GitHub merge gate blocked\
+**Progress reconciled:** 14 October 2026; merged through PR #39; live GitHub merge gate blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -228,4 +228,8 @@ Read-only local inspection found no operational records and one user account. `a
 
 ### GitHub merge-gate verification
 
-`aniM/ci-merge-gate-verification` records live evidence that main is unprotected, this private repository's current plan blocks branch rules, and the available credential cannot read Actions or manage protection. The owner elected to keep the repository private and document enforcement as blocked. A proposed classic protection policy and tested GET-only verifier are prepared; neither applies settings. See [CI_MERGE_GATE.md](CI_MERGE_GATE.md). This branch is pending review/merge; hosted CI success and enforcement remain unverified. Complete the documented plan/permission and live acceptance steps before marking this release gate complete.
+`aniM/ci-merge-gate-verification` records live evidence that main is unprotected, this private repository's current plan blocks branch rules, and the available credential cannot read Actions or manage protection. The owner elected to keep the repository private and document enforcement as blocked. A proposed classic protection policy and tested GET-only verifier are prepared; neither applies settings. See [CI_MERGE_GATE.md](CI_MERGE_GATE.md). Merged in PR #37; hosted CI success and enforcement remain unverified. Complete the documented plan/permission and live acceptance steps before marking this release gate complete.
+
+### Dependency security baseline
+
+`aniM/dependency-security-checks` adds resolved-project/packaged-runtime/npm-lock advisory checks and expiring exact exceptions (initially empty). The first 391-package/version scan found 10 Jackson/Tomcat matches; narrow Jackson BOM 3.1.7 and Tomcat 11.0.27 overrides address their affected versions without a framework/frontend replacement. Vendor applicability and coverage limits are documented in [DEPENDENCY_SECURITY.md](DEPENDENCY_SECURITY.md). Pending review/merge. Repository secret scanning is the next separate focused task; staging configuration, health/readiness, HTTPS, recovery and blocked GitHub enforcement remain release work.

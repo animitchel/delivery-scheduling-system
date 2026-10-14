@@ -13,3 +13,5 @@ mkdir -p .ci-artifacts/browser
   "-Dsession.browser.modules=$PWD/tests/browser/node_modules" \
   "-Dsession.browser.artifacts=$SESSION_BROWSER_ARTIFACTS_DIR"
 python3 scripts/verify-ci-results.py
+
+./scripts/check-dependencies.sh
