@@ -16,5 +16,6 @@ mkdir -p .ci-artifacts/browser
 python3 scripts/verify-ci-results.py
 "$ci_node" tests/browser/test-workspace-reflow.cjs
 "$ci_node" tests/browser/test-render-recovery.cjs
+"$ci_node" tests/browser/test-admin-route-directory.cjs
 
 ./scripts/check-dependencies.sh

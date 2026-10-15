@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AdminRoutes } from './AdminRoutes';
@@ -17,6 +17,32 @@ describe('administrator route workflow', () => {
     expect(screen.getByRole('status')).toHaveTextContent('0 of 1 stops finished');
     expect(screen.getByText('Travel time unavailable · 2.5 km')).toBeVisible();
     expect(client.details).not.toHaveBeenCalled(); expect(document.querySelector('img')).toBeNull();
+  });
+  it('exposes one semantic record and action per route with readable status and associated headers', async () => {
+    const client = clientFor();
+    const longName = '<img src=x onerror=alert(1)> ' + 'LongOperator'.repeat(25);
+    const planned = { ...route, routeId: 2, operatorName: longName, routeStatus: 'PLANNED' as const };
+    const completed = { ...route, routeId: 3, routeStatus: 'COMPLETED' as const, deliveries: [{ ...route.deliveries[0]!, status: 'COMPLETED' as const }] };
+    client.directory.mockResolvedValue(directory([route, planned, completed])); await mount(client);
+    const table = screen.getByRole('table', { name: 'Routes and assignment progress' });
+    expect(within(table).getAllByRole('rowheader')).toHaveLength(3); expect(within(table).getAllByRole('button')).toHaveLength(3);
+    expect(within(table).getByRole('cell', { name: 'Planned' })).toBeInTheDocument(); expect(within(table).getByRole('cell', { name: 'Completed' })).toBeInTheDocument();
+    expect(within(table).getByRole('cell', { name: 'In progress' })).toBeInTheDocument();
+    const operator = within(table).getByRole('cell', { name: longName });
+    expect(operator).toHaveAttribute('headers', 'admin-route-row-2 admin-route-operator-column');
+    for (const id of operator.getAttribute('headers')!.split(' ')) expect(document.getElementById(id)).toBeInTheDocument();
+    expect(within(table).getByRole('button', { name: 'View route #1' })).toHaveAttribute('aria-current', 'true');
+    expect(document.querySelector('img')).toBeNull(); expect(client.details).not.toHaveBeenCalled(); expect(client.update).not.toHaveBeenCalled();
+  });
+  it('keeps server pagination and route selection authoritative', async () => {
+    const client = clientFor(); const second = { ...route, routeId: 21, operatorName: 'Second page operator' };
+    client.directory.mockResolvedValueOnce({ ...directory([route]), totalPages: 2, totalElements: 21 }).mockResolvedValue({ ...directory([second]), page: 1, totalPages: 2, totalElements: 21 });
+    client.route.mockImplementation(async id => id === 21 ? second : route); await mount(client);
+    await userEvent.click(screen.getByRole('button', { name: 'Next routes' }));
+    await screen.findByRole('button', { name: 'View route #21' });
+    expect(client.directory.mock.calls.map(call => call[0])).toEqual([0, 1]); expect(screen.queryByRole('button', { name: 'View route #1' })).not.toBeInTheDocument();
+    expect(screen.getByText('Page 2 of 2 · 21 routes')).toBeInTheDocument(); expect(screen.getByRole('heading', { name: 'Route directory' })).toHaveFocus(); expect(screen.getByRole('button', { name: 'Next routes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Previous routes' })).toBeEnabled(); expect(client.update).not.toHaveBeenCalled();
   });
   it('loads recipient, window and instructions on demand and clears them on close', async () => {
     const client = clientFor(); await mount(client); await userEvent.click(screen.getByRole('button', { name: 'Stop details' }));
