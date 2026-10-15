@@ -41,7 +41,7 @@ const server = http.createServer((request, response) => {
   response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[path.extname(file)] || 'application/octet-stream');
   response.end(fs.readFileSync(file));
 });
-const report = { complete: false, cases: [] };
+const report = { complete: false, cases: [], keyboardCases: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.stringify(report, null, 2)); save();
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); let browser, page;
@@ -106,14 +106,35 @@ const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.s
     mode = 'error'; await page.getByRole('button', { name: 'Reload route directory', exact: true }).click(); await page.getByRole('alert').waitFor();
     mode = 'normal'; await page.getByRole('button', { name: 'Reload route directory', exact: true }).click(); await table.waitFor();
     await page.getByLabel('Planning cutoff date', { exact: true }).fill('2026-10-15');
-    await page.getByRole('button', { name: 'Review assignment', exact: true }).click();
-    const dialog = page.getByRole('dialog', { name: 'Generate and assign routes?', exact: true }); await dialog.waitFor();
-    await page.evaluate(() => document.documentElement.style.fontSize = '200%');
-    assert.ok(await dialog.evaluate(node => node.getBoundingClientRect().width <= innerWidth));
-    await dialog.getByRole('button', { name: 'Keep reviewing', exact: true }).click();
-    assert.equal(writes, 0, 'Cancelling confirmation must not write');
-    await page.getByRole('button', { name: 'Review assignment', exact: true }).click();
-    await dialog.getByRole('button', { name: 'Confirm generation and assignment', exact: true }).click();
+    const review = page.getByRole('button', { name: 'Review assignment', exact: true });
+    const dialog = page.getByRole('dialog', { name: 'Generate and assign routes?', exact: true });
+    const keep = dialog.getByRole('button', { name: 'Keep reviewing', exact: true });
+    const confirm = dialog.getByRole('button', { name: 'Confirm generation and assignment', exact: true });
+    const focused = locator => locator.evaluate(node => node === document.activeElement);
+    for (const width of [375, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const scale of [1, 2]) {
+        await page.evaluate(scale => document.documentElement.style.fontSize = `${scale * 100}%`, scale);
+        await review.focus(); await page.keyboard.press('Enter'); await dialog.waitFor();
+        assert.ok(await focused(keep), 'Opening must focus the noncommitting action');
+        assert.ok(await dialog.evaluate(node => node.getBoundingClientRect().width <= innerWidth));
+        await page.keyboard.press('Enter'); await dialog.waitFor({ state: 'hidden' });
+        assert.ok(await focused(review)); assert.equal(writes, 0, 'Initial Enter must not generate');
+        await page.keyboard.press('Enter'); await dialog.waitFor(); assert.ok(await focused(keep));
+        await page.keyboard.press('Escape'); await dialog.waitFor({ state: 'hidden' });
+        assert.ok(await focused(review)); assert.equal(writes, 0, 'Escape must not generate');
+        await page.keyboard.press('Enter'); await dialog.waitFor();
+        await page.keyboard.press('Shift+Tab'); assert.ok(await focused(confirm), 'Confirmation remains keyboard reachable');
+        await page.keyboard.press('Tab'); assert.ok(await focused(keep));
+        await page.keyboard.press('Enter'); await dialog.waitFor({ state: 'hidden' });
+        assert.equal(writes, 0);
+        report.keyboardCases.push({ width, scale, passed: true }); save();
+      }
+    }
+    await page.setViewportSize({ width: 375, height: 1000 });
+    await page.keyboard.press('Enter'); await dialog.waitFor(); assert.ok(await focused(keep));
+    await page.keyboard.press('Shift+Tab'); assert.ok(await focused(confirm));
+    await page.keyboard.press('Enter');
     await page.getByRole('link', { name: 'Open generated route #1', exact: true }).waitFor();
     assert.equal(writes, 1);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Acknowledgement cards must fit enlarged mobile text');
@@ -130,7 +151,7 @@ const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.s
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Recovery must fit enlarged mobile text');
     await page.screenshot({ path: path.join(artifacts, 'recovery-375-enlarged.png') });
  assert.deepEqual(errors, []); report.complete = true; report.writes = writes; save();
-    console.log(`Generation review: ${report.cases.length} layout cases, keyboard inspection, pagination, confirmation, acknowledgement, uncertain-write review and read recovery passed.`);
+    console.log(`Generation review: ${report.cases.length} layout cases, keyboard inspection, pagination, safe initial focus, Enter/Escape/Tab confirmation, acknowledgement, uncertain-write review and read recovery passed.`);
   } catch (error) { if (page) await page.screenshot({ path: path.join(artifacts, 'failure.png') }).catch(() => {}); throw error; }
   finally { await browser?.close(); await new Promise(resolve => server.close(resolve)); }
 })().catch(error => { console.error(error.message); process.exitCode = 1; });
