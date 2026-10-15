@@ -6,6 +6,7 @@ import { generationApi, generationTimeout } from './route-generation-api';
 import type { GenerationClient, GenerationResult } from './route-generation-api';
 import type { RoutePage, RouteSummary } from './admin-routes-api';
 import type { DriverRoute } from './driver-api';
+import './route-generation.css';
 function today() { const date = new Date(); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; }
 function timeout(value?: number): number | null { try { return generationTimeout(value === undefined ? import.meta.env['VITE_ROUTE_GENERATION_TIMEOUT_MS'] as string | undefined : String(value)); } catch { return null; } }
 function knownFailure(error: ApiError): string {
@@ -39,6 +40,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
   const write = useRef<AbortController | null>(null);
   const lanes = useRef({ directory: { sequence: 0, controller: null as AbortController | null }, details: { sequence: 0, controller: null as AbortController | null } });
   const dialog = useRef<HTMLDialogElement>(null); const submit = useRef<HTMLButtonElement>(null);
+  const focusDirectory = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null); const detailHeading = useRef<HTMLHeadingElement>(null);
   const auth = useCallback((failure: unknown) => { if (failure instanceof ApiError && (failure.status === 401 || failure.passwordChangeRequired)) { onAuthError(failure); return true; } return false; }, [onAuthError]);
   const run = useCallback(async <T,>(lane: 'directory' | 'details', operation: (signal: AbortSignal) => Promise<T>, success: (value: T) => void, failure: () => void) => {
@@ -56,6 +58,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
   useEffect(() => { alive.current = true; const reads = lanes.current; void Promise.resolve().then(() => { if (alive.current) return load(0, '', false); }); return () => { alive.current = false; reads.directory.controller?.abort(); reads.details.controller?.abort(); write.current?.abort(); }; }, [load]);
   useEffect(() => { if (confirmDate) dialog.current?.showModal(); else dialog.current?.close(); }, [confirmDate]);
   useEffect(() => { if (selected) detailHeading.current?.focus(); }, [selected]);
+  useEffect(() => { if (directory && focusDirectory.current) { focusDirectory.current = false; heading.current?.focus(); heading.current?.scrollIntoView?.({ block: 'start' }); } }, [directory]);
   function closeConfirmation() { if (busy.current) return; dialog.current?.close(); setConfirmDate(null); submit.current?.focus(); }
   function prepare() {
     if (busy.current || recovery || permissionBlocked || deadline === null) return;
@@ -68,6 +71,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
     if (recovery) { value = recovery.date; review = true; setDirectoryDate(value); setFilterDate(value); }
     setLoading(true); setDirectory(null); setReadError(''); setReviewReady(false); clearDetails(); void load(page, value, review);
   }
+  function changePage(page: number) { if (busy.current) return; focusDirectory.current = true; reload(page); }
   function review() {
     if (!recovery || busy.current) return;
     setDirectoryDate(recovery.date); setFilterDate(recovery.date); reload(0, recovery.date, true); heading.current?.focus();
@@ -106,13 +110,13 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
       } else { recover(value, true); setError('The generation outcome could not be confirmed. Review existing routes before deciding on another request.'); }
     } finally { window.clearTimeout(timer); busy.current = false; onBusyChange(false); if (alive.current) setPending(false); }
   }
-  const routeLink = (route: RouteSummary, generated: boolean) => <Link to={`/admin/routes?routeId=${route.routeId}`} aria-disabled={pending} onClick={event => { if (busy.current) event.preventDefault(); }}>{generated ? 'Open generated route' : 'Open route'} #{route.routeId}</Link>;
+  const routeLink = (route: RouteSummary, generated: boolean) => <Link to={`/admin/routes?routeId=${route.routeId}`} className="button secondary generation-route-link" aria-disabled={pending} onClick={event => { if (busy.current) event.preventDefault(); }}>{generated ? 'Open generated route' : 'Open route'} #{route.routeId}</Link>;
   const frozen = pending || recovery !== null || permissionBlocked;
-  return <>
+  return <div className="route-generation">
     <section className="page-intro"><p className="eyebrow">Route planning</p><h1>Generate and assign routes.</h1><p className="intro-text">Turn eligible pending deliveries into active routes for available operators.</p></section>
     {deadline === null && <p className="error-message" role="alert">Generation is unavailable because its timeout configuration is invalid. Contact the administrator.</p>}
     {error && <p className="error-message" role="alert">{error}</p>}{message && <p role="status">{message}</p>}
-    <section className="recipient-panel" aria-labelledby="planning-date"><h2 id="planning-date">Choose the planning cutoff</h2>
+    <section className="recipient-panel generation-planning" aria-labelledby="planning-date"><h2 id="planning-date">Choose the planning cutoff</h2>
       <p>Include eligible, unrouted pending deliveries scheduled on or before this date, including overdue work. Operators are selected automatically.</p>
       <form onSubmit={event => { event.preventDefault(); prepare(); }}><label htmlFor="generation-date">Planning cutoff date<input id="generation-date" type="date" required min="1000-01-01" max="9999-12-31" disabled={frozen} value={date} onChange={event => setDate(event.target.value)} /></label>
         <p>Generation immediately assigns operators and starts routes and deliveries. Travel estimates do not guarantee delivery-window feasibility.</p>
@@ -134,17 +138,26 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
     {result && <section className="recipient-panel" aria-labelledby="generated-routes"><h2 id="generated-routes">Generated routes</h2><p>Assignment was saved for {result.scheduledDate}. These are acknowledgement summaries; open a route for its current progress.</p>
       <ul className="generation-results">{result.routes.map(route => <li key={route.routeId}><strong>Route #{route.routeId} · {route.operatorName}</strong><p>{route.stopCount} stops assigned</p>{routeLink(route, true)}</li>)}</ul>
     </section>}
-    <section className="recipient-panel" aria-labelledby="generation-directory"><h2 id="generation-directory" ref={heading} tabIndex={-1}>Review existing routes</h2>
-      <form className="recipient-toolbar" onSubmit={event => { event.preventDefault(); if (pending || recovery) return; if (filterDate && !validDate(filterDate)) { setReadError('Enter a valid route filter date.'); return; } setDirectoryDate(filterDate); reload(0, filterDate, false); }}>
+    <section className="recipient-panel" aria-labelledby="generation-directory"><h2 id="generation-directory" ref={heading} tabIndex={-1} aria-describedby={directory ? 'generation-directory-count' : undefined}>Review existing routes</h2>
+      <form className="recipient-toolbar generation-directory-toolbar" onSubmit={event => { event.preventDefault(); if (pending || recovery) return; if (filterDate && !validDate(filterDate)) { setReadError('Enter a valid route filter date.'); return; } setDirectoryDate(filterDate); reload(0, filterDate, false); }}>
         <label htmlFor="generation-filter-date">Routes generated for date<input id="generation-filter-date" type="date" min="1000-01-01" max="9999-12-31" disabled={pending || recovery !== null} value={filterDate} onChange={event => setFilterDate(event.target.value)} /></label>
         <button className="button secondary" disabled={pending || recovery !== null}>Apply route date</button><button type="button" className="text-button" disabled={pending || recovery !== null} onClick={() => { setFilterDate(''); setDirectoryDate(''); reload(0, '', false); }}>All route dates</button>
         <button type="button" className="text-button" disabled={pending} onClick={() => { if (recovery) review(); else reload(); }}>Reload route directory</button>
       </form><p>Includes planned, in-progress and completed routes.</p>
       {readError && <p className="error-message" role="alert">{readError}</p>}
       {loading ? <p role="status">Loading route summaries…</p> : directory && <>
-        <p>{directory.totalElements} {directory.totalElements === 1 ? 'route' : 'routes'} found.</p>
-        {directory.routes.length ? <><p id="generation-scroll-hint">On smaller screens, scroll the table to see all details.</p><div className="recipient-table" role="region" aria-label="Generation route directory" aria-describedby="generation-scroll-hint" tabIndex={0}><table><thead><tr><th scope="col">Route</th><th scope="col">Operator</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col">Progress</th><th scope="col">Review</th></tr></thead><tbody>{directory.routes.map(route => <tr key={route.routeId}><td>#{route.routeId}</td><td>{route.operatorName}</td><td>{route.scheduledDate}</td><td>{route.routeStatus.replaceAll('_', ' ')}</td><td>{route.finishedCount} of {route.stopCount} stops</td><td><button className="text-button" disabled={pending || detailLoading} onClick={() => inspect(route.routeId)} aria-label={`Inspect route ${route.routeId}`}>Inspect stops</button>{routeLink(route, false)}</td></tr>)}</tbody></table></div></> : <p>No routes match this date filter.</p>}
-        <nav className="recipient-toolbar" aria-label="generation routes pagination"><button className="button secondary" disabled={pending || directory.page === 0} onClick={() => reload(directory.page - 1)}>Previous generation routes</button><span>Page {directory.totalPages ? directory.page + 1 : 0} of {directory.totalPages}</span><button className="button secondary" disabled={pending || directory.page + 1 >= directory.totalPages || directory.page >= 10000} onClick={() => reload(directory.page + 1)}>Next generation routes</button></nav>
+        <p id="generation-directory-count">{directory.totalElements} {directory.totalElements === 1 ? 'route' : 'routes'} found. Page {directory.totalPages ? directory.page + 1 : 0} of {directory.totalPages}.</p>
+        {directory.routes.length ? <><p id="generation-directory-help">Inspect stops here, or open a route in the administrator workspace for its current progress.</p><div className="recipient-table generation-directory-results" role="region" aria-label="Generation route directory" aria-describedby="generation-directory-help"><table role="table" aria-label="Routes for generation review"><thead role="rowgroup"><tr role="row">
+          <th scope="col" id="generation-route-id-column">Route</th><th scope="col" id="generation-route-operator-column">Operator</th><th scope="col" id="generation-route-date-column">Date</th><th scope="col" id="generation-route-status-column">Status</th><th scope="col" id="generation-route-progress-column">Progress</th><th scope="col" id="generation-route-review-column">Review</th>
+        </tr></thead><tbody role="rowgroup">{directory.routes.map(route => <tr key={route.routeId} role="row">
+          <th role="rowheader" scope="row" id={`generation-route-row-${route.routeId}`}><strong>Route #{route.routeId}</strong></th>
+          <td role="cell" headers={`generation-route-row-${route.routeId} generation-route-operator-column`}><span className="generation-mobile-label" aria-hidden="true">Operator</span><span>{route.operatorName}</span></td>
+          <td role="cell" headers={`generation-route-row-${route.routeId} generation-route-date-column`}><span className="generation-mobile-label" aria-hidden="true">Scheduled date</span><span>{route.scheduledDate}</span></td>
+          <td role="cell" headers={`generation-route-row-${route.routeId} generation-route-status-column`}><span className="generation-mobile-label" aria-hidden="true">Status</span><span className={`generation-route-status generation-route-status-${route.routeStatus.toLowerCase()}`}>{({ PLANNED: 'Planned', IN_PROGRESS: 'In progress', COMPLETED: 'Completed' })[route.routeStatus]}</span></td>
+          <td role="cell" headers={`generation-route-row-${route.routeId} generation-route-progress-column`}><span className="generation-mobile-label" aria-hidden="true">Progress</span><span>{route.finishedCount} of {route.stopCount} stops</span></td>
+          <td role="cell" className="generation-review-actions" headers={`generation-route-row-${route.routeId} generation-route-review-column`}><button className="button secondary" disabled={pending || detailLoading} onClick={() => inspect(route.routeId)} aria-label={`Inspect route ${route.routeId}`}>Inspect stops</button>{routeLink(route, false)}</td>
+        </tr>)}</tbody></table></div></> : <p>No routes match this date filter.</p>}
+        <nav className="recipient-toolbar generation-pagination" aria-label="generation routes pagination"><button className="button secondary" disabled={pending || directory.page === 0} onClick={() => changePage(directory.page - 1)}>Previous generation routes</button><span>Page {directory.totalPages ? directory.page + 1 : 0} of {directory.totalPages}</span><button className="button secondary" disabled={pending || directory.page + 1 >= directory.totalPages || directory.page >= 10000} onClick={() => changePage(directory.page + 1)}>Next generation routes</button></nav>
       </>}
     </section>
     {detailLoading && <p role="status">Loading current route stops…</p>}{detailError && <p role="alert" className="error-message">{detailError}</p>}
@@ -154,5 +167,5 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
       {!selected.deliveries.length && <p>No stops on this route.</p>}
       <button className="button secondary" disabled={pending} onClick={() => { clearDetails(); heading.current?.focus(); }}>Close route inspection</button>
     </section>}
-  </>;
+  </div>;
 }
