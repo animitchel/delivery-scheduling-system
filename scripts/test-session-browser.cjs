@@ -842,6 +842,12 @@ async function assertFitsViewport(page) {
         await page.setViewportSize({ width: 375, height: 900 });
         await page.screenshot({ path: artifact("react-generation-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
         await page.getByRole('region',{name:'Generation route directory',exact:true}).evaluate(node=>node.scrollIntoView({block:'start'}));
+        const generationTable = page.getByRole('table', { name: 'Routes for generation review', exact: true });
+        assert.ok(await generationTable.evaluate(node => node.scrollWidth <= node.clientWidth + 1));
+        const generationRows = await generationTable.getByRole('rowheader').count();
+        assert.ok(generationRows > 0);
+        assert.equal(await generationTable.getByRole('button').count(), generationRows);
+        assert.equal(await generationTable.getByRole('link').count(), generationRows);
         await page.screenshot({path:artifact('review-generation-table-mobile.png'),clip:{x:0,y:0,width:375,height:780}});
 
         await assertFitsViewport(page);
