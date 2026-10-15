@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from './api';
 import './styles.css';
+import { usePageTitle } from './page-title';
 export function Login({ client = api, redirect = (path: string) => window.location.assign(path) }: {
   client?: Pick<typeof api, 'login'>; redirect?: (path: string) => void;
 }) {
+  usePageTitle('Sign in');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);

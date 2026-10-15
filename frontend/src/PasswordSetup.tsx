@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError } from './api';
 import './styles.css';
+import { usePageTitle } from './page-title';
 const redirectTo = (path: string) => window.location.assign(path);
 export function PasswordSetup({ client = api, redirect = redirectTo }: {
   client?: Pick<typeof api, 'session' | 'request' | 'logout'>; redirect?: (path: string) => void;
 }) {
+  usePageTitle('Set your password');
   const [ready, setReady] = useState(false);
   const [current, setCurrent] = useState('');
   const [password, setPassword] = useState('');

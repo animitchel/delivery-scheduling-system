@@ -1,6 +1,6 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WorkspaceNavigation } from './WorkspaceNavigation';
 
@@ -14,8 +14,14 @@ function viewport(initial: boolean) {
   })));
   return (value: boolean) => act(() => { mobile = value; listeners.forEach(listener => listener()); });
 }
+function PageContent() {
+  const location = useLocation(); const navigate = useNavigate();
+  return <><main id="main-content" tabIndex={-1}>Workspace content {location.pathname}</main>
+    <button onClick={() => navigate(-1)}>Back</button><button onClick={() => navigate(1)}>Forward</button>
+    <button onClick={() => navigate('/admin#details')}>Hash link</button></>;
+}
 function mount(role: 'ADMIN' | 'DRIVER' = 'ADMIN', path = '/admin', blocked = { value: false }) {
-  render(<MemoryRouter initialEntries={[path]}><WorkspaceNavigation role={role} disabled={blocked.value} isBlocked={() => blocked.value} /><main id="main-content" tabIndex={-1}>Workspace content</main></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[path]}><WorkspaceNavigation role={role} disabled={blocked.value} isBlocked={() => blocked.value} /><PageContent /></MemoryRouter>);
 }
 afterEach(() => vi.unstubAllGlobals());
 
@@ -59,6 +65,37 @@ describe('workspace navigation', () => {
     await userEvent.click(screen.getByRole('link', { name: 'Accounts' }));
     expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('navigation')).toBeVisible();
+  });
+  it.each([false, true])('focuses destination content after keyboard navigation, mobile=%s', async mobile => {
+    viewport(mobile); mount();
+    const main = screen.getByRole('main'); expect(main).not.toHaveFocus();
+    if (mobile) await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    screen.getByRole('link', { name: 'Warehouses' }).focus(); await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(main).toHaveFocus()); expect(main).toHaveTextContent('/admin/warehouses');
+    if (mobile) expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+  it('focuses committed content after Back and Forward navigation', async () => {
+    viewport(false); mount(); await userEvent.click(screen.getByRole('link', { name: 'Accounts' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('main')).toHaveFocus(); expect(screen.getByRole('main')).toHaveTextContent('Workspace content /admin');
+    await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
+    expect(screen.getByRole('main')).toHaveFocus(); expect(screen.getByRole('main')).toHaveTextContent('/admin/accounts');
+  });
+  it('keeps current focus for modified clicks, blocked navigation and hash-only changes', async () => {
+    viewport(false); const blocked = { value: false }; mount('ADMIN', '/admin', blocked);
+    const accounts = screen.getByRole('link', { name: 'Accounts' }); accounts.focus();
+    // The browser handles modified clicks; jsdom cannot open a new tab.
+    accounts.addEventListener('click', event => event.preventDefault(), { once: true });
+    fireEvent.click(accounts, { ctrlKey: true }); expect(accounts).toHaveFocus();
+    blocked.value = true; await userEvent.click(accounts); expect(accounts).toHaveFocus();
+    expect(screen.getByRole('main')).toHaveTextContent('Workspace content /admin');
+    await userEvent.click(screen.getByRole('button', { name: 'Hash link' }));
+    expect(screen.getByRole('button', { name: 'Hash link' })).toHaveFocus();
+  });
+  it('moves focus out of the mobile menu when selecting the current page', async () => {
+    viewport(true); mount(); await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Overview' }));
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument(); expect(screen.getByRole('main')).toHaveFocus();
   });
   it('does not expose administrator links to drivers', () => {
     viewport(false); mount('DRIVER', '/driver/routes');
