@@ -104,7 +104,10 @@ p {
   width:40px;
   height:40px;
   border-radius:10px;
-  font-size:1.7rem
+  /* Decorative glyph stays bounded while the adjacent brand text can enlarge. */
+  flex-shrink:0;
+  font-size:27px;
+  line-height:1
 }
 .brand-caption {
   display:block;
@@ -153,7 +156,7 @@ p {
   gap:20px
 }
 .workspace-label {
-  color:#6b7b73;
+  color:var(--color-muted);
   font-size:.84rem
 }
 .session-actions {
@@ -263,7 +266,7 @@ main {
   margin-top:44px;
   padding-top:20px;
   border-top:1px solid var(--color-border);
-  color:#6a796b;
+  color:var(--color-muted);
   font-size:.75rem
 }
 .text-button {
@@ -312,8 +315,8 @@ main {
   .workspace {
   display:block
 }
-.sidebar { padding:18px 24px; position:relative; min-height:80px; }
-.sidebar .brand { font-size:1.1rem; max-width:calc(100% - 110px); }
+.sidebar { padding:18px 24px; position:relative; min-height:80px; display:flex; flex-direction:row; flex-wrap:wrap; align-items:flex-start; gap:12px; }
+.sidebar .brand { font-size:1.1rem; max-width:100%; }
 .sidebar-note { display:none; }
 .topbar {
   padding:16px 24px
@@ -333,7 +336,6 @@ main {
 
 @media(max-width:520px) {
   .sidebar {
-  display:block;
   padding:18px 16px
 }
 .topbar {
@@ -480,7 +482,7 @@ h1 {
 #loginMessage { color: #953e35; font-size: 13px; overflow-wrap: anywhere; }
 .login-notice { background: #e6efdd; border-radius: 10px; padding: 14px; font-size: 13px; }
 .login-help { font-size: 13px; margin-top: 24px; }
-.login-footer { font-size: 11px; margin-top: 48px; color: #73867a; }
+.login-footer { font-size: 11px; margin-top: 48px; color: var(--color-muted); }
 @media (max-width: 760px) { .login-page { grid-template-columns: minmax(0, 1fr); } .login-story { padding: 24px; gap: 20px; } .login-story h1 { font-size: 32px; } .login-route, .login-story-footer { display: none; } .login-story p { margin-bottom: 0; } .login-form-panel { padding: 32px 24px; } }
 .password-guidance { font-size: 12px; margin: 8px 0; color: var(--color-muted); }
 .password-session-actions { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; margin-top: 24px; font-size: 13px; }
