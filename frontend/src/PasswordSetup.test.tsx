@@ -15,7 +15,7 @@ async function fill(newPassword = 'a new permanent passphrase', confirm = newPas
 }
 describe('password setup', () => {
   it('sends verified credentials and returns to login after saving', async () => {
-    const { client, redirect } = mount(); await fill(); fireEvent.submit(document.querySelector('form')!);
+    const { client, redirect } = mount(); await fill(); expect(document.title).toBe('Set your password | Dispatch'); fireEvent.submit(document.querySelector('form')!);
     await waitFor(() => expect(redirect).toHaveBeenCalledWith('/app/login?passwordChanged'));
     expect(client.request).toHaveBeenCalledWith('/api/auth/password', expect.objectContaining({ method: 'POST', body: JSON.stringify({ currentPassword: 'a temporary private passphrase', newPassword: 'a new permanent passphrase' }) }));
     expect(screen.getByLabelText('Current password')).toHaveValue('');

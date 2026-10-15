@@ -18,10 +18,14 @@ async function assertFitsViewport(page) {
     const target = new URL(process.argv[2]);
     assert.equal(target.protocol, "http:");
     assert.equal(target.hostname, "127.0.0.1");
+    async function expectTitle(page, title) {
+        await page.waitForFunction(expected => document.title === expected, `${title} | Dispatch`);
+    }
     async function navigateWorkspace(page, name) {
         const menu = page.getByRole("button", { name: "Menu", exact: true });
         if (await menu.isVisible()) await menu.click();
         await page.getByRole("link", { name, exact: true }).click();
+        await expectTitle(page, name);
     }
     const browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE });
     const review = require('./frontend-review.cjs').reporter(artifactRoot);
@@ -35,6 +39,7 @@ async function assertFitsViewport(page) {
         await page.goto(`${target.origin}/html/login.html`);
         await page.waitForURL("**/app/login");
         await page.getByRole("heading", { name: "Welcome back.", exact: true }).waitFor();
+        await expectTitle(page, "Sign in");
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.screenshot({ path: artifact("react-login-desktop.png"), fullPage: true });
         for (const width of [320, 375, 768]) {
@@ -57,6 +62,7 @@ async function assertFitsViewport(page) {
         // Sign-in lands directly in React; legacy navigation is no longer required.
         assert.equal(await page.getByRole("link", { name: "Scheduling", exact: true }).count(), 0);
         await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
+        await expectTitle(page, "Operations overview");
         await page.waitForURL("**/app/admin");
         assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).count(), 1);
         assert.equal(await page.getByRole("link", { name: "Open accounts", exact: true }).getAttribute("href"), "/app/admin/accounts");
@@ -93,6 +99,7 @@ async function assertFitsViewport(page) {
         await page.getByRole("heading", { name: "Accounts", exact: true }).waitFor();
         assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
         await page.waitForFunction(() => document.activeElement.id === "main-content");
+        await expectTitle(page, "Accounts");
         await mobileMenu.click();
         assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).getAttribute("aria-current"), "page");
         await page.getByRole("link", { name: "Overview", exact: true }).click();
@@ -103,6 +110,9 @@ async function assertFitsViewport(page) {
         await page.getByRole("heading", { name: "Keep deliveries moving.", exact: true }).waitFor();
         await page.keyboard.press("Tab");
         assert.equal(await page.evaluate(() => document.activeElement.textContent), "Skip to content");
+        assert.equal(await page.locator('.skip-link').evaluate(node=>node.getBoundingClientRect().top>=0),true);
+        await page.keyboard.press("Enter");
+        await page.waitForFunction(() => document.activeElement.id === "main-content");
         assert.equal((await context.request.get(`${target.origin}/app/assets/missing.js`)).status(),404);
         const identity=await (await context.request.get(`${target.origin}/api/auth/me`)).json();
         const attack='<img src=x onerror="window.__injected=true">';
@@ -115,6 +125,7 @@ async function assertFitsViewport(page) {
         await page.route("**/api/auth/me", route => route.fulfill({ status: 503, contentType: "application/json", body: "{}" }));
         await page.getByRole("button", { name: "Refresh session", exact: true }).click();
         await page.getByRole("alert").waitFor();
+        await expectTitle(page, "Workspace unavailable");
         assert.equal(await page.getByRole("navigation").count(),0);
         await page.unroute("**/api/auth/me");
         await page.getByRole("button", { name: "Try again", exact: true }).click();
@@ -135,9 +146,18 @@ async function assertFitsViewport(page) {
         await page.locator(".username").filter({ hasText: "smoke.admin" }).waitFor();
 
         // Recipient deep link, real conditional update, safe text and responsive form.
-        await page.getByRole("link", {name:"Recipients",exact:true}).click();
+        await page.getByRole("link", {name:"Recipients",exact:true}).focus();
+        await page.keyboard.press("Enter");
         await page.waitForURL("**/app/admin/recipients");
         await page.getByRole("heading",{name:"Recipients",exact:true}).waitFor();
+        await page.waitForFunction(() => document.activeElement.id === "main-content");
+        await expectTitle(page, "Recipients");
+        await page.goBack(); await page.waitForURL("**/app/admin");
+        await expectTitle(page, "Operations overview");
+        await page.waitForFunction(() => document.activeElement.id === "main-content");
+        await page.goForward(); await page.waitForURL("**/app/admin/recipients");
+        await expectTitle(page, "Recipients");
+        await page.waitForFunction(() => document.activeElement.id === "main-content");
         review.observe('desktopNavigationFocus',await page.evaluate(()=>({tag:document.activeElement.tagName,id:document.activeElement.id,href:document.activeElement.getAttribute('href')})));
 
         await page.locator(".recipient-table tbody tr").first().waitFor();
@@ -423,8 +443,10 @@ async function assertFitsViewport(page) {
         await page.locator("#loginButton").click();
         await page.waitForURL("**/app/driver/routes");
         await page.getByRole("heading", {name: "Assigned routes", exact:true}).waitFor();
+        await expectTitle(page, "Assigned routes");
         await page.goto(`${target.origin}/app/driver`);
         await page.getByRole("heading", { name: "Your next stop starts here.", exact: true }).waitFor();
+        await expectTitle(page, "Driver overview");
         assert.equal(await page.getByRole("link", { name: "Accounts", exact: true }).count(),0);
         await page.goto(`${target.origin}/app/admin/routes`);
         await page.getByRole("heading", { name: "You don’t have access to this workspace.", exact: true }).waitFor();
@@ -652,6 +674,7 @@ async function assertFitsViewport(page) {
         const permanent = "browser permanent driver passphrase";
         await driverLogin(temporary, "app/change-password");
         await driverPage.getByRole("heading", { name: "Set your password.", exact: true }).waitFor();
+        await expectTitle(driverPage, "Set your password");
         await driverPage.waitForFunction(() => !document.querySelector("#currentPassword").disabled);
         await driverPage.setViewportSize({ width: 1440, height: 1000 });
         await driverPage.screenshot({ path: artifact("react-password-desktop.png"), fullPage: true });
@@ -673,6 +696,7 @@ async function assertFitsViewport(page) {
         assert.equal((await driverContext.request.get(`${target.origin}/api/admin/accounts`)).status(),403);
         await driverPage.goto(`${target.origin}/app/admin/accounts`);
         await driverPage.getByRole("heading",{name:"You don’t have access to this workspace.",exact:true}).waitFor();
+        await expectTitle(driverPage, "Access restricted");
         function managedRow() { return page.locator(".accounts-table tbody tr").filter({ hasText: "onboarding.driver" }); }
         async function accountAction(label) {
             await managedRow().getByRole("button", { name: label, exact: true }).click();
@@ -794,6 +818,8 @@ async function assertFitsViewport(page) {
         await page.screenshot({path:artifact("review-draft-after-focus.png"),fullPage:false});
         assert.equal(draftSurvived,true,'Successful session refresh must preserve the warehouse editor');
         assert.equal(await page.getByLabel("Warehouse name",{exact:true}).inputValue(),"Unsaved review draft");
+        assert.equal(await page.getByLabel("Warehouse name",{exact:true}).evaluate(node=>node===document.activeElement),true);
+        await expectTitle(page, "Warehouses");
         await page.getByRole("button",{name:"Cancel warehouse edit",exact:true}).click();
         await page.getByRole("button",{name:"Add warehouse",exact:true}).click();
 
