@@ -39,7 +39,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
   const alive = useRef(true); const busy = useRef(false);
   const write = useRef<AbortController | null>(null);
   const lanes = useRef({ directory: { sequence: 0, controller: null as AbortController | null }, details: { sequence: 0, controller: null as AbortController | null } });
-  const dialog = useRef<HTMLDialogElement>(null); const submit = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDialogElement>(null); const submit = useRef<HTMLButtonElement>(null); const keepReviewing = useRef<HTMLButtonElement>(null);
   const focusDirectory = useRef(false);
   const heading = useRef<HTMLHeadingElement>(null); const detailHeading = useRef<HTMLHeadingElement>(null);
   const auth = useCallback((failure: unknown) => { if (failure instanceof ApiError && (failure.status === 401 || failure.passwordChangeRequired)) { onAuthError(failure); return true; } return false; }, [onAuthError]);
@@ -56,7 +56,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
     return response;
   }, response => { setDirectory(response); setLoading(false); if (review) setReviewReady(true); }, () => { setLoading(false); setReviewReady(false); setReadError('Routes could not be loaded. Please reload the directory.'); }), [client, run]);
   useEffect(() => { alive.current = true; const reads = lanes.current; void Promise.resolve().then(() => { if (alive.current) return load(0, '', false); }); return () => { alive.current = false; reads.directory.controller?.abort(); reads.details.controller?.abort(); write.current?.abort(); }; }, [load]);
-  useEffect(() => { if (confirmDate) dialog.current?.showModal(); else dialog.current?.close(); }, [confirmDate]);
+  useEffect(() => { if (confirmDate) { dialog.current?.showModal(); keepReviewing.current?.focus(); } else dialog.current?.close(); }, [confirmDate]);
   useEffect(() => { if (selected) detailHeading.current?.focus(); }, [selected]);
   useEffect(() => { if (directory && focusDirectory.current) { focusDirectory.current = false; heading.current?.focus(); heading.current?.scrollIntoView?.({ block: 'start' }); } }, [directory]);
   function closeConfirmation() { if (busy.current) return; dialog.current?.close(); setConfirmDate(null); submit.current?.focus(); }
@@ -127,7 +127,7 @@ export function RouteGeneration({ client = generationApi, onAuthError, onBusyCha
     <dialog className="generation-dialog" ref={dialog} aria-labelledby="generation-confirm-title" onCancel={() => { setConfirmDate(null); submit.current?.focus(); }}>
       <h2 id="generation-confirm-title">Generate and assign routes?</h2><p>Use planning cutoff <strong>{confirmDate}</strong>, including eligible overdue deliveries.</p><p>This immediately assigns available operators, starts the generated routes and deliveries, and marks operators on delivery.</p>
       <p>This is an assignment action. Route estimates cannot guarantee that every delivery window is achievable.</p>
-      <div className="recipient-toolbar"><button className="button" disabled={pending} onClick={() => { if (confirmDate) void generate(confirmDate); }}>Confirm generation and assignment</button><button className="button secondary" disabled={pending} onClick={closeConfirmation}>Keep reviewing</button></div>
+      <div className="recipient-toolbar"><button className="button" disabled={pending} onClick={() => { if (confirmDate) void generate(confirmDate); }}>Confirm generation and assignment</button><button className="button secondary" ref={keepReviewing} disabled={pending} onClick={closeConfirmation}>Keep reviewing</button></div>
     </dialog>
     {recovery && <section className="recipient-panel generation-recovery" aria-labelledby="generation-recovery"><h2 id="generation-recovery">Review before generating again</h2>
       <p>{recovery.uncertain ? 'Routes may already have been saved.' : 'Planning inputs may have changed or another plan may have committed.'} Review routes for {recovery.date} across all statuses, including completed work.</p>
