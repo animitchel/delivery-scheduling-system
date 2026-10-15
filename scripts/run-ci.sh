@@ -17,5 +17,6 @@ python3 scripts/verify-ci-results.py
 "$ci_node" tests/browser/test-workspace-reflow.cjs
 "$ci_node" tests/browser/test-render-recovery.cjs
 "$ci_node" tests/browser/test-admin-route-directory.cjs
+"$ci_node" tests/browser/test-generation-mobile-review.cjs
 
 ./scripts/check-dependencies.sh
