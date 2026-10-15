@@ -37,6 +37,17 @@ describe('React route generation',()=>{
     expect(screen.getByRole('button', { name: 'Next generation routes' })).toBeDisabled(); expect(client.generate).not.toHaveBeenCalled();
   });
   it('requires confirmation and sends the date captured in the confirmation',async()=>{const client=clientFor();await mount(client);await userEvent.click(screen.getByRole('button',{name:'Review assignment'}));await screen.findByRole('dialog');expect(client.generate).not.toHaveBeenCalled();fireEvent.change(screen.getByLabelText('Planning cutoff date'),{target:{value:'2026-10-14'}});await userEvent.click(screen.getByRole('button',{name:'Confirm generation and assignment'}));await screen.findByText('1 route generated and assigned for 2026-10-13.');expect(client.generate).toHaveBeenCalledWith(date,expect.any(AbortSignal));expect(screen.getByRole('link',{name:'Open generated route #91'})).toHaveAttribute('href','/admin/routes?routeId=91');});
+  it('initially focuses Keep reviewing on every confirmation opening', async () => {
+    const client = clientFor(); await mount(client);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await userEvent.click(screen.getByRole('button', { name: 'Review assignment' }));
+      expect(screen.getByRole('button', { name: 'Keep reviewing' })).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Review assignment' })).toHaveFocus();
+      expect(client.generate).not.toHaveBeenCalled();
+    }
+  });
   it('cancels confirmation without any write and returns focus',async()=>{const client=clientFor();await mount(client);await userEvent.click(screen.getByRole('button',{name:'Review assignment'}));await userEvent.click(screen.getByRole('button',{name:'Keep reviewing'}));expect(client.generate).not.toHaveBeenCalled();expect(screen.getByRole('button',{name:'Review assignment'})).toHaveFocus();await userEvent.click(screen.getByRole('button',{name:'Review assignment'}));fireEvent(screen.getByRole('dialog'),new Event('cancel',{cancelable:true}));await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument());expect(client.generate).not.toHaveBeenCalled();});
   it('rejects invalid configuration without allowing generation',async()=>{await mount(clientFor(),vi.fn(),vi.fn(),999);expect(screen.getByRole('alert')).toHaveTextContent('timeout configuration');expect(screen.getByRole('button',{name:'Review assignment'})).toBeDisabled();});
   it('prevents duplicate writes and locks controls while generating',async()=>{let resolve!:(value:GenerationResult)=>void;const client=clientFor();client.generate.mockReturnValue(new Promise(r=>{resolve=r;}));const busy=vi.fn();await mount(client,vi.fn(),busy);await userEvent.click(screen.getByRole('button',{name:'Review assignment'}));const button=screen.getByRole('button',{name:'Confirm generation and assignment'});fireEvent.click(button);fireEvent.click(button);expect(client.generate).toHaveBeenCalledTimes(1);expect(screen.getByLabelText('Planning cutoff date')).toBeDisabled();expect(screen.getByRole('button',{name:'Reload route directory'})).toBeDisabled();await act(async()=>resolve(ack));await screen.findByText('1 route generated and assigned for 2026-10-13.');expect(busy.mock.calls).toEqual([[true],[false]]);});
