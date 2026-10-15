@@ -18,6 +18,54 @@ async function assertFitsViewport(page) {
     const target = new URL(process.argv[2]);
     assert.equal(target.protocol, "http:");
     assert.equal(target.hostname, "127.0.0.1");
+    const contrastMeasurements = [];
+    async function assertTextContrast(page, selectors) {
+        const measurements = await page.evaluate(selectors => selectors.map(selector => {
+            const element = document.querySelector(selector);
+            if (!element) throw new Error(`Missing contrast target: ${selector}`);
+            const rgb = value => {
+                const values = value.match(/[\d.]+/g)?.map(Number);
+                if (!values || values.length < 3 || values.length === 4 && values[3] !== 1) throw new Error('Expected an opaque sRGB colour');
+                return values.slice(0, 3);
+            };
+            let background;
+            for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+                const style = getComputedStyle(ancestor);
+                if (style.opacity !== '1' || style.backgroundImage !== 'none') throw new Error('Contrast target needs a solid, opaque background');
+                if (!background && style.backgroundColor !== 'rgba(0, 0, 0, 0)') background = rgb(style.backgroundColor);
+            }
+            if (!background) throw new Error('Missing opaque contrast background');
+            const foreground = rgb(getComputedStyle(element).color);
+            const luminance = values => values.map(value => value / 255).map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+                .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+            const a = luminance(foreground), b = luminance(background);
+            return { selector, foreground, background, ratio: (Math.max(a, b) + .05) / (Math.min(a, b) + .05), width: innerWidth };
+        }), selectors);
+        for (const measurement of measurements) assert.ok(measurement.ratio >= 4.5, `${measurement.selector} contrast ${measurement.ratio} is below 4.5:1`);
+        contrastMeasurements.push(...measurements);
+        review.observe('reviewedTextContrast', contrastMeasurements);
+    }
+    async function assertBrandFits(page) {
+        const geometry = await page.locator('.brand-mark').evaluate(element => {
+            const tile = element.getBoundingClientRect();
+            const glyph = document.createRange(); glyph.selectNodeContents(element);
+            const bounds = glyph.getBoundingClientRect();
+            return { tile: { left: tile.left, top: tile.top, right: tile.right, bottom: tile.bottom },
+                glyph: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom } };
+        });
+        assert.ok(geometry.glyph.left >= geometry.tile.left - 1 && geometry.glyph.right <= geometry.tile.right + 1
+            && geometry.glyph.top >= geometry.tile.top - 1 && geometry.glyph.bottom <= geometry.tile.bottom + 1,
+            'The decorative brand glyph must fit its tile');
+    }
+    async function assertBrandMenuSeparate(page, requireSameRow = false) {
+        const menu = page.getByRole('button', {name:'Menu',exact:true});
+        if (!await menu.isVisible()) return;
+        const brand = await page.locator('.brand').boundingBox(); const toggle = await menu.boundingBox();
+        assert.ok(brand && toggle && (brand.x + brand.width <= toggle.x || toggle.x + toggle.width <= brand.x
+            || brand.y + brand.height <= toggle.y || toggle.y + toggle.height <= brand.y),
+            'Brand text and the mobile menu must not overlap');
+        if (requireSameRow) assert.ok(Math.abs(brand.y - toggle.y) <= 1, 'Normal-sized branding and menu should share a row');
+    }
     async function expectTitle(page, title) {
         await page.waitForFunction(expected => document.title === expected, `${title} | Dispatch`);
     }
@@ -41,10 +89,12 @@ async function assertFitsViewport(page) {
         await page.getByRole("heading", { name: "Welcome back.", exact: true }).waitFor();
         await expectTitle(page, "Sign in");
         await page.setViewportSize({ width: 1440, height: 1000 });
+        await assertTextContrast(page, [".login-footer"]);
         await page.screenshot({ path: artifact("react-login-desktop.png"), fullPage: true });
         for (const width of [320, 375, 768]) {
             await page.setViewportSize({ width, height: 900 });
             await assertFitsViewport(page);
+            await assertTextContrast(page, [".login-footer"]);
         }
         await page.setViewportSize({ width: 375, height: 900 });
         await assertFitsViewport(page);
@@ -69,18 +119,35 @@ async function assertFitsViewport(page) {
         await page.setViewportSize({ width: 1440, height: 1000 });
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         assert.equal(await page.locator(".brand").count(),1);
+        await assertTextContrast(page, [".workspace-label", ".session-footer > span"]);
+        await assertBrandFits(page);
         await page.screenshot({ path: artifact("react-workspace-desktop.png"), clip: { x: 0, y: 0, width: 1440, height: 900 } });
         for (const width of [320,375,768]) {
             await page.setViewportSize({ width, height: 900 });
             await assertFitsViewport(page);
+            await assertBrandMenuSeparate(page, true);
         }
         await page.setViewportSize({ width: 375, height: 900 });
         await page.evaluate(() => window.scrollTo(0,0));
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await page.screenshot({ path: artifact("react-workspace-mobile.png"), clip: { x: 0, y: 0, width: 375, height: 780 } });
+        const normalBrandText = await page.locator('.brand').evaluate(element=>parseFloat(getComputedStyle(element).fontSize));
         await page.evaluate(()=>document.documentElement.style.fontSize='200%');
-        await page.screenshot({path:artifact('review-overview-text-200-percent.png'),fullPage:false});
-        await page.evaluate(()=>document.documentElement.style.removeProperty('font-size'));
+        try {
+            assert.ok(await page.locator('.brand').evaluate(element=>parseFloat(getComputedStyle(element).fontSize)) >= normalBrandText * 1.99,
+                'Brand text must continue to enlarge independently of the decorative glyph');
+            for (const width of [320, 375, 768, 1440]) {
+                await page.setViewportSize({width,height:900});
+                await assertFitsViewport(page);
+                await assertBrandFits(page);
+                await assertBrandMenuSeparate(page);
+                await assertTextContrast(page, width > 900 ? ['.workspace-label', '.session-footer > span'] : ['.session-footer > span']);
+                await page.screenshot({path:artifact(`review-brand-text-200-percent-${width}.png`),fullPage:false});
+            }
+            await page.setViewportSize({width:375,height:900});
+            await page.screenshot({path:artifact('review-overview-text-200-percent.png'),fullPage:false});
+        } finally { await page.evaluate(()=>document.documentElement.style.removeProperty('font-size')); }
+
 
         const mobileMenu = page.getByRole("button", { name: "Menu", exact: true });
         assert.equal(await mobileMenu.getAttribute("aria-expanded"), "false");
