@@ -459,6 +459,9 @@ async function assertFitsViewport(page) {
         await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
         await page.screenshot({path:artifact("react-admin-routes-mobile.png"),clip:{x:0,y:0,width:375,height:800}});
         await page.locator('.route-directory').evaluate(node=>node.scrollIntoView({block:'start'}));
+        const routeDirectoryTable = page.getByRole('table',{name:'Routes and assignment progress',exact:true});
+        assert.equal(await routeDirectoryTable.evaluate(node=>node.scrollWidth<=node.clientWidth+1),true);
+        assert.equal(await routeDirectoryTable.getByRole('button').count(),await routeDirectoryTable.getByRole('rowheader').count());
         await page.screenshot({path:artifact('review-admin-route-table-mobile.png'),clip:{x:0,y:0,width:375,height:800}});
 
         // A real driver's competing update wins; the administrator must reload before writing again.
