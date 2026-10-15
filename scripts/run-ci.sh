@@ -15,5 +15,6 @@ mkdir -p .ci-artifacts/browser
   "-Dsession.browser.artifacts=$SESSION_BROWSER_ARTIFACTS_DIR"
 python3 scripts/verify-ci-results.py
 "$ci_node" tests/browser/test-workspace-reflow.cjs
+"$ci_node" tests/browser/test-render-recovery.cjs
 
 ./scripts/check-dependencies.sh
