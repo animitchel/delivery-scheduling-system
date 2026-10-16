@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { engine, browserType } = require('./browser-engine.cjs');
 const dist = path.resolve(__dirname, '../../frontend/dist');
-const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), 'admin-route-directory');
+const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), engine, 'admin-route-directory');
 fs.mkdirSync(artifacts, { recursive: true });
 const longName = '<img src=x onerror=alert(1)> ' + 'LongOperator'.repeat(12);
 const rows = ['IN_PROGRESS', 'PLANNED', 'COMPLETED'].map((routeStatus, index) => ({ routeId: index + 1, operatorId: index + 1,
@@ -35,12 +35,12 @@ const server = http.createServer((request, response) => {
   response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[path.extname(file)] || 'application/octet-stream');
   response.end(fs.readFileSync(file));
 });
-const report = { complete: false, cases: [] };
+const report = { complete: false, engine, cases: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.stringify(report, null, 2)); save();
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); let browser, page;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); page = await browser.newPage();
+    browser = await browserType.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); report.browserVersion = browser.version(); page = await browser.newPage();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}/app/admin/routes`);
     const table = page.getByRole('table', { name: 'Routes and assignment progress', exact: true }); await table.waitFor();
@@ -95,6 +95,34 @@ const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.s
     assert.equal(await page.getByRole('table').count(), 0);
     mode = 'error'; await page.getByRole('button', { name: 'Reload routes', exact: true }).click(); await page.getByRole('alert').waitFor();
     mode = 'normal'; await page.getByRole('button', { name: 'Reload routes', exact: true }).click(); await table.waitFor();
+    // Exercise navigation with the same built app and disposable session on every engine.
+    for (const width of [375, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.evaluate(() => document.documentElement.style.removeProperty('font-size'));
+      if (width === 375) {
+        const menu = page.getByRole('button', { name: 'Menu', exact: true });
+        await menu.focus(); await page.keyboard.press('Enter');
+        await page.getByRole('link', { name: 'Overview', exact: true }).focus();
+        await page.keyboard.press('Escape');
+        assert.equal(await menu.getAttribute('aria-expanded'), 'false');
+        assert.ok(await menu.evaluate(node => node === document.activeElement));
+        await page.keyboard.press('Enter');
+      }
+      await page.getByRole('link', { name: 'Overview', exact: true }).click();
+      await page.getByRole('heading', { name: 'Keep deliveries moving.', exact: true }).waitFor();
+      await page.waitForFunction(() => document.activeElement.id === 'main-content');
+      if (width === 375) {
+        assert.equal(await page.getByRole('button', { name: 'Menu', exact: true }).getAttribute('aria-expanded'), 'false');
+        await page.getByRole('button', { name: 'Menu', exact: true }).click();
+      }
+      await page.getByRole('link', { name: 'Routes', exact: true }).click(); await table.waitFor();
+      await page.waitForFunction(() => document.activeElement.id === 'main-content');
+      await page.goBack(); await page.getByRole('heading', { name: 'Keep deliveries moving.', exact: true }).waitFor();
+      await page.waitForFunction(() => document.activeElement.id === 'main-content');
+      await page.goForward(); await table.waitFor();
+      await page.waitForFunction(() => document.activeElement.id === 'main-content');
+    }
+    report.navigation = true;
     assert.equal(writes, 0); assert.deepEqual(errors, []); report.complete = true; report.writes = writes; save();
     console.log(`Admin route directory: ${report.cases.length} layout cases, keyboard selection, pagination, direct links and recovery passed.`);
   } catch (error) { if (page) await page.screenshot({ path: path.join(artifacts, 'failure.png') }).catch(() => {}); throw error; }
