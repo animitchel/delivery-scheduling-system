@@ -11,16 +11,12 @@ public class RoutePlanner {
     public RoutePlanner(MapsProvider maps) { this.maps=maps; }
     public CalculatedPlan calculate(PlanningSnapshot snapshot, PlanningGuard.Budget budget) {
         var result=new ArrayList<CalculatedPlan.DriverRoute>();
-        int base=snapshot.deliveries().size()/snapshot.operators().size();
-        int extra=snapshot.deliveries().size()%snapshot.operators().size(), index=0;
-        for(int i=0;i<snapshot.operators().size();i++) {
+        for(var assignment:DriverAllocator.allocate(snapshot,budget)) {
             budget.check();
-            var operator=snapshot.operators().get(i);
-            int count=base+(i<extra ? 1 : 0);
-            if(count==0) continue;
+            var operator=assignment.operator();
             var builder=new RouteBuilder(operator,snapshot.scoringTime(),
                     (lat1,lon1,lat2,lon2) -> maps.distance(lat1,lon1,lat2,lon2,budget),budget::check);
-            var stops=builder.buildOptimizedRoute(snapshot.deliveries().subList(index,index+count)); index+=count;
+            var stops=builder.buildOptimizedRoute(assignment.deliveries());
             result.add(new CalculatedPlan.DriverRoute(operator.id(),stops));
         }
         budget.check(); return new CalculatedPlan(snapshot,result);
