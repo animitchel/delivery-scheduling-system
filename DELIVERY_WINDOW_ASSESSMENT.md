@@ -1,6 +1,6 @@
 # Delivery-window assessment
 
-A pure, opt-in calculation layer for the dissertation/portfolio project. It assesses the existing ordered `CalculatedPlan`; it does not change driver allocation, reorder stops, reject work, persist results or make provider calls. No API, schema or frontend change is included. The live generation workflow does not invoke this assessment automatically.
+A pure, opt-in calculation layer for the dissertation/portfolio project. It assesses the existing ordered `CalculatedPlan`; it does not change driver allocation, reorder stops, reject work, persist results or make provider calls. No schema or frontend change is required. The administrator API follow-up is described below; live generation still does not invoke this assessment automatically.
 
 ## Explicit assumptions
 
@@ -36,8 +36,12 @@ For example, a 15-minute first leg arriving at 08:15 waits until 09:00. Ten minu
 
 Tests cover waiting, accumulated service/travel delays, the inclusive closing boundary, zero service/travel, unknown propagation and driver independence, midnight rollover, overdue work, invalid inputs, overflow and immutable outputs. A test assesses actual `RoutePlanner` output twice with different departures, verifying that reassessment makes no additional Maps requests and does not change assignments.
 
-This foundation intentionally provides no automatic warnings or rejection policy. A later change can expose assessment results through an agreed backend contract if useful for the demo. Capacity/load units and stricter scheduling remain separate decisions; frontend and hosting work stay paused.
+This foundation intentionally provides no automatic warnings or rejection policy. The saved-route API follow-up below exposes explicit calculations for demonstration. Capacity/load units and stricter scheduling remain separate decisions; frontend and hosting work stay paused.
 
 ## Final local validation
 
 Full local CI passed with 559 backend tests (including nine assessor cases), 434 frontend tests, ten disposable MySQL suites, 57 tooling tests, the complete application Chromium journey and all required cross-browser fixture suites. Dependency scanning found zero advisory matches across 392 package/version pairs. Secret scanning found zero blocking findings and the two previously acknowledged historical findings. Hosted GitHub Actions were not verified.
+
+## Saved-route API follow-up
+
+The foundation described above remains unchanged. `aniM/route-window-assessment-api` exposes an explicit hypothetical assessment of existing saved routes through an administrator-only endpoint; generation still does not invoke the assessment automatically. See [ROUTE_WINDOW_ASSESSMENT_API.md](ROUTE_WINDOW_ASSESSMENT_API.md) for the request, response, bounded reads and local demo.

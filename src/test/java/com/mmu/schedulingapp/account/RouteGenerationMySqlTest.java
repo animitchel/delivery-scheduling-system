@@ -91,4 +91,26 @@ class RouteGenerationMySqlTest {
         var first=service.directory(0,1,DATE); var second=service.directory(1,1,DATE); assertThat(first.totalElements()).isEqualTo(2); assertThat(first.routes().getFirst().routeId()).isGreaterThan(second.routes().getFirst().routeId());
         assertThat(service.directory(0,20,LocalDate.of(1000,1,1)).routes()).hasSize(1); assertThat(service.directory(0,20,LocalDate.of(9999,12,31)).routes()).hasSize(1); assertThat(service.directory(2,1,DATE).routes()).isEmpty();
     }
+    @Test void assessmentReadsOrderedProjectionsOnMySqlWithoutReplanning() throws Exception {
+        tx(() -> delivery(DATE));
+        var created=service.createRoutes(request()).getFirst();
+        var expected=new ArrayList<Integer>();
+        tx(() -> {
+            // Set up a saved non-ID order without Hibernate's transient membership swap.
+            var jdbc=context.getBean(org.springframework.jdbc.core.JdbcTemplate.class);
+            jdbc.update("update route_deliveries set delivery_order=delivery_order+10 where route_id=?",created.getRouteId());
+            jdbc.update("update route_deliveries set delivery_order=11-delivery_order where route_id=?",created.getRouteId());
+            var route=routes.findById(created.getRouteId()).orElseThrow();
+            route.getDeliveries().getFirst().setFromPrevDurationSeconds(null);
+            expected.addAll(route.getDeliveries().stream().map(Delivery::getDeliveryId).toList()); deliveries.flush();
+        });
+        var assessment=context.getBean(RouteWindowAssessmentService.class).assess(created.getRouteId(),
+                new RouteWindowAssessmentRequest(DATE.atTime(8,0),600L));
+        assertThat(assessment.stops()).extracting(RouteWindowAssessment.Stop::deliveryId).containsExactlyElementsOf(expected);
+        assertThat(assessment.stops()).allSatisfy(stop -> assertThat(stop.status()).isEqualTo(com.mmu.schedulingapp.service.autorouting.DeliveryWindowAssessor.Status.UNKNOWN));
+        assertThat(assessment.hypothetical()).isTrue(); assertThat(routes.count()).isEqualTo(1);
+        assertThat(deliveries.findAll()).allSatisfy(d -> { assertThat(d.getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS); assertThat(d.getOperatorId().getOperatorId()).isEqualTo(operatorId); });
+        verify(maps,times(2)).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
+    }
+
 }
