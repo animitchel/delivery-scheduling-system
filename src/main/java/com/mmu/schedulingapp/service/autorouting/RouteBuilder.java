@@ -5,7 +5,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.*;
 
-/** Calculates stop order and metrics from immutable values, never updating persisted entities. */
+/** Ranks candidates locally, then enriches selected legs; persisted entities are never changed. */
 public class RouteBuilder {
     @FunctionalInterface public interface DistanceLookup {
         DistanceResult get(double lat1, double lon1, double lat2, double lon2) throws Exception;
@@ -28,7 +28,8 @@ public class RouteBuilder {
             PlanningSnapshot.DeliveryInput best=null;
             double bestScore=Double.MAX_VALUE;
             for(var d:remaining) {
-                double km=getLeg(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue()).getDistanceKm();
+                checkDeadline.run();
+                double km=localDistanceKm(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue());
                 double score=DeliveryScore.calculate(d,km,scoringTime).total();
                 if(score<bestScore) { best=d; bestScore=score; }
             }
@@ -37,7 +38,8 @@ public class RouteBuilder {
             var iterator=remaining.iterator();
             while(iterator.hasNext()) {
                 var d=iterator.next();
-                if(getLeg(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue()).getDistanceKm()<0.001) {
+                checkDeadline.run();
+                if(localDistanceKm(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue())<0.001) {
                     group.add(d); iterator.remove();
                 }
             }
@@ -60,11 +62,17 @@ public class RouteBuilder {
         catch(ResponseStatusException limit) { throw limit; }
         catch(Exception failure) {
             checkDeadline.run();
-            double dLat=Math.toRadians(lat2-lat1),dLon=Math.toRadians(lon2-lon1);
-            double value=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(Math.toRadians(lat1))*Math.cos(Math.toRadians(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
-            double km=6371*2*Math.atan2(Math.sqrt(value),Math.sqrt(Math.max(0,1-value)));
+            double km=localDistanceKm(lat1,lon1,lat2,lon2);
             result=new DistanceResult(km,"Estimated distance; time unavailable",null);
         }
         legCache.put(key,result); return result;
     }
+    // Great-circle distance is a ranking heuristic, not a road/travel-time estimate.
+    private static double localDistanceKm(double lat1,double lon1,double lat2,double lon2) {
+        double dLat=Math.toRadians(lat2-lat1),dLon=Math.toRadians(lon2-lon1);
+        double value=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(Math.toRadians(lat1))*Math.cos(Math.toRadians(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+        double bounded=Math.max(0,Math.min(1,value));
+        return 6371*2*Math.atan2(Math.sqrt(bounded),Math.sqrt(1-bounded));
+    }
+
 }
