@@ -48,7 +48,7 @@ describe('authenticated workspace', () => {
   });
   it('rejects the wrong workspace without mounting its tools', async () => {
     mount(clientFor(driver), '/admin'); await screen.findByRole('heading', { name: 'You don’t have access to this workspace.' });
-    expect(document.title).toBe('Access restricted | Dispatch');
+    await waitFor(() => expect(document.title).toBe('Access restricted | Dispatch'));
     expect(screen.queryByRole('link', { name: 'Open accounts' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open your workspace' })).toHaveAttribute('href', '/driver');
   });
@@ -59,7 +59,7 @@ describe('authenticated workspace', () => {
   });
   it('recovers from a failed session read only after an explicit retry', async () => {
     const client = clientFor(); client.session.mockRejectedValueOnce(new ApiError(500)); mount(client);
-    await screen.findByRole('alert'); expect(document.title).toBe('Workspace unavailable | Dispatch'); expect(client.session).toHaveBeenCalledTimes(1);
+    await screen.findByRole('alert'); await waitFor(() => expect(document.title).toBe('Workspace unavailable | Dispatch')); expect(client.session).toHaveBeenCalledTimes(1);
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByRole('heading', { name: 'Keep deliveries moving.' });
   });
@@ -67,7 +67,7 @@ describe('authenticated workspace', () => {
     const client = clientFor(); client.session.mockResolvedValueOnce(admin).mockRejectedValue(new ApiError(401)); mount(client);
     await screen.findByRole('heading', { name: 'Keep deliveries moving.' });
     act(() => { window.dispatchEvent(new Event('focus')); });
-    await screen.findByRole('link', { name: 'Sign in' }); expect(document.title).toBe('Sign in required | Dispatch'); expect(screen.queryByText('admin')).not.toBeInTheDocument();
+    await screen.findByRole('link', { name: 'Sign in' }); await waitFor(() => expect(document.title).toBe('Sign in required | Dispatch')); expect(screen.queryByText('admin')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
   it.each(['focus', 'visibility', 'manual'])('preserves an unsaved draft through %s revalidation without writing', async trigger => {
@@ -76,6 +76,7 @@ describe('authenticated workspace', () => {
     const check = deferred<Account>(); const client = clientFor(); client.session.mockResolvedValueOnce(admin).mockReturnValueOnce(check.promise);
     mount(client, '/admin/warehouses'); await userEvent.click(await screen.findByRole('button', { name: 'Add warehouse' }));
     const input = screen.getByLabelText('Warehouse name'); fireEvent.change(input, { target: { value: 'Unsaved depot' } });
+    await waitFor(() => expect(document.title).toBe('Warehouses | Dispatch'));
     if (trigger === 'manual') await userEvent.click(screen.getByRole('button', { name: 'Refresh session' }));
     else if (trigger === 'visibility') {
       vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
@@ -189,18 +190,20 @@ describe('authenticated workspace', () => {
     function History() { const navigate = useNavigate(); return <><button onClick={() => navigate(-1)}>History back</button><button onClick={() => navigate(1)}>History forward</button></>; }
     vi.spyOn(warehousesApi, 'directory').mockResolvedValue({ warehouses: [], page: 0, size: 20, totalElements: 0, totalPages: 0 });
     render(<MemoryRouter initialEntries={['/admin/warehouses']}><App client={clientFor({ ...admin, username: 'Private identity' })} redirect={vi.fn()} /><History /></MemoryRouter>);
-    await screen.findByRole('heading', { name: 'Warehouses' }); expect(document.title).toBe('Warehouses | Dispatch');
+    await screen.findByRole('heading', { name: 'Warehouses' });
+    // The heading can commit before the title effect; wait for its observable result.
+    await waitFor(() => expect(document.title).toBe('Warehouses | Dispatch'));
     await userEvent.click(screen.getByRole('link', { name: 'Overview' }));
-    expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    await waitFor(() => { expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus(); });
     await userEvent.click(screen.getByRole('button', { name: 'History back' }));
-    expect(document.title).toBe('Warehouses | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    await waitFor(() => { expect(document.title).toBe('Warehouses | Dispatch'); expect(screen.getByRole('main')).toHaveFocus(); });
     await userEvent.click(screen.getByRole('button', { name: 'History forward' }));
-    expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus();
+    await waitFor(() => { expect(document.title).toBe('Operations overview | Dispatch'); expect(screen.getByRole('main')).toHaveFocus(); });
     expect(document.title).not.toContain('Private identity');
   });
   it('titles a missing page on a direct link', async () => {
     mount(clientFor(), '/missing?private=value'); await screen.findByRole('heading', { name: 'Page not found.' });
-    expect(document.title).toBe('Page not found | Dispatch');
+    await waitFor(() => expect(document.title).toBe('Page not found | Dispatch'));
   });
   it('renders HTML-looking usernames as text', async () => {
     const attack = '<img src=x onerror=alert(1)>'; mount(clientFor({ ...admin, username: attack }));
@@ -239,7 +242,7 @@ describe('authenticated workspace', () => {
   it.each(['0', '-1', '01', '2147483648', 'abc', '1&routeId=2'])('rejects invalid route link %s without loading a different route', async value => {
     const reads = vi.spyOn(adminRoutesApi, 'directory'); const details = vi.spyOn(adminRoutesApi, 'route');
     mount(clientFor(), `/admin/routes?routeId=${value}`);
-    await screen.findByRole('heading', { name: 'Invalid route link.' }); expect(document.title).toBe('Invalid route link | Dispatch');
+    await screen.findByRole('heading', { name: 'Invalid route link.' }); await waitFor(() => expect(document.title).toBe('Invalid route link | Dispatch'));
     expect(reads).not.toHaveBeenCalled(); expect(details).not.toHaveBeenCalled();
   });
   it('holds the workspace during generation and clears recovery after session expiry', async () => {
