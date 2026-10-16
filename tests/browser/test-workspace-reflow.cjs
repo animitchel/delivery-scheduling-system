@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { engine, browserType } = require('./browser-engine.cjs');
 const dist = path.resolve(__dirname, '../../frontend/dist');
-const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), 'reflow');
+const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), engine, 'reflow');
 fs.mkdirSync(artifacts, { recursive: true });
 assert.ok(fs.existsSync(path.join(dist, 'index.html')), 'Build the frontend before checking reflow');
 let account;
@@ -20,14 +20,14 @@ const server = http.createServer((request, response) => {
   const types = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' };
   response.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream'); response.end(fs.readFileSync(file));
 });
-const report = { complete: false, platform: process.platform, cases: [] };
+const report = { complete: false, engine, platform: process.platform, cases: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.stringify(report, null, 2));
 save();
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser, page;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE });
+    browser = await browserType.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); report.browserVersion = browser.version();
     for (const profile of ['administrator', 'long-administrator', 'long-driver']) {
       const driver = profile === 'long-driver';
       account = { id: 1, username: profile === 'administrator' ? 'smoke.admin' : 'test.account.'.padEnd(64, 'x'), role: driver ? 'DRIVER' : 'ADMIN', operatorId: driver ? 1 : null, enabled: true, passwordChangeRequired: false };

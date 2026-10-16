@@ -48,11 +48,11 @@ Use Java 25, Node 24.20.0, Docker and Python 3. Install the separate browser too
 
 ```sh
 npm ci --prefix tests/browser --ignore-scripts --no-audit --no-fund
-node tests/browser/node_modules/playwright/cli.js install chromium
+node tests/browser/node_modules/playwright/cli.js install chromium firefox webkit
 ./scripts/run-ci.sh
 ```
 
-On supported Linux hosts, use `install --with-deps chromium` to install system dependencies too. The workflow handles that setup. `run-ci.sh` clears only prior test evidence; it does not install system dependencies or alter a live database. The original optional system-Chrome smoke invocation remains compatible, but CI uses the matched bundled browser.
+On supported Linux hosts, use `install --with-deps chromium firefox webkit` to install system dependencies too. The workflow handles that setup. `run-ci.sh` clears only prior test evidence; it does not install system dependencies or alter a live database. The original optional system-Chrome smoke invocation remains compatible, but CI uses the matched bundled browser.
 
 Validate workflow syntax with `actionlint .github/workflows/ci.yml` and shell syntax with `bash -n scripts/run-ci.sh scripts/test-account-mysql.sh`. The evidence checker tests are `python3 -m unittest discover -s scripts -p 'test_verify_ci_results.py'`.
 
@@ -91,3 +91,16 @@ Dependency baseline validation on 14 October 2026 passed 538 backend tests, 356 
 ### Repository secret scanning
 
 `aniM/repository-secret-scanning` adds pinned, checksum-verified Gitleaks checks of tracked files and full HEAD history, location-only CI evidence and exact historical acknowledgements. The owner confirmed the previously exposed Maps credential was revoked or rotated on 2026-10-14; provider state was not independently verified. See [SECRET_SCANNING.md](SECRET_SCANNING.md). Staging HTTPS/configuration, readiness, recovery and blocked GitHub enforcement remain separate release gates.
+
+
+### Required cross-browser frontend acceptance
+
+`run-ci.sh` runs `tests/browser/run-acceptance.cjs` after backend/browser/packaging evidence verification. All four built-frontend fixture suites must pass in Chromium, Firefox and WebKit; a missing runtime, failed process, timeout or incomplete report fails the command. Results/screenshots are isolated under `.ci-artifacts/browser/<engine>/`, with an aggregate `cross-browser-results.json`. The matrix covers 468 layout cases, 12 confirmation-keyboard cases, desktop/mobile navigation/history focus, route inspection/pagination, date controls, explicit generation and uncertain-response recovery. The separate full backend application journey remains Chromium-only. Fixtures are disposable loopback HTTP servers and do not use the development database.
+
+On hosts unable to launch a bundled engine, run the same required matrix in the official Linux Playwright image matching the lockfile version:
+
+```sh
+ACCEPTANCE_USE_CONTAINER=1 ./scripts/run-ci.sh
+```
+
+This opt-in container runs only frontend fixtures, has no external network access, and mounts the checkout for built assets and test evidence. Docker must be running and the matching image must be available; failures are not skipped. Node 24.20.0 and Java 25 remain required for the host CI pipeline. GitHub's Ubuntu job installs all three engines and runs them directly. Native Safari/iPhone, screen-reader and native browser-zoom acceptance remain separate checks. See [FRONTEND_ACCEPTANCE.md](FRONTEND_ACCEPTANCE.md) for observed results and limitations.
