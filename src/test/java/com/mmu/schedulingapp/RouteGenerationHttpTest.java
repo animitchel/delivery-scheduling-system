@@ -61,4 +61,20 @@ class RouteGenerationHttpTest {
         }
         assertThat(routes.count()).isZero(); verifyNoInteractions(maps);
     }
+    @Test void savedRouteAssessmentUsesActualSessionWithoutCallingMapsAgain() throws Exception {
+        var generated=http.send(write("/api/admin/routes/generate").header("Content-Type","application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(BODY)).build(),HttpResponse.BodyHandlers.ofString());
+        assertThat(generated.statusCode()).isEqualTo(201);
+        int id=json.readTree(generated.body()).get("routes").get(0).get("routeId").asInt();
+        var before=http.send(HttpRequest.newBuilder(URI.create(base+"/api/admin/routes/"+id)).GET().build(),HttpResponse.BodyHandlers.ofString()).body();
+        var response=http.send(write("/api/admin/routes/"+id+"/assessment").header("Content-Type","application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"departure\":\"2026-10-12T08:00:00\",\"serviceDurationSeconds\":600}")).build(),HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200); assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
+        var assessment=json.readTree(response.body()); assertThat(assessment.get("hypothetical").asBoolean()).isTrue();
+        assertThat(assessment.get("stops").get(0).get("waitingSeconds").asLong()).isEqualTo(3540);
+        assertThat(assessment.get("stops").get(0).get("status").asText()).isEqualTo("WITHIN_WINDOW");
+        assertThat(http.send(HttpRequest.newBuilder(URI.create(base+"/api/admin/routes/"+id)).GET().build(),HttpResponse.BodyHandlers.ofString()).body()).isEqualTo(before);
+        verify(maps,times(1)).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
+    }
+
 }
