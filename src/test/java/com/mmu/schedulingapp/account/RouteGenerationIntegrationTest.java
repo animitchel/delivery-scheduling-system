@@ -190,4 +190,41 @@ class RouteGenerationIntegrationTest {
         var invalid=RouteRequestDTO.builder().scheduledDate(null).build(); assertThatThrownBy(() -> service.createRoutes(invalid)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class); verifyNoInteractions(maps);
         mvc.perform(post("/api/v1/scheduling-app/routes").with(user(admin)).with(csrf()).contentType("application/json").content(BODY)).andExpect(status().isCreated()).andExpect(jsonPath("$.routes[0].deliveries.length()").value(1)).andExpect(jsonPath("$.processingTimeMs").exists());
     }
+    @ParameterizedTest @ValueSource(strings={"all","operator"})
+    void legacyServiceReadsMapStopsWithoutARequestOrCallerTransaction(String read) {
+        tx(() -> delivery(DATE)); assertThat(generate()).isEqualTo(201);
+        int id=service.directory(0,20).routes().getFirst().routeId();
+        var expected=service.getRoute(id).orElseThrow(); clearInvocations(maps);
+        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        var result=read.equals("all") ? service.getAllRoutes() : service.getRouteByDriverId(operatorId);
+        assertThat(result).hasSize(1); assertThat(result.getFirst()).usingRecursiveComparison().isEqualTo(expected);
+        assertThat(result.getFirst().getDeliveries()).hasSize(2);
+        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        assertThat(service.getRoute(id).orElseThrow()).usingRecursiveComparison().isEqualTo(expected);
+        verifyNoInteractions(maps);
+    }
+    @ParameterizedTest @ValueSource(strings={"all","operator"})
+    void legacyHttpReadsRetainTheirResponseAndSavedStopOrderWithOsivDisabled(String read) throws Exception {
+        tx(() -> delivery(DATE)); assertThat(generate()).isEqualTo(201);
+        var expected=service.getRoute(service.directory(0,20).routes().getFirst().routeId()).orElseThrow();
+        var endpoint="/api/v1/scheduling-app/routes"+(read.equals("operator") ? "/operator/"+operatorId : "");
+        mvc.perform(get(endpoint).with(user(admin))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1)).andExpect(jsonPath("$[0].routeId").value(expected.getRouteId()))
+                .andExpect(jsonPath("$[0].deliveries.length()").value(2))
+                .andExpect(jsonPath("$[0].deliveries[0].deliveryId").value(expected.getDeliveries().get(0).getDeliveryId()))
+                .andExpect(jsonPath("$[0].deliveries[1].deliveryId").value(expected.getDeliveries().get(1).getDeliveryId()));
+    }
+
+    @Test void legacyReadAccessAndEmptyResponsesRemainCompatible() throws Exception {
+        var base="/api/v1/scheduling-app/routes";
+        for(var endpoint:List.of(base,base+"/operator/"+operatorId)) {
+            mvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+            mvc.perform(get(endpoint).with(user(driver))).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(base).with(user(admin))).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(base+"/operator/"+operatorId).with(user(admin))).andExpect(status().isNoContent());
+        mvc.perform(get(base+"/operator/2147483647").with(user(admin))).andExpect(status().isBadRequest());
+        verifyNoInteractions(maps); unassigned();
+    }
+
 }
