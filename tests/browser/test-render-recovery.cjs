@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { engine, browserType } = require('./browser-engine.cjs');
 const dist = path.resolve(__dirname, '../../frontend/dist');
-const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), 'render-recovery');
+const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), engine, 'render-recovery');
 fs.mkdirSync(artifacts, { recursive: true });
 assert.ok(fs.existsSync(path.join(dist, 'index.html')), 'Build the frontend before checking recovery');
 const privateMessage = 'Private fixture account and credential details';
@@ -29,14 +29,14 @@ const server = http.createServer((request, response) => {
   const contents = fs.readFileSync(file);
   response.end(extension === '.js' && injectFault ? fault + contents.toString() : contents);
 });
-const report = { complete: false, cases: [] };
+const report = { complete: false, engine, cases: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.stringify(report, null, 2));
 save();
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   let browser, page;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE });
+    browser = await browserType.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); report.browserVersion = browser.version();
     page = await browser.newPage();
     const diagnostics = [], uncaught = [];
     page.on('console', message => { if (message.type() === 'error') diagnostics.push(message.text()); });

@@ -3,9 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
 const path = require('node:path');
-const { chromium } = require('playwright');
+const { engine, browserType } = require('./browser-engine.cjs');
 const dist = path.resolve(__dirname, '../../frontend/dist');
-const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), 'generation-mobile-review');
+const artifacts = path.join(process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser'), engine, 'generation-mobile-review');
 fs.mkdirSync(artifacts, { recursive: true });
 const longName = '<img src=x onerror=alert(1)> ' + 'LongOperator'.repeat(12);
 const rows = ['IN_PROGRESS', 'PLANNED', 'COMPLETED'].map((routeStatus, index) => ({ routeId: index + 1, operatorId: index + 1,
@@ -41,12 +41,12 @@ const server = http.createServer((request, response) => {
   response.setHeader('Content-Type', ({ '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml' })[path.extname(file)] || 'application/octet-stream');
   response.end(fs.readFileSync(file));
 });
-const report = { complete: false, cases: [], keyboardCases: [] };
+const report = { complete: false, engine, cases: [], keyboardCases: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'results.json'), JSON.stringify(report, null, 2)); save();
 (async () => {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); let browser, page;
   try {
-    browser = await chromium.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); page = await browser.newPage();
+    browser = await browserType.launch({ headless: true, executablePath: process.env.SESSION_BROWSER_EXECUTABLE }); report.browserVersion = browser.version(); page = await browser.newPage();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
     await page.goto(`http://127.0.0.1:${server.address().port}/app/admin/routes/generate`);
     const table = page.getByRole('table', { name: 'Routes for generation review', exact: true }); await table.waitFor();
