@@ -36,6 +36,7 @@ public class RouteService {
         this(routes,operators,null,null,null);
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public List<RouteResponseDTO> getAllRoutes() {
         return routeRepository.findAll()
                 .stream()
@@ -72,6 +73,7 @@ public class RouteService {
         return routeRepository.findById(id).map(RouteMapper::toResponseDTO);
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public List<RouteResponseDTO> getRouteByDriverId(int driverId) {
         Operator operator = operatorRepository.findById(driverId)
                 .orElseThrow(() -> new IllegalArgumentException("Driver not found with ID: " + driverId));

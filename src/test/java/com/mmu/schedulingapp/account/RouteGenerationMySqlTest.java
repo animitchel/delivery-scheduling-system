@@ -113,4 +113,21 @@ class RouteGenerationMySqlTest {
         verify(maps,times(2)).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
     }
 
+    @Test void legacyRouteReadsWorkOutsideRequestsOnMySqlAndDoNotChangeSavedData() {
+        tx(() -> delivery(DATE));
+        var created=service.createRoutes(request()).getFirst();
+        var expected=service.getRoute(created.getRouteId()).orElseThrow(); clearInvocations(maps);
+        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        assertThat(service.getAllRoutes()).singleElement().usingRecursiveComparison().isEqualTo(expected);
+        assertThat(service.getRouteByDriverId(operatorId)).singleElement().usingRecursiveComparison().isEqualTo(expected);
+        assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+        assertThat(service.getRoute(created.getRouteId()).orElseThrow()).usingRecursiveComparison().isEqualTo(expected);
+        assertThat(deliveries.findAll()).allSatisfy(d -> {
+            assertThat(d.getDeliveryStatus()).isEqualTo(Delivery.DeliveryStatus.IN_PROGRESS);
+            assertThat(d.getOperatorId().getOperatorId()).isEqualTo(operatorId);
+        });
+        assertThat(operators.findById(operatorId).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.ON_DELIVERY);
+        verifyNoInteractions(maps);
+    }
+
 }
