@@ -19,7 +19,7 @@ Tests cover deterministic results despite reversed input lists, explicit equal-d
 
 For D deliveries and O operators, allocation creates D×O candidates and sorts them in O(DO log(DO)) time with O(DO) additional memory. Existing workload/deadline limits bound the operation; local stop ordering remains quadratic within each route. Deadline checks cover candidate creation, comparison and assignment.
 
-The heuristic does not minimise whole-route road distance or guarantee improvement for every dataset. Fixed quotas can force geographically distant work onto a driver, and assigning the nearest pair first can prevent a better overall allocation. It does not implement load capacity, shifts, return-to-warehouse travel, delivery service durations or arrival-window feasibility. Those require separately agreed domain rules. Driver selection still favours lower IDs when there are more eligible operators than deliveries; this change improves allocation among the selected operators only.
+The heuristic does not minimise whole-route road distance or guarantee improvement for every dataset. Fixed quotas can force geographically distant work onto a driver, and assigning the nearest pair first can prevent a better overall allocation. It does not implement load capacity, shifts, return-to-warehouse travel, delivery service durations or arrival-window feasibility. Those require separately agreed domain rules. The original allocation change improved assignments among already selected drivers only. The subsequent [geographic driver-selection change](GEOGRAPHIC_DRIVER_SELECTION.md) replaces lower-ID-only selection with a complete bounded candidate pool and local nearest-pair matching.
 
 ## Validation
 

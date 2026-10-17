@@ -35,18 +35,20 @@ public class RoutePlanningTransactions {
         if(ids.size()>budget.maxDeliveries()) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,"Too many deliveries for one route-planning operation.");
         if(ids.isEmpty()) throw DeliveryLifecycleService.conflict("No unrouted pending deliveries for the requested date.");
         var deliveryInputs=ids.stream().map(id -> PlanningSnapshot.DeliveryInput.from(deliveries.findById(id).orElseThrow(RoutePlanningTransactions::stale))).toList();
-        var operatorInputs=operators.findPlanningIds(PageRequest.of(0,ids.size())).stream()
-                .map(id -> PlanningSnapshot.OperatorInput.from(operators.findById(id).orElseThrow(RoutePlanningTransactions::stale))).toList();
-        if(operatorInputs.isEmpty()) throw DeliveryLifecycleService.conflict("No available operators without active routes.");
-        for(var o:operatorInputs) {
-            if(o.warehouse()==null || o.warehouse().latitude()==null || o.warehouse().longitude()==null)
-                throw DeliveryLifecycleService.conflict("Selected operator needs warehouse coordinates before routing.");
-        }
+        var candidateIds=operators.findPlanningIds(PageRequest.of(0,budget.maxOperatorCandidates()+1));
+        if(candidateIds.size()>budget.maxOperatorCandidates()) throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,"Too many operator candidates for one route-planning operation.");
+        if(candidateIds.isEmpty()) throw DeliveryLifecycleService.conflict("No available operators without active routes.");
+        var candidates=candidateIds.stream().map(id -> {
+            budget.check();
+            return PlanningSnapshot.OperatorInput.from(operators.findById(id).orElseThrow(RoutePlanningTransactions::stale));
+        }).filter(o -> o.warehouse()!=null && o.warehouse().latitude()!=null && o.warehouse().longitude()!=null).toList();
+        if(candidates.isEmpty()) throw DeliveryLifecycleService.conflict("Selected operator needs warehouse coordinates before routing.");
         for(var d:deliveryInputs) {
             if(d.scheduledDate()==null || d.endWindow()==null || d.priority()==null || d.recipient().priority()==null
                     || d.recipient().latitude()==null || d.recipient().longitude()==null)
                 throw DeliveryLifecycleService.conflict("Selected delivery needs complete scheduling and location data.");
         }
+        var operatorInputs=DriverSelector.select(candidates,deliveryInputs,budget);
         budget.check();
         return new PlanningSnapshot(date,LocalDateTime.now(clock),operatorInputs,deliveryInputs);
     }
