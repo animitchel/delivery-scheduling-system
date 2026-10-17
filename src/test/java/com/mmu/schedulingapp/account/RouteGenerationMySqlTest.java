@@ -130,4 +130,26 @@ class RouteGenerationMySqlTest {
         verifyNoInteractions(maps);
     }
 
+    @Test void geographicSelectionConsidersHigherIdCandidatesOnMySql() throws Exception {
+        var nearby=new AtomicInteger();
+        tx(() -> {
+            var w=new Warehouse(); w.setName("Nearby"); w.setAddress("Nearby depot"); w.setLatitude(BigDecimal.ONE); w.setLongitude(BigDecimal.ONE); warehouses.saveAndFlush(w);
+            var o=new Operator(); o.setName("Nearby driver"); o.setEmail("selected-nearby@test.local"); o.setPhoneNumber("123"); o.setWarehouse(w); operators.saveAndFlush(o); nearby.set(o.getOperatorId());
+        });
+        var created=service.createRoutes(request());
+        assertThat(created).hasSize(1); assertThat(created.getFirst().getOperatorId()).isEqualTo(nearby.get());
+        assertThat(deliveries.findById(deliveryId).orElseThrow().getOperatorId().getOperatorId()).isEqualTo(nearby.get());
+        assertThat(operators.findById(operatorId).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+        verify(maps,times(1)).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
+    }
+    @Test void candidateLimitIsEnforcedOnMySqlWithoutProviderCalls() {
+        tx(() -> {
+            var o=new Operator(); o.setName("Extra candidate"); o.setEmail("extra-candidate@test.local"); o.setPhoneNumber("123");
+            o.setWarehouse(warehouses.findById(warehouseId).orElseThrow()); operators.saveAndFlush(o);
+        });
+        var limits=context.getBean(MapsLimits.class); int original=limits.getMaxOperatorCandidates(); limits.setMaxOperatorCandidates(1);
+        try { assertThat(generate()).isEqualTo(413); unassigned(); verifyNoInteractions(maps); }
+        finally { limits.setMaxOperatorCandidates(original); }
+    }
+
 }
