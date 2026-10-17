@@ -15,16 +15,18 @@ class MapsLimitsBindingTest {
                         new org.springframework.core.env.SystemEnvironmentPropertySource("systemEnvironment", java.util.Map.of(
                                 "SCHEDULING_MAPS_CONNECTTIMEOUTMS", "321",
                                 "SCHEDULING_MAPS_PLANNINGTIMEOUTMS", "4321",
-                                "SCHEDULING_MAPS_MAXDELIVERIES", "12"))))
+                                "SCHEDULING_MAPS_MAXDELIVERIES", "12",
+                                "SCHEDULING_MAPS_MAXOPERATORCANDIDATES", "123"))))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     var limits=context.getBean(MapsLimits.class);
                     assertThat(limits.getConnectTimeoutMs()).isEqualTo(321);
                     assertThat(limits.getPlanningTimeoutMs()).isEqualTo(4321);
                     assertThat(limits.getMaxDeliveries()).isEqualTo(12);
+                    assertThat(limits.getMaxOperatorCandidates()).isEqualTo(123);
                 });
     }
-    @ParameterizedTest @ValueSource(strings={"connect-timeout-ms=0","read-timeout-ms=0","request-timeout-ms=0","max-response-bytes=0","max-deliveries=0","max-provider-calls=0","max-concurrent-planning=0","planning-timeout-ms=0"})
+    @ParameterizedTest @ValueSource(strings={"connect-timeout-ms=0","read-timeout-ms=0","request-timeout-ms=0","max-response-bytes=0","max-deliveries=0","max-operator-candidates=0","max-operator-candidates=501","max-provider-calls=0","max-concurrent-planning=0","planning-timeout-ms=0"})
     void unsafeLimitsFailStartup(String setting) {
         new ApplicationContextRunner().withUserConfiguration(Config.class).withPropertyValues("scheduling.maps."+setting)
                 .run(context -> assertThat(context).hasFailed());

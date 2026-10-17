@@ -34,6 +34,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 class RoutePlanningTransactionsIntegrationTest {
     @org.junit.jupiter.api.extension.RegisterExtension
     final TestWorkers workers = new TestWorkers();
+    @Autowired MapsLimits limits;
     @Autowired AccountRepository accounts;
     @Autowired RouteService service;
     @Autowired RouteRepository routes;
@@ -170,4 +171,69 @@ class RoutePlanningTransactionsIntegrationTest {
                 .content("{\"scheduledDate\":\""+LocalDate.now()+"\"}")).andReturn();
         assertThat(result.getResponse().getStatus()).isEqualTo(409); unassigned();
     }
+    @Test void oneDeliverySelectsNearbyHigherIdDriverInsteadOfFirstId() throws Exception {
+        var nearby=new AtomicInteger();
+        tx(() -> {
+            var w=new Warehouse(); w.setName("Nearby"); w.setAddress("Nearby depot"); w.setLatitude(BigDecimal.ONE); w.setLongitude(BigDecimal.ONE); warehouses.saveAndFlush(w);
+            var o=new Operator(); o.setName("Nearby driver"); o.setEmail("nearby@test.local"); o.setPhoneNumber("123"); o.setWarehouse(w); operators.saveAndFlush(o); nearby.set(o.getOperatorId());
+        });
+        when(provider.distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any())).thenAnswer(call -> {
+            ((PlanningGuard.Budget)call.getArgument(4)).countProviderCall(); return new DistanceResult(1,"1 min",60);
+        });
+        var result=service.createRoutes(request());
+        assertThat(result).hasSize(1); assertThat(result.getFirst().getOperatorId()).isEqualTo(nearby.get());
+        assertThat(operators.findById(operatorId).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+        assertThat(deliveries.findById(deliveryId).orElseThrow().getOperatorId().getOperatorId()).isEqualTo(nearby.get());
+        verify(provider,times(1)).distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any());
+    }
+
+    int candidate(String name,Operator.AvailabilityStatus availability,boolean active,boolean configured) {
+        var id=new AtomicInteger();
+        tx(() -> {
+            Warehouse w=null;
+            if(configured) { w=new Warehouse(); w.setName(name); w.setAddress("depot"); w.setLatitude(BigDecimal.ONE); w.setLongitude(BigDecimal.ONE); warehouses.saveAndFlush(w); }
+            var o=new Operator(); o.setName(name); o.setEmail(name+"@test.local"); o.setPhoneNumber("123"); o.setWarehouse(w); o.setAvailabilityStatus(availability); operators.saveAndFlush(o); id.set(o.getOperatorId());
+            if(active) { var r=new Route(); r.setOperator(o); r.setScheduledDate(LocalDate.now()); r.setRouteStatus(Route.RouteStatus.PLANNED); r.setDeliveries(new java.util.ArrayList<>()); routes.saveAndFlush(r); }
+        }); return id.get();
+    }
+    void successfulEstimate() throws Exception {
+        when(provider.distance(anyDouble(),anyDouble(),anyDouble(),anyDouble(),any())).thenAnswer(call -> {
+            ((PlanningGuard.Budget)call.getArgument(4)).countProviderCall(); return new DistanceResult(1,"1 min",60);
+        });
+    }
+    @Test void excludesUnavailableActiveAndUnconfiguredCandidates() throws Exception {
+        candidate("unavailable",Operator.AvailabilityStatus.UNAVAILABLE,false,true);
+        candidate("already-active",Operator.AvailabilityStatus.AVAILABLE,true,true);
+        candidate("unconfigured",Operator.AvailabilityStatus.AVAILABLE,false,false);
+        int near=candidate("routable",Operator.AvailabilityStatus.AVAILABLE,false,true); successfulEstimate();
+        assertThat(service.createRoutes(request()).getFirst().getOperatorId()).isEqualTo(near);
+    }
+    @Test void unconfiguredFirstIdDoesNotHideConfiguredHigherId() throws Exception {
+        tx(() -> operators.findById(operatorId).orElseThrow().setWarehouse(null));
+        int near=candidate("configured",Operator.AvailabilityStatus.AVAILABLE,false,true); successfulEstimate();
+        assertThat(service.createRoutes(request()).getFirst().getOperatorId()).isEqualTo(near);
+    }
+    @Test void exceedingCandidateLimitFailsBeforeProviderOrAssignmentInsteadOfTruncatingIds() {
+        candidate("beyond-limit",Operator.AvailabilityStatus.AVAILABLE,false,true);
+        int original=limits.getMaxOperatorCandidates(); limits.setMaxOperatorCandidates(1);
+        try {
+            assertThat(generate()).isEqualTo(413); assertThat(routes.count()).isZero();
+            assertThat(deliveries.findById(deliveryId).orElseThrow().getOperatorId()).isNull();
+            assertThat(operators.findAll()).allSatisfy(o -> assertThat(o.getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE));
+            verifyNoInteractions(provider);
+        } finally { limits.setMaxOperatorCandidates(original); }
+    }
+    @Test void selectedHigherIdDriverIsRevalidatedBeforeCommit() throws Exception {
+        int near=candidate("changed-nearby",Operator.AvailabilityStatus.AVAILABLE,false,true);
+        var entered=new CountDownLatch(1); var release=new CountDownLatch(1); providerBarrier(entered,release);
+        var pending=workers.supplyAsync(this::generate);
+        try {
+            assertThat(entered.await(5,TimeUnit.SECONDS)).isTrue();
+            tx(() -> operators.findById(near).orElseThrow().setAvailabilityStatus(Operator.AvailabilityStatus.OFF_DUTY));
+        } finally { release.countDown(); }
+        assertThat(pending.get(5,TimeUnit.SECONDS)).isEqualTo(409);
+        assertThat(routes.count()).isZero(); assertThat(deliveries.findById(deliveryId).orElseThrow().getOperatorId()).isNull();
+        assertThat(operators.findById(operatorId).orElseThrow().getAvailabilityStatus()).isEqualTo(Operator.AvailabilityStatus.AVAILABLE);
+    }
+
 }
