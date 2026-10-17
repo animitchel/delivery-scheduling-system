@@ -31,7 +31,7 @@ public class RouteBuilder {
                 checkDeadline.run();
                 double km=GeographicDistance.km(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue());
                 double score=DeliveryScore.calculate(d,km,scoringTime).total();
-                if(score<bestScore) { best=d; bestScore=score; }
+                if(score<bestScore || (Double.compare(score,bestScore)==0 && (best==null || d.id()<best.id()))) { best=d; bestScore=score; }
             }
             if(best==null) throw new IllegalStateException("No usable route candidate.");
             List<PlanningSnapshot.DeliveryInput> group=new ArrayList<>();
@@ -44,7 +44,13 @@ public class RouteBuilder {
                 }
             }
             if(group.isEmpty()) { group.add(best); remaining.remove(best); }
-            group.sort(Comparator.comparingDouble(d -> DeliveryScore.calculate(d,0,scoringTime).urgency()));
+            // Keep the existing sub-metre grouping, but apply the same priority/urgency policy.
+            group.sort((left,right) -> {
+                checkDeadline.run();
+                int scoreOrder=Double.compare(DeliveryScore.calculate(left,0,scoringTime).total(),
+                        DeliveryScore.calculate(right,0,scoringTime).total());
+                return scoreOrder!=0 ? scoreOrder : Integer.compare(left.id(),right.id());
+            });
             for(var d:group) {
                 var leg=getLeg(currentLat,currentLon,d.recipient().latitude().doubleValue(),d.recipient().longitude().doubleValue());
                 result.add(new CalculatedPlan.Stop(d.id(),leg.getDistanceKm(),leg.getDurationText(),leg.getDurationSeconds()));
