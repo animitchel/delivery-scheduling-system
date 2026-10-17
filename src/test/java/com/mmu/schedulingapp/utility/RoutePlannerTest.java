@@ -88,6 +88,47 @@ class RoutePlannerTest {
         assertThatThrownBy(() -> expired.buildOptimizedRoute(List.of(low,high)))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"0,false", "0,true", "1,false", "1,true"})
+    void colocatedStopsUsePriorityAndStableIdTies(int latitude, boolean reverse) {
+        var w=new PlanningSnapshot.WarehouseInput(1,"warehouse","address",BigDecimal.ZERO,BigDecimal.ZERO);
+        var o=new PlanningSnapshot.OperatorInput(1,"operator","phone","email","van",1.0,Operator.AvailabilityStatus.AVAILABLE,w);
+        var recipient=new Recipient(); recipient.setRecipientId(1);
+        recipient.setLatitude(BigDecimal.valueOf(latitude)); recipient.setLongitude(BigDecimal.ZERO);
+        recipient.setPriorityLevel(Recipient.PriorityLevel.MEDIUM);
+        var inputs=new java.util.ArrayList<PlanningSnapshot.DeliveryInput>();
+        inputs.add(PlanningSnapshot.DeliveryInput.from(delivery(4,recipient,Delivery.PriorityLevel.LOW)));
+        inputs.add(PlanningSnapshot.DeliveryInput.from(delivery(3,recipient,Delivery.PriorityLevel.HIGH)));
+        inputs.add(PlanningSnapshot.DeliveryInput.from(delivery(2,recipient,Delivery.PriorityLevel.HIGH)));
+        inputs.add(PlanningSnapshot.DeliveryInput.from(delivery(1,recipient,Delivery.PriorityLevel.LOW)));
+        if(reverse) java.util.Collections.reverse(inputs);
+        var calls=new java.util.concurrent.atomic.AtomicInteger();
+        var builder=new RouteBuilder(o,LocalDateTime.of(2026,1,1,12,0),
+                (a,b,c,d) -> { calls.incrementAndGet(); return new DistanceResult(1,"estimate",60); },() -> {});
+        assertThat(builder.buildOptimizedRoute(inputs)).extracting(CalculatedPlan.Stop::deliveryId)
+                .containsExactly(2,3,1,4);
+        assertThat(calls.get()).isEqualTo(latitude==0 ? 1 : 2);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void colocatedScoringRetainsRecipientPriorityAndOverdueUrgency(boolean overdue) {
+        var w=new PlanningSnapshot.WarehouseInput(1,"warehouse","address",BigDecimal.ZERO,BigDecimal.ZERO);
+        var o=new PlanningSnapshot.OperatorInput(1,"operator","phone","email","van",1.0,Operator.AvailabilityStatus.AVAILABLE,w);
+        var lowRecipient=new Recipient(); lowRecipient.setLatitude(BigDecimal.ZERO); lowRecipient.setLongitude(BigDecimal.ZERO);
+        lowRecipient.setPriorityLevel(Recipient.PriorityLevel.LOW);
+        var highRecipient=new Recipient(); highRecipient.setLatitude(BigDecimal.ZERO); highRecipient.setLongitude(BigDecimal.ZERO);
+        highRecipient.setPriorityLevel(Recipient.PriorityLevel.HIGH);
+        var low=delivery(1,lowRecipient,Delivery.PriorityLevel.MEDIUM);
+        var high=delivery(2,highRecipient,Delivery.PriorityLevel.MEDIUM);
+        if(overdue) low.setEndTimeWindow(LocalTime.of(8,0));
+        var builder=new RouteBuilder(o,LocalDateTime.of(2026,1,1,12,0),
+                (a,b,c,d) -> new DistanceResult(0,"same location",0),() -> {});
+        assertThat(builder.buildOptimizedRoute(List.of(PlanningSnapshot.DeliveryInput.from(low),PlanningSnapshot.DeliveryInput.from(high))))
+                .extracting(CalculatedPlan.Stop::deliveryId)
+                .containsExactlyElementsOf(overdue ? List.of(1,2) : List.of(2,1));
+    }
+
     @Test void urgencyUsesCapturedTimeAndPreservesOverdueWeighting() {
         var p=new Recipient(); p.setRecipientId(1); p.setPriorityLevel(Recipient.PriorityLevel.MEDIUM);
         var d=delivery(1,p,Delivery.PriorityLevel.MEDIUM); d.setEndTimeWindow(LocalTime.of(10,0));
