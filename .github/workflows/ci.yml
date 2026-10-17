@@ -42,6 +42,7 @@ jobs:
             target/surefire-reports/
             target/frontend-reports/
             .ci-artifacts/browser/
+            .ci-artifacts/portfolio-demo/
             .ci-artifacts/coverage-summary.json
             .ci-artifacts/dependencies/
             .ci-artifacts/secrets/
