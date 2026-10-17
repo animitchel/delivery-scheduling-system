@@ -7,7 +7,7 @@ ci_node=$(command -v node)
 if [[ "$("$ci_node" --version)" != "v24.20.0" ]]; then echo 'CI requires Node 24.20.0.' >&2; exit 1; fi
 export SESSION_BROWSER_ARTIFACTS_DIR="$PWD/.ci-artifacts/browser"
 # Remove previous evidence, not the runtime or any application data.
-rm -rf target/surefire-reports target/frontend-reports .ci-artifacts/browser
+rm -rf target/surefire-reports target/frontend-reports .ci-artifacts/browser .ci-artifacts/portfolio-demo
 mkdir -p .ci-artifacts/browser
 ./scripts/test-account-mysql.sh \
   "-Dsession.browser.node=$ci_node" \
