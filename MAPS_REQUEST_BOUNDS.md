@@ -14,6 +14,7 @@ Validated Spring properties under `scheduling.maps` have these conservative init
 | max-response-bytes | 262144 | Maximum buffered UTF-8 response bytes |
 | planning-timeout-ms | 10000 | Shared monotonic deadline for a route-generation operation |
 | max-deliveries | 50 | Maximum due pending deliveries considered per operation |
+| max-operator-candidates | 500 | Maximum available/no-active-route operator candidates; oversize pools fail instead of truncating IDs |
 | max-provider-calls | 100 | Shared attempted distance lookup budget across all driver routes |
 | max-concurrent-planning | 2 | Per-application-instance planning slots, with immediate rejection when full |
 
@@ -50,3 +51,5 @@ This change bounds provider I/O, response memory, delivery count, attempted call
 Local HTTP fixtures cover successful UTF-8 responses, stalled TLS/headers/body, slow-drip body, total/remaining deadlines, declared and chunked oversized bodies, denied/quota responses, redirects and recovery. Typed outcome and credential-sanitization tests remain. Configuration tests reject unsafe limits.
 
 Disposable database tests cover an oversized workload with no provider calls or writes; shared call-budget rejection before any driver route is written; deadline failures that cannot be swallowed by fallback; admission rejection; successful later requests; and the existing lifecycle, ownership and real-MySQL concurrency regressions. No live provider calls or credentials are needed.
+
+Geographic selection also reads at most `max-operator-candidates + 1` candidate IDs. Configure with `scheduling.maps.max-operator-candidates` or `SCHEDULING_MAPS_MAXOPERATORCANDIDATES` (1–500). Exceeding the limit returns 413 before provider calls or assignment; narrowing delivery dates does not reduce this operator-pool limit. Within the complete bounded pool, drivers lacking warehouse coordinates are skipped; if none are routable, the warehouse-setup conflict remains. See [GEOGRAPHIC_DRIVER_SELECTION.md](GEOGRAPHIC_DRIVER_SELECTION.md).

@@ -36,6 +36,7 @@ public class PlanningGuard {
             check();
             if (++calls > limits.getMaxProviderCalls()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Route planning provider-call budget exceeded.");
         }
+        public int maxOperatorCandidates() { return limits.getMaxOperatorCandidates(); }
         public int maxDeliveries() { return limits.getMaxDeliveries(); }
         @Override public void close() { if (!closed) { closed = true; release.run(); } }
     }
