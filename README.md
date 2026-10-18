@@ -4,6 +4,10 @@ A master's dissertation and portfolio project demonstrating delivery preparation
 
 The application uses Java 25/Spring Boot, MySQL, and React with TypeScript/Vite. It is intended to be demonstrated locally; online hosting is not required.
 
+## Architecture and engineering decisions
+
+Start with [the architecture and tradeoffs guide](ARCHITECTURE_AND_TRADEOFFS.md) for the request flow, permissions, scheduling algorithm, transaction design and demonstration limits.
+
 ## Reproducible backend demo
 
 With Java 25 selected, Docker running and Python 3 available:
@@ -27,4 +31,4 @@ Routing uses geographic heuristics rather than guaranteed global optimisation. W
 
 ## Current backend status
 
-[Backend status and remaining limits](BACKEND_STATUS_REVIEW.md) reconciles the original audit against merged PR #68. The [current roadmap](IMPROVEMENT_ROADMAP.md#current-next-steps) prioritises optional focused bug work and a clear portfolio stopping point; older production phases are historical reference.
+[Backend status and remaining limits](BACKEND_STATUS_REVIEW.md) reconciles the original audit and records the recipient-deletion fix merged in PR #70. This improvement pass is complete with the architecture guide; the [roadmap](IMPROVEMENT_ROADMAP.md#current-next-steps) preserves deferred limitations and older production phases as reference.
