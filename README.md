@@ -24,3 +24,7 @@ See [the portfolio walkthrough](PORTFOLIO_BACKEND_DEMO.md) for expected results,
 - [Saved-route assessment API](ROUTE_WINDOW_ASSESSMENT_API.md).
 
 Routing uses geographic heuristics rather than guaranteed global optimisation. Window assessments are hypothetical estimates, and balanced stop counts do not enforce vehicle-load capacity.
+
+## Current backend status
+
+[Backend status and remaining limits](BACKEND_STATUS_REVIEW.md) reconciles the original audit against merged PR #68. The [current roadmap](IMPROVEMENT_ROADMAP.md#current-next-steps) prioritises optional focused bug work and a clear portfolio stopping point; older production phases are historical reference.
