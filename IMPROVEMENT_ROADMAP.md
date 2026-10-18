@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 18 October 2026; merged through PR #68 (`076ad92`); live GitHub merge gate remains unverified/blocked\
+**Progress reconciled:** 18 October 2026; merged through PR #70 (`f3fb73f`); live GitHub merge gate remains unverified/blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -9,16 +9,16 @@ The current objective is a locally demonstrable master's dissertation/employer p
 
 ## Current next steps
 
-The evidence-backed current register is [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md), reviewed against PR #68. It reconciles all 38 original backend/database/security/operations/performance identifiers, distinguishing tested fixes, partial work, retained limits and external deferrals.
+**This improvement pass is complete with this guide.** The recipient-deletion fix is merged in PR #70; [ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) completes the explanation task on `aniM/architecture-and-tradeoffs`, pending documentation review/merge. No further implementation is scheduled.
 
-| Priority | Step | Completion criterion |
-| --- | --- | --- |
-| 1 | Use the reconciled status report and existing demo to explain the project | Clearly distinguish implemented behaviour, test evidence and known limits; no blanket “all fixed” claim. |
-| 2, focused fix implemented | Review/merge `aniM/recipient-deletion-conflict` (R1) | Five real HTTP/MySQL failures reproduced; nine focused tests pass with safe 409 handling, history preservation and concurrent-reference commit/rollback. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). |
-| 3, optional documentation | Add a concise architecture/tradeoffs guide | Explain the existing request, security, planner and lifecycle flow, linking detailed docs. |
-| Stop | Close this improvement pass once selected bug work and demonstration are complete | Do not invent features or pursue all production phases for a local portfolio. Reopen only for a concrete defect or a changed goal. |
+| Work | State and evidence |
+| --- | --- |
+| Reconcile original findings | Completed in PR #69; [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md) covers all 38 BE/DB/SEC/OPS/PERF identifiers, with scoped dispositions and links. |
+| Recipient-deletion conflict (R1) | Merged in PR #70. Five failing HTTP/MySQL cases reproduced; nine focused cases passed after the fix, including history preservation and concurrent-reference commit/rollback. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). |
+| Architecture/tradeoffs explanation (R4) | Delivered in [the guide](ARCHITECTURE_AND_TRADEOFFS.md), linked from the README. Describes existing behaviour; no runtime changes. |
+| Demonstrate and stop this pass | Use [the disposable demo](PORTFOLIO_BACKEND_DEMO.md), explain the documented limits and retain the existing application. Reopen work for a concrete reproduced defect or an explicitly changed goal. |
 
-Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; no new frontend work is scheduled. Any confirmed new bug gets its own focused `aniM/` branch and meaningful tests.
+Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; frontend work remains paused. Completion means the selected portfolio improvement pass is finished, not that all audit items are fixed or production readiness is established. Any future confirmed bug gets its own focused `aniM/` branch and meaningful tests.
 
 ## Historical plan and implementation evidence
 
@@ -382,6 +382,13 @@ Reconciliation validation (18 October 2026): Full local CI passed with 609 backe
 
 ### Portfolio backend: recipient-deletion conflict handling
 
-`aniM/recipient-deletion-conflict` reproduces the R1 candidate with real authenticated/CSRF HTTP requests against disposable MySQL: five cases returned 500 before the fix. Recipient deletion now flushes inside its existing transaction and translates database integrity rejection to a fixed no-store 409, preserving existing successful 200/DTO and missing 404 contracts. Nine focused tests cover every delivery state, actual route history, driver/anonymous/CSRF denial and a database-observed concurrent insert with commit/rollback outcomes. The FK remains the safeguard; no precheck race, new endpoint, schema change or frontend work is introduced. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). R1 is implemented on this branch pending review/merge; the optional architecture explanation and stopping point remain next.
+`aniM/recipient-deletion-conflict` reproduces the R1 candidate with real authenticated/CSRF HTTP requests against disposable MySQL: five cases returned 500 before the fix. Recipient deletion now flushes inside its existing transaction and translates database integrity rejection to a fixed no-store 409, preserving existing successful 200/DTO and missing 404 contracts. Nine focused tests cover every delivery state, actual route history, driver/anonymous/CSRF denial and a database-observed concurrent insert with commit/rollback outcomes. The FK remains the safeguard; no precheck race, new endpoint, schema change or frontend work is introduced. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). R1 is merged in PR #70; the architecture guide below completes the selected improvement pass.
 
 Recipient-deletion validation (18 October 2026): Five real HTTP/MySQL cases failed with 500 before the fix; all nine focused cases now pass. Full local CI passed with 618 backend tests, 434 frontend tests, twelve disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and all twelve cross-browser fixture suites (468 layout and twelve confirmation-keyboard cases). Dependency scanning found zero advisory matches across 392 package/version pairs; secret scanning found zero blocking findings and two previously acknowledged historical findings. Existing development services/database were not used. Hosted GitHub Actions were not verified.
+
+
+### Portfolio: architecture explanation and completion
+
+`aniM/architecture-and-tradeoffs` adds a source-linked guide and small system diagram covering request/security flow, driver selection, count-balanced allocation, route scoring, snapshot/calculate/revalidate-and-commit, lifecycle and evidence limits. README links the guide; the active roadmap records PR #70 as merged and closes this selected portfolio improvement pass. Historical phases and known limitations remain available without constituting an active implementation queue. No application code, tests, dependencies, configuration or schema changed.
+
+Architecture-documentation validation (18 October 2026): Source references were checked against merged PR #70. All 186 local links/anchors across the four changed documents resolve, fenced code blocks are balanced, all 38 audit identifiers remain, and Git whitespace checks pass. Secret scanning reports zero blocking findings and two acknowledged historical findings. Application suites were not rerun for this documentation-only change; the 618-backend/434-frontend/twelve-MySQL results above belong to PR #70. The Mermaid source was manually reviewed, not rendered in this validation. Hosted GitHub Actions were not verified.

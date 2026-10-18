@@ -1,6 +1,6 @@
 # Backend status and audit reconciliation
 
-Reviewed 18 October 2026 (Europe/London), against merged application revision `076ad92` (PR #68). Recipient-deletion follow-up: implemented on `aniM/recipient-deletion-conflict`; see R1 and [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). The baseline review and its original verification below remain historical evidence.
+Reviewed 18 October 2026 (Europe/London), against merged application revision `076ad92` (PR #68). Recipient-deletion follow-up: merged in PR #70 (`f3fb73f`) from `aniM/recipient-deletion-conflict`; see R1 and [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). The baseline review and its original verification below remain historical evidence.
 
 This report reconciles the historical findings in [PROJECT_AUDIT.md](PROJECT_AUDIT.md) with current source and existing regression coverage. It is not a new exhaustive security audit or a production-readiness certification.
 
@@ -8,7 +8,7 @@ This report reconciles the historical findings in [PROJECT_AUDIT.md](PROJECT_AUD
 
 The backend now has concrete implementations and regression coverage for the original access-control, lifecycle, assignment-concurrency, recipient-coordinate and provider-work problems. Keep Spring MVC, JPA, MySQL and the existing in-process planner. There is no evidence here justifying a framework replacement, microservices, a queue or a new optimisation engine.
 
-For this master's dissertation/employer portfolio, the useful remaining work is to review the implemented recipient-deletion follow-up below and explain the system accurately before stopping this improvement pass. There is no basis to keep implementing production infrastructure or new domain features merely to complete the original production-oriented phases.
+For this master's dissertation/employer portfolio, the selected recipient-deletion follow-up is merged in PR #70 and [the architecture/tradeoffs guide](ARCHITECTURE_AND_TRADEOFFS.md) completes the explanation task. This selected improvement pass is complete; known limitations below remain documented. There is no basis to keep implementing production infrastructure or new domain features merely to complete the original production-oriented phases.
 
 The register covers all 18 BE, seven DB, five SEC, seven OPS and one PERF identifiers (38 total). SEC-04 is included only to reconcile its relationship to the migrated client. FE/UX findings are outside this backend review; frontend work and hosting remain paused. Account/session and Maps entries are checks against existing controls/tests, not a fresh vulnerability-discovery exercise. Provider administration, hosted Actions, external databases and deployment settings were not accessed.
 
@@ -82,7 +82,7 @@ The original source-level candidate was reproduced against real HTTP/MySQL: five
 
 On `aniM/recipient-deletion-conflict`, deletion is flushed within the existing transaction and integrity rejection returns a fixed no-store 409 response. Unreferenced deletion remains 200 with the original DTO; missing recipients remain 404. Nine focused tests cover all delivery states, actual route-history preservation, anonymous/driver/CSRF denial and an observed database lock race with both insert commit and rollback. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md) and [RecipientDeletionMySqlTest](src/test/java/com/mmu/schedulingapp/account/RecipientDeletionMySqlTest.java).
 
-No new API, frontend or schema behaviour is introduced. Once this follow-up is reviewed/merged, R1 is complete; there is no requirement to broaden it into a legacy API redesign.
+No new API, frontend or schema behaviour is introduced. PR #70 merged this follow-up, so R1 is complete; there is no requirement to broaden it into a legacy API redesign.
 
 ### R2: defer broad legacy API redesign
 
@@ -92,9 +92,9 @@ Keep legacy unbounded lists, response inconsistencies and optional operator assi
 
 Do not implement capacity constraints until delivery load units and overload handling are agreed. Do not turn hypothetical window assessment into generation rejection until departure, service duration, timezone and late-delivery policy are defined. Local proximity is not road-network optimality; equal counts are not capacity or workload balance. Current-location grouping remains a greedy choice.
 
-### R4: optional explanation guide, then stop
+### R4: explanation guide delivered; improvement pass complete
 
-A short architecture/tradeoffs guide can explain request flow, authentication/ownership, snapshot–calculate–commit, lifecycle release, geographic scoring and test strategy. Link to existing detailed documents instead of duplicating every endpoint. This is portfolio presentation, not another implementation prerequisite.
+[ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) explains the existing request/security flow, snapshot–calculate–commit, driver selection/allocation/scoring, lifecycle and test strategy, linking the detailed documents. It is delivered on `aniM/architecture-and-tradeoffs`, pending documentation review/merge. PR #70 completes R1. No further implementation is scheduled in this portfolio pass.
 
 A reasonable stopping point is: this register is current, the demo/checks pass, any selected R1 reproduction/fix is complete, and the owner can explain the listed limits. No requirement exists to resolve every maintenance opportunity or deploy online. A newly reproduced significant correctness/security issue would justify a separate task; the original production phases alone do not.
 
