@@ -1,11 +1,28 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 14 October 2026; merged through PR #39; live GitHub merge gate blocked\
+**Progress reconciled:** 18 October 2026; merged through PR #68 (`076ad92`); live GitHub merge gate remains unverified/blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
-The application is not production-ready. The agreed frontend direction is **React + TypeScript + Vite**, with an incremental migration from the current HTML/jQuery pages. Preserve the existing Spring MVC/JPA/MySQL backend while correcting access control, workflow integrity, provider reliability and operational readiness. Bootstrap styles can remain where useful; migrated screens will use React components for interactions. Implementation is now authorized in small, focused branches and pull requests with regression tests; this roadmap records sequencing and acceptance criteria.
+The current objective is a locally demonstrable master's dissertation/employer portfolio. Frontend changes and hosting are paused. Preserve the working Java/Spring MVC/JPA/MySQL backend and React + TypeScript + Vite frontend. Production readiness is not claimed or required for this objective.
+
+## Current next steps
+
+The evidence-backed current register is [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md), reviewed against PR #68. It reconciles all 38 original backend/database/security/operations/performance identifiers, distinguishing tested fixes, partial work, retained limits and external deferrals.
+
+| Priority | Step | Completion criterion |
+| --- | --- | --- |
+| 1 | Use the reconciled status report and existing demo to explain the project | Clearly distinguish implemented behaviour, test evidence and known limits; no blanket “all fixed” claim. |
+| 2, optional focused fix | Reproduce legacy recipient deletion with delivery references (R1 in the report) | Authenticated HTTP/MySQL evidence first; if confirmed, a separate tested conflict-handling PR that preserves data and handles a concurrent new reference. |
+| 3, optional documentation | Add a concise architecture/tradeoffs guide | Explain the existing request, security, planner and lifecycle flow, linking detailed docs. |
+| Stop | Close this improvement pass once selected bug work and demonstration are complete | Do not invent features or pursue all production phases for a local portfolio. Reopen only for a concrete defect or a changed goal. |
+
+Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; no new frontend work is scheduled. Any confirmed new bug gets its own focused `aniM/` branch and meaningful tests.
+
+## Historical plan and implementation evidence
+
+The architecture and phases below preserve the original production-oriented plan and merged history. They are reference material, **not the active task queue**. Where an old “next” instruction conflicts with the current scope above, the current scope takes precedence. [PROJECT_AUDIT.md](PROJECT_AUDIT.md) remains the original historical evidence; it is not rewritten to imply a fresh audit.
 
 ## Agreed target architecture
 
@@ -203,7 +220,7 @@ The original audit is a historical assessment of revision `98dba9e`, not a curre
 | React operator setup: warehouse ID selection, conditional writes, assignment/history guards and separate account handoff | PR #28 | Merged |
 | GitHub Actions CI: pinned toolchains/browser, full disposable tests, explicit evidence gate and artifact retention | Commit `abe91fe` on merged main | Merged; required-check configuration remains a repository setting |
 
-### Next implementation sequence
+### Historical implementation sequence (superseded by current next steps)
 
 1. Recipient API and React management merged in PRs #19–20; legacy scheduling remains available.
 2. Delivery preparation API merged in PR #21; strict creation and bounded reads are documented in [DELIVERY_PREPARATION_API.md](DELIVERY_PREPARATION_API.md).
@@ -354,3 +371,10 @@ Portfolio-demo validation: Local verification passed the H2 rehearsal, two fresh
 `aniM/consistent-colocated-delivery-priority` fixes urgency-only ordering inside existing sub-metre stop groups. Groups now use the existing combined priority/urgency score, and both normal candidate selection and group ordering break equal scores by delivery ID. Four regression cases first failed at depot/later shared coordinates with forward/reversed input. Additional cases preserve recipient priority and overdue weighting; coverage and provider-cache assertions guard against duplicate stops and extra calls. Grouping policy, driver allocation, APIs and persistence are unchanged. See [COLOCATED_DELIVERY_ORDERING.md](COLOCATED_DELIVERY_ORDERING.md). Frontend and hosting remain paused.
 
 Shared-location ordering validation: Four new cases failed before the fix; all 13 focused planner cases now pass. Full local CI passed with 609 backend tests, 434 frontend tests, eleven disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and the three-engine browser fixture matrix. Dependency scanning found zero advisory matches across 392 package/version pairs. Secret scanning found zero blocking findings and the two previously acknowledged historical findings. Hosted GitHub Actions were not verified.
+
+
+### Portfolio backend: audit reconciliation and stopping point
+
+`aniM/backend-audit-reconciliation` adds [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md) against merged PR #68 and makes the portfolio queue at the top of this roadmap authoritative. All 38 original BE/DB/SEC/OPS/PERF identifiers have scoped dispositions and source/test references. The review records retained capacity limits and partial window/schema/legacy coverage honestly, distinguishes current-position grouping from the related priority fix, and identifies recipient deletion as a source-level candidate requiring reproduction rather than a proven data-loss bug. Existing local demonstration is sufficient to show the system; optional focused recipient-conflict work and an architecture guide are the only proposed follow-ups before stopping. Application code and frontend/hosting scope are unchanged.
+
+Reconciliation validation (18 October 2026): Full local CI passed with 609 backend tests, 434 frontend tests, eleven disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and all twelve cross-browser fixture suites. Dependency scanning reported zero matches across 392 package/version pairs; secret scanning reported zero blocking findings and two acknowledged historical findings. All 38 register IDs and local documentation links were checked. An initial Docker-not-running attempt was retried successfully after starting Docker Desktop. No application/test/schema/configuration changes or hosted/external readiness verification are claimed.

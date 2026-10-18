@@ -9,6 +9,8 @@
 
 > Historical baseline: findings below describe revision `98dba9e` on 12 October 2026. Subsequent merged fixes and remaining work are tracked in `IMPROVEMENT_ROADMAP.md`; this document is not a fresh scan of the current application.
 
+> Current backend dispositions: see [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md), reconciled on 18 October 2026 against PR #68. The historical findings below are preserved; their original severity is not a current unresolved-risk rating.
+
 ## 1. Executive summary
 
 This application manages warehouses, delivery operators, recipients, deliveries and routes. Administrators create recipients/deliveries and generate routes; drivers view an assigned route and complete or cancel deliveries. Route generation divides due pending deliveries across available operators and greedily orders each driver's stops using priority, deadline urgency and Google road distance. Recipient creation uses Google geocoding.
