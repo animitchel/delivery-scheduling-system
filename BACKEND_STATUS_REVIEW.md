@@ -1,12 +1,14 @@
 # Backend status and audit reconciliation
 
-Reviewed 18 October 2026 (Europe/London), against merged application revision `076ad92` (PR #68). This report reconciles the historical findings in [PROJECT_AUDIT.md](PROJECT_AUDIT.md) with current source and existing regression coverage. It is not a new exhaustive security audit or a production-readiness certification.
+Reviewed 18 October 2026 (Europe/London), against merged application revision `076ad92` (PR #68). Recipient-deletion follow-up: implemented on `aniM/recipient-deletion-conflict`; see R1 and [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). The baseline review and its original verification below remain historical evidence.
+
+This report reconciles the historical findings in [PROJECT_AUDIT.md](PROJECT_AUDIT.md) with current source and existing regression coverage. It is not a new exhaustive security audit or a production-readiness certification.
 
 ## Conclusion and scope
 
 The backend now has concrete implementations and regression coverage for the original access-control, lifecycle, assignment-concurrency, recipient-coordinate and provider-work problems. Keep Spring MVC, JPA, MySQL and the existing in-process planner. There is no evidence here justifying a framework replacement, microservices, a queue or a new optimisation engine.
 
-For this master's dissertation/employer portfolio, the useful remaining work is to explain the system accurately and, if desired, reproduce the small legacy recipient-deletion candidate below. There is no basis to keep implementing production infrastructure or new domain features merely to complete the original production-oriented phases.
+For this master's dissertation/employer portfolio, the useful remaining work is to review the implemented recipient-deletion follow-up below and explain the system accurately before stopping this improvement pass. There is no basis to keep implementing production infrastructure or new domain features merely to complete the original production-oriented phases.
 
 The register covers all 18 BE, seven DB, five SEC, seven OPS and one PERF identifiers (38 total). SEC-04 is included only to reconcile its relationship to the migrated client. FE/UX findings are outside this backend review; frontend work and hosting remain paused. Account/session and Maps entries are checks against existing controls/tests, not a fresh vulnerability-discovery exercise. Provider administration, hosted Actions, external databases and deployment settings were not accessed.
 
@@ -49,7 +51,7 @@ Paths below are repository-relative Markdown links. Test references identify cov
 | DB-01: versioned schema | Addressed foundation; external adoption deferred | [V1 migration](src/main/resources/db/migration/V1__initial_schema.sql), [SchemaAdoption](src/main/java/com/mmu/schedulingapp/database/SchemaAdoption.java), [DatabaseMigrationMySqlTest](src/test/java/com/mmu/schedulingapp/account/DatabaseMigrationMySqlTest.java) cover fresh creation, restart/checksum verification, refusal of unreviewed schemas and explicit checked adoption. Flyway is opt-in; this does not assert the user's existing DB has been migrated. [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md). |
 | DB-02: scheduling constraints | Partial | V1 has FKs, unique delivery membership, ordered route keys, operator email uniqueness and account checks. It does not enforce all scheduling ranges/windows or one active route per operator at SQL level. Application locking/validation covers tested paths; schema changes would need migrations plus updated adoption contract, not edits to an applied V1. |
 | DB-03: warehouse-name uniqueness | Addressed ambiguity; duplicate names retained | Modern selection uses IDs. `OperatorService.legacyWarehouse` fetches at most two matches and rejects ambiguous names. Operator integration tests explicitly cover duplicate names. No new uniqueness rule is needed for the current ID-based contract. |
-| DB-04: referenced-record deletion | Partial | Operator deletion blocks accounts/delivery/route history; warehouse deletion blocks assigned operators; lifecycle guards protect routed delivery and route history. FKs protect recipient references, but [RecipientService.deleteRecipient](src/main/java/com/mmu/schedulingapp/service/RecipientService.java) has no explicit reference check or conflict translation. See candidate R1. |
+| DB-04: referenced-record deletion | Addressed for the reviewed deletion policies, with R1 follow-up | Operator deletion blocks accounts/delivery/route history; warehouse deletion blocks assigned operators; lifecycle guards protect routed delivery and route history. FKs protect recipient references; [RecipientService.deleteRecipient](src/main/java/com/mmu/schedulingapp/service/RecipientService.java) now flushes and translates integrity rejection into 409. R1 records real HTTP/MySQL and concurrent-reference evidence. This does not introduce a recipient archive/delete workflow in the modern UI. |
 | DB-05: query loading/transaction boundaries | Partial | Modern directories use bounded scalar queries and route summaries use aggregated counts. Legacy route DTO mapping now runs in read-only transactions, tested with OSIV disabled. Legacy warehouse mapping still traverses assigned operators; legacy full lists can load many relationships. Global OSIV remains enabled by default. No query-count/EXPLAIN benchmark was performed in this review. [ROUTE_READ_BOUNDARIES.md](ROUTE_READ_BOUNDARIES.md). |
 | DB-06: entity equality/logging | Retained maintenance debt | [Delivery](src/main/java/com/mmu/schedulingapp/model/Delivery.java), [Operator](src/main/java/com/mmu/schedulingapp/model/Operator.java), [Recipient](src/main/java/com/mmu/schedulingapp/model/Recipient.java), [Route](src/main/java/com/mmu/schedulingapp/model/Route.java), [Warehouse](src/main/java/com/mmu/schedulingapp/model/Warehouse.java) still use Lombok `@Data` on mutable relationships. Potential lazy traversal/recursive logging is not a newly reproduced runtime failure. Consider explicit equality/logging only with targeted regression cases. |
 | DB-07: builder defaults | Retained maintenance debt | Status/priority/time initialisers in entities still lack `@Builder.Default`. Active services/mappers initialise required fields explicitly, so a builder hazard does not establish a current API failure. A future builder cleanup should first demonstrate an actual affected caller and preserve entity identity semantics. |
@@ -74,13 +76,13 @@ Paths below are repository-relative Markdown links. Test references identify cov
 
 ## Remaining work and stopping point
 
-### R1: optional focused follow-up — recipient deletion conflict
+### R1: implemented follow-up — recipient deletion conflict
 
-Evidence: [legacy controller](src/main/java/com/mmu/schedulingapp/restfulcontroller/RecipientApiController.java) exposes DELETE; `RecipientService.deleteRecipient` deletes directly; [RecipientManagementErrors](src/main/java/com/mmu/schedulingapp/restfulcontroller/RecipientManagementErrors.java) does not translate data-integrity failures; V1's `fk_delivery_recipient` prevents deletion of referenced recipients. The modern recipient-management API does not expose deletion.
+The original source-level candidate was reproduced against real HTTP/MySQL: five cases returned 500 before the fix, including a concurrent committed delivery reference. The FK prevented data loss.
 
-**Confidence:** confirmed source-level absence of explicit handling; the exact HTTP response and race behaviour have not been newly reproduced. Do not label this confirmed data loss: the FK protects references. The candidate is an avoidable server error/unclear conflict on a legacy administrator operation.
+On `aniM/recipient-deletion-conflict`, deletion is flushed within the existing transaction and integrity rejection returns a fixed no-store 409 response. Unreferenced deletion remains 200 with the original DTO; missing recipients remain 404. Nine focused tests cover all delivery states, actual route-history preservation, anonymous/driver/CSRF denial and an observed database lock race with both insert commit and rollback. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md) and [RecipientDeletionMySqlTest](src/test/java/com/mmu/schedulingapp/account/RecipientDeletionMySqlTest.java).
 
-If taken forward, first reproduce referenced-recipient deletion using an authenticated/CSRF HTTP request with disposable MySQL. Check unreferenced success and missing-recipient behaviour too. Only after reproduction, add a focused conflict response consistent with the retained contract and safe handling of a reference created concurrently. Assert recipient/delivery/history data are unchanged after rejection. No new UI or delete endpoint is needed.
+No new API, frontend or schema behaviour is introduced. Once this follow-up is reviewed/merged, R1 is complete; there is no requirement to broaden it into a legacy API redesign.
 
 ### R2: defer broad legacy API redesign
 
@@ -96,14 +98,18 @@ A short architecture/tradeoffs guide can explain request flow, authentication/ow
 
 A reasonable stopping point is: this register is current, the demo/checks pass, any selected R1 reproduction/fix is complete, and the owner can explain the listed limits. No requirement exists to resolve every maintenance opportunity or deploy online. A newly reproduced significant correctness/security issue would justify a separate task; the original production phases alone do not.
 
-## Verification evidence
+## Baseline reconciliation verification (PR #69)
 
-Verification was refreshed on 18 October 2026 with `ACCEPTANCE_USE_CONTAINER=1 ./scripts/run-ci.sh`, using the pinned Node runtime and Java 25. The branch changes documentation only; no application code, tests, dependencies, schema or configuration are modified. Existing tests are reused rather than introducing implementation-mirroring tests for prose.
+Verification was refreshed on 18 October 2026 with `ACCEPTANCE_USE_CONTAINER=1 ./scripts/run-ci.sh`, using the pinned Node runtime and Java 25. That reconciliation branch changed documentation only; no application code, tests, dependencies, schema or configuration were modified. Existing tests are reused rather than introducing implementation-mirroring tests for prose.
 
 - Full local CI passed: 609 backend tests, 434 frontend tests, eleven disposable MySQL suites and 57 Python tooling tests.
 - The real-backend Chromium journey and all twelve required Chromium/Firefox/WebKit fixture suites passed (468 layout cases and twelve confirmation-keyboard cases).
 - Dependency scanning reported zero advisory matches across 392 package/version pairs. This is the scanner result at execution time, not a permanent absence-of-vulnerabilities guarantee.
 - Secret scanning reported zero blocking findings and two previously acknowledged historical findings.
 - A document check verified that all 38 identifiers appear exactly once in the register and that local links in all four changed Markdown files resolve; Git whitespace checks passed.
-- The first CI attempt stopped before database tests because Docker was stopped. Docker Desktop was started, and the complete retry passed. Existing development services/DB were not used. The packaged application hash is unchanged from the previous runtime revision because this branch edits only documents.
+- The first CI attempt stopped before database tests because Docker was stopped. Docker Desktop was started, and the complete retry passed. Existing development services/DB were not used. The packaged application hash is unchanged from the previous runtime revision because the reconciliation branch edited only documents.
 - Hosted GitHub Actions, live merge enforcement, Google Cloud restrictions, production settings, manual accessibility and deployment recovery were not verified.
+
+## Recipient-deletion follow-up verification
+
+Recipient-deletion validation (18 October 2026): Five real HTTP/MySQL cases failed with 500 before the fix; all nine focused cases now pass. Full local CI passed with 618 backend tests, 434 frontend tests, twelve disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and all twelve cross-browser fixture suites (468 layout and twelve confirmation-keyboard cases). Dependency scanning found zero advisory matches across 392 package/version pairs; secret scanning found zero blocking findings and two previously acknowledged historical findings. Existing development services/database were not used. Hosted GitHub Actions were not verified.
