@@ -106,7 +106,15 @@ public class RecipientService {
     @Transactional
     public Optional<RecipientResponseDTO> deleteRecipient(int id) {
         return recipientRepository.findById(id).map(recipient -> {
-            recipientRepository.delete(recipient);
+            try {
+                recipientRepository.delete(recipient);
+                // Resolve FK conflicts here, including a reference committed after the read.
+                recipientRepository.flush();
+            } catch (org.springframework.dao.DataIntegrityViolationException conflict) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.CONFLICT,
+                        "Recipient is still referenced and cannot be deleted.");
+            }
             return RecipientMapper.toResponseDTO(recipient);
         });
     }
