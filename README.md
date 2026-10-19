@@ -8,6 +8,8 @@ The application uses Java 25/Spring Boot, MySQL, and React with TypeScript/Vite.
 
 Start with [the architecture and tradeoffs guide](ARCHITECTURE_AND_TRADEOFFS.md) for the request flow, permissions, scheduling algorithm, transaction design and demonstration limits.
 
+For an employer walkthrough, use [the five-to-ten-minute presentation and interview guide](PORTFOLIO_PRESENTATION.md).
+
 ## Reproducible backend demo
 
 With Java 25 selected, Docker running and Python 3 available:
