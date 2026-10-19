@@ -1,7 +1,7 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 18 October 2026; merged through PR #70 (`f3fb73f`); live GitHub merge gate remains unverified/blocked\
+**Progress reconciled:** 19 October 2026; merged through PR #71 (`0e82fe7`); live GitHub merge gate remains unverified/blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
@@ -9,14 +9,14 @@ The current objective is a locally demonstrable master's dissertation/employer p
 
 ## Current next steps
 
-**This improvement pass is complete with this guide.** The recipient-deletion fix is merged in PR #70; [ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) completes the explanation task on `aniM/architecture-and-tradeoffs`, pending documentation review/merge. No further implementation is scheduled.
+**This improvement pass is complete.** The recipient-deletion fix is merged in PR #70 and [ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) is merged in PR #71. [PORTFOLIO_PRESENTATION.md](PORTFOLIO_PRESENTATION.md) provides the presentation/rehearsal aid on `aniM/portfolio-presentation`, pending documentation review/merge. No further implementation is scheduled.
 
 | Work | State and evidence |
 | --- | --- |
 | Reconcile original findings | Completed in PR #69; [BACKEND_STATUS_REVIEW.md](BACKEND_STATUS_REVIEW.md) covers all 38 BE/DB/SEC/OPS/PERF identifiers, with scoped dispositions and links. |
 | Recipient-deletion conflict (R1) | Merged in PR #70. Five failing HTTP/MySQL cases reproduced; nine focused cases passed after the fix, including history preservation and concurrent-reference commit/rollback. See [RECIPIENT_DELETION.md](RECIPIENT_DELETION.md). |
-| Architecture/tradeoffs explanation (R4) | Delivered in [the guide](ARCHITECTURE_AND_TRADEOFFS.md), linked from the README. Describes existing behaviour; no runtime changes. |
-| Demonstrate and stop this pass | Use [the disposable demo](PORTFOLIO_BACKEND_DEMO.md), explain the documented limits and retain the existing application. Reopen work for a concrete reproduced defect or an explicitly changed goal. |
+| Architecture/tradeoffs explanation (R4) | Merged in PR #71; [the guide](ARCHITECTURE_AND_TRADEOFFS.md) describes existing behaviour. |
+| Demonstrate and stop this pass | Rehearse with [the presentation guide](PORTFOLIO_PRESENTATION.md) and [disposable demo](PORTFOLIO_BACKEND_DEMO.md), explain the limits and retain the existing application. Reopen work for a concrete reproduced defect or explicitly changed goal. |
 
 Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; frontend work remains paused. Completion means the selected portfolio improvement pass is finished, not that all audit items are fixed or production readiness is established. Any future confirmed bug gets its own focused `aniM/` branch and meaningful tests.
 
@@ -392,3 +392,10 @@ Recipient-deletion validation (18 October 2026): Five real HTTP/MySQL cases fail
 `aniM/architecture-and-tradeoffs` adds a source-linked guide and small system diagram covering request/security flow, driver selection, count-balanced allocation, route scoring, snapshot/calculate/revalidate-and-commit, lifecycle and evidence limits. README links the guide; the active roadmap records PR #70 as merged and closes this selected portfolio improvement pass. Historical phases and known limitations remain available without constituting an active implementation queue. No application code, tests, dependencies, configuration or schema changed.
 
 Architecture-documentation validation (18 October 2026): Source references were checked against merged PR #70. All 186 local links/anchors across the four changed documents resolve, fenced code blocks are balanced, all 38 audit identifiers remain, and Git whitespace checks pass. Secret scanning reports zero blocking findings and two acknowledged historical findings. Application suites were not rerun for this documentation-only change; the 618-backend/434-frontend/twelve-MySQL results above belong to PR #70. The Mermaid source was manually reviewed, not rendered in this validation. Hosted GitHub Actions were not verified.
+
+
+### Portfolio: presentation and interview rehearsal aid
+
+`aniM/portfolio-presentation` adds an eight-minute walkthrough with five/ten-minute variants, an adaptable introduction, expected demo evidence, a transaction/concurrency explanation, the documented recipient-deletion bug example and interview questions. README and demo documentation link the guide; this roadmap records PR #71 as merged. Preparation/build time is separate from presentation timing; simulated travel and prior versus fresh evidence are explicit. No personal research results, new benchmark claims or successful rehearsal are invented. Implementation remains paused; this branch changes documentation only.
+
+Presentation-documentation validation (19 October 2026): All 112 local links/anchors across the four changed documents resolve; fenced blocks are balanced and cited demo fields/regression methods exist. Expected demo outcomes were checked against the current walkthrough/test source and timing totals reviewed. Git whitespace checks and secret scanning passed, with zero blocking findings and two acknowledged historical findings. No application tests, demo run or personal rehearsal were performed for this documentation-only branch; historical PR #70 test results remain explicitly labelled.
