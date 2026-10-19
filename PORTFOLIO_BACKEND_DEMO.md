@@ -21,6 +21,8 @@ The command creates a fresh, volume-free MySQL container on a random loopback po
 
 This is a short-lived automated demonstration, not a persistent interactive server. When it finishes, the HTTP server stops and the script removes its own MySQL container. Normal errors and handled interrupts also trigger cleanup. No database volumes are created. Repeating the command starts fresh data, rather than resetting your development data.
 
+For a timed walkthrough and likely interview questions, see [PORTFOLIO_PRESENTATION.md](PORTFOLIO_PRESENTATION.md). The demo command remains an automated API demonstration, not a persistent interactive session.
+
 ## What to show an employer
 
 | Stage | Backend behaviour | Expected result |
