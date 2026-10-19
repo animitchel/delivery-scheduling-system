@@ -1,0 +1,23 @@
+# Compact recipient picker
+
+The delivery-preparation page replaces the large two-column recipient cards with one semantic results table. Desktop aligns recipient name/ID, full address and a compact Select action. At viewport widths up to 1000px the same records stack into rows: name/ID and action above, address below. There is one accessible action per recipient and no duplicate desktop/mobile markup. Names and addresses remain text, with long unbroken content allowed to wrap. Existing stored/demo names are not renamed by this change.
+
+Select actions retain a minimum 44px height. The search toolbar and pagination retain their narrow-screen layouts. The table header remains available to accessibility APIs when visually hidden on mobile; explicit table/row/cell roles retain semantics across the layout change. This is engine/keyboard coverage, not manual screen-reader or physical-device certification.
+
+## Selection and draft behaviour
+
+Selecting still reads the recipient's current details from the existing API. On success, results/search/pagination collapse into one selected-recipient summary with the verified address and a Change recipient action. Focus moves to Create delivery after the collapsed layout commits. The top Prepare delivery action also focuses the form when a recipient is already selected.
+
+Change recipient clears the prior selection, reopens the existing results and focuses the search field. It preserves scheduled date, window, priority, instructions, applied search and page. Creation is disabled until another fresh selection succeeds; reopening does not silently keep the previous recipient as the submission target. Search/paging retain the existing cancellation and stale-response guards.
+
+Pending/uncertain saves lock the new Change action just as they lock other mutations. Permission failure also blocks it. Existing validation, known reference-rejection recovery, duplicate-write protection, authentication and uncertain-save review remain. API payloads, page size, backend and saved data are unchanged. Collapsed result markup is hidden from navigation/accessibility until reopened.
+
+## Verification
+
+[Deliveries.test.tsx](frontend/src/Deliveries.test.tsx) adds semantic/text-safety, collapse/change/draft, and applied-search/page preservation regressions; existing tests cover stalled/obsolete reads, successful creation, validation, reference rejection, permission denial and uncertain-save safeguards. The pending/uncertain cases also verify the Change action is disabled.
+
+The built-frontend [browser fixture](tests/browser/test-delivery-recipient-picker.cjs) uses fictional data with no backend writes. Per engine it checks 30 layouts: three font settings, 320/375/768/1100/1440px and 100%/200% CSS text sizing. Checks measure page/table overflow, text bounds, 44px action height, unique actions and ordinary desktop row height. Four desktop/mobile and normal/enlarged-text keyboard cases cover verified selection, focus, collapse, retained drafts, fresh selection and search/paging. Empty, failed-list and failed-selection recovery are covered. Long inert HTML-looking names and unbroken addresses exercise safe rendering and wrapping.
+
+The fixture is required in [the acceptance runner](tests/browser/run-acceptance.cjs) for Chromium, Firefox and WebKit. Engine-specific measurements/screenshots are saved under `.ci-artifacts/browser/<engine>/delivery-recipient-picker/`, including `picker-375.png`, `picker-1440.png` and selected-state captures. The matrix now requires fifteen suites and 558 layout cases, plus twelve existing confirmation-keyboard and twelve recipient-picker keyboard cases. See [FRONTEND_ACCEPTANCE.md](FRONTEND_ACCEPTANCE.md).
+
+Compact-picker validation (19 October 2026): Final full local CI passed with 618 backend tests, 437 frontend tests, twelve disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and all fifteen required cross-browser fixture suites (558 layout cases, twelve confirmation-keyboard cases and twelve picker keyboard cases). The three picker engines each reported 30 layout/four keyboard cases and zero writes. Desktop/mobile screenshots were visually inspected. Dependency scanning reported zero advisory matches across 392 package/version pairs; secret scanning reported zero blocking findings and two acknowledged historical findings. An intermediate run found the real-backend browser test's obsolete card CSS selector; it was replaced with the semantic table and expanded to verify change/draft/reselection before saving. The final fresh pipeline passed. Hosted CI, manual screen-reader, native zoom and actual-device acceptance were not verified. Development services and data were untouched.

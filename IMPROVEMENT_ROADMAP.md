@@ -1,15 +1,15 @@
 # Improvement roadmap
 
 **Prepared:** 12 October 2026 (Europe/London)\
-**Progress reconciled:** 19 October 2026; merged through PR #71 (`0e82fe7`); live GitHub merge gate remains unverified/blocked\
+**Progress reconciled:** 19 October 2026; merged through PR #72 (`628aa2e`); live GitHub merge gate remains unverified/blocked\
 **Audit baseline:** 98dba9eac39c453ae9b29b8a70f16e4d16770cb0\
 **Issue details and source evidence:** [PROJECT_AUDIT.md](PROJECT_AUDIT.md)
 
-The current objective is a locally demonstrable master's dissertation/employer portfolio. Frontend changes and hosting are paused. Preserve the working Java/Spring MVC/JPA/MySQL backend and React + TypeScript + Vite frontend. Production readiness is not claimed or required for this objective.
+The current objective is a locally demonstrable master's dissertation/employer portfolio. Hosting remains paused. A focused recipient-picker frontend follow-up is authorised; broader frontend work is not scheduled. Preserve the working Java/Spring MVC/JPA/MySQL backend and React + TypeScript + Vite frontend. Production readiness is not claimed or required for this objective.
 
 ## Current next steps
 
-**This improvement pass is complete.** The recipient-deletion fix is merged in PR #70 and [ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) is merged in PR #71. [PORTFOLIO_PRESENTATION.md](PORTFOLIO_PRESENTATION.md) provides the presentation/rehearsal aid on `aniM/portfolio-presentation`, pending documentation review/merge. No further implementation is scheduled.
+**The earlier improvement pass is complete; a focused UI follow-up is now authorised.** The recipient-deletion fix is merged in PR #70 and [ARCHITECTURE_AND_TRADEOFFS.md](ARCHITECTURE_AND_TRADEOFFS.md) is merged in PR #71. [PORTFOLIO_PRESENTATION.md](PORTFOLIO_PRESENTATION.md) is merged in PR #72. The current `aniM/compact-recipient-picker` branch addresses the requested desktop/mobile recipient-selection layout; no other implementation is scheduled.
 
 | Work | State and evidence |
 | --- | --- |
@@ -18,7 +18,7 @@ The current objective is a locally demonstrable master's dissertation/employer p
 | Architecture/tradeoffs explanation (R4) | Merged in PR #71; [the guide](ARCHITECTURE_AND_TRADEOFFS.md) describes existing behaviour. |
 | Demonstrate and stop this pass | Rehearse with [the presentation guide](PORTFOLIO_PRESENTATION.md) and [disposable demo](PORTFOLIO_BACKEND_DEMO.md), explain the limits and retain the existing application. Reopen work for a concrete reproduced defect or explicitly changed goal. |
 
-Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; frontend work remains paused. Completion means the selected portfolio improvement pass is finished, not that all audit items are fixed or production readiness is established. Any future confirmed bug gets its own focused `aniM/` branch and meaningful tests.
+Known retained limits: greedy routing, stop-count rather than load-capacity balance, hypothetical window assessment rather than enforced feasibility, legacy unbounded reads/response differences, entity builder/equality maintenance debt. Production hosting, operational recovery and private-repository merge-rule enforcement are deferred; frontend work is limited to the requested recipient-picker follow-up. Completion means the selected portfolio improvement pass is finished, not that all audit items are fixed or production readiness is established. Any future confirmed bug gets its own focused `aniM/` branch and meaningful tests.
 
 ## Historical plan and implementation evidence
 
@@ -399,3 +399,10 @@ Architecture-documentation validation (18 October 2026): Source references were 
 `aniM/portfolio-presentation` adds an eight-minute walkthrough with five/ten-minute variants, an adaptable introduction, expected demo evidence, a transaction/concurrency explanation, the documented recipient-deletion bug example and interview questions. README and demo documentation link the guide; this roadmap records PR #71 as merged. Preparation/build time is separate from presentation timing; simulated travel and prior versus fresh evidence are explicit. No personal research results, new benchmark claims or successful rehearsal are invented. Implementation remains paused; this branch changes documentation only.
 
 Presentation-documentation validation (19 October 2026): All 112 local links/anchors across the four changed documents resolve; fenced blocks are balanced and cited demo fields/regression methods exist. Expected demo outcomes were checked against the current walkthrough/test source and timing totals reviewed. Git whitespace checks and secret scanning passed, with zero blocking findings and two acknowledged historical findings. No application tests, demo run or personal rehearsal were performed for this documentation-only branch; historical PR #70 test results remain explicitly labelled.
+
+
+### Requested frontend follow-up: compact responsive recipient picker
+
+`aniM/compact-recipient-picker` replaces oversized recipient cards with a single compact semantic table that stacks into mobile rows. Successful fresh selection collapses results into one summary; Change recipient reopens the picker with focus and preserves the delivery draft/search/page while clearing the old submission target. Pending/uncertain/permission guards remain, Select actions retain 44px minimum height, long text wraps and no stored names or backend contracts change. Three new component regressions and a required three-engine browser fixture cover responsive layout, keyboard selection, retained drafts and read recovery. See [COMPACT_RECIPIENT_PICKER.md](COMPACT_RECIPIENT_PICKER.md). This is the explicitly requested UI follow-up; hosting and broader frontend work remain outside scope.
+
+Compact-picker validation (19 October 2026): Final full local CI passed with 618 backend tests, 437 frontend tests, twelve disposable MySQL suites, 57 tooling tests, the real-backend Chromium journey and all fifteen required cross-browser fixture suites (558 layout cases, twelve confirmation-keyboard cases and twelve picker keyboard cases). The three picker engines each reported 30 layout/four keyboard cases and zero writes. Desktop/mobile screenshots were visually inspected. Dependency scanning reported zero advisory matches across 392 package/version pairs; secret scanning reported zero blocking findings and two acknowledged historical findings. An intermediate run found the real-backend browser test's obsolete card CSS selector; it was replaced with the semantic table and expanded to verify change/draft/reselection before saving. The final fresh pipeline passed. Hosted CI, manual screen-reader, native zoom and actual-device acceptance were not verified. Development services and data were untouched.
