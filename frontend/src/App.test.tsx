@@ -224,7 +224,7 @@ describe('authenticated workspace', () => {
     vi.spyOn(recipientsApi,'read').mockResolvedValue({recipient,etag:'"'+'a'.repeat(64)+'"'});
     vi.spyOn(deliveriesApi,'directory').mockResolvedValue({deliveries:[],page:0,size:20,totalElements:0,totalPages:0});
     const pending=deferred<Awaited<ReturnType<typeof deliveriesApi.create>>>(); const create=vi.spyOn(deliveriesApi,'create').mockReturnValue(pending.promise); const client=clientFor();
-    mount(client,'/admin/deliveries'); await userEvent.click(await screen.findByRole('button',{name:'Choose Alex Smith, recipient 1'})); await screen.findByText('Selected recipient: Alex Smith');
+    mount(client,'/admin/deliveries'); await userEvent.click(await screen.findByRole('button',{name:'Select Alex Smith, recipient 1'})); await screen.findByText('Selected recipient: Alex Smith');
     fireEvent.change(screen.getByLabelText('Scheduled date'),{target:{value:'2020-01-02'}}); fireEvent.change(screen.getByLabelText('Start time'),{target:{value:'09:00'}}); fireEvent.change(screen.getByLabelText('End time'),{target:{value:'12:00'}});
     fireEvent.click(screen.getByRole('button',{name:'Create delivery'})); act(()=>window.dispatchEvent(new Event('focus'))); await userEvent.click(screen.getByRole('link',{name:'Overview'}));
     expect(screen.getByRole('heading',{name:'Deliveries'})).toBeVisible(); expect(screen.getByRole('button',{name:'Sign out'})).toBeDisabled(); expect(screen.getByRole('button',{name:'Refresh session'})).toBeDisabled(); expect(client.session).toHaveBeenCalledTimes(1); expect(create).toHaveBeenCalledTimes(1);

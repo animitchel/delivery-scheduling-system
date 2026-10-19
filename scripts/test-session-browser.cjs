@@ -329,7 +329,7 @@ async function assertFitsViewport(page) {
         await page.unroute("**/api/admin/recipients?*"); await page.unroute("**/api/admin/deliveries?*");
         await page.getByRole("button",{name:"Reload recipients",exact:true}).click();
         await page.getByRole("button",{name:"Reload deliveries",exact:true}).click();
-        await page.locator(".delivery-recipient-list button").first().waitFor();
+        await page.getByRole("table",{name:"Recipient search results",exact:true}).getByRole("button").first().waitFor();
         await page.setViewportSize({width:1280,height:900});
 
         await page.getByRole("button", {name:"Prepare delivery",exact:true}).click();
@@ -339,7 +339,7 @@ async function assertFitsViewport(page) {
         await page.getByRole("heading",{name:"No recipients match your search.",exact:true}).waitFor();
         await page.getByRole("button",{name:"Clear recipient search",exact:true}).click();
 
-        await page.locator(".delivery-recipient-list button").first().click();
+        await page.getByRole("table",{name:"Recipient search results",exact:true}).getByRole("button").first().click();
         await page.getByText(/Selected recipient:/).waitFor();
         await page.getByRole("button",{name:"Create delivery",exact:true}).click();
         await page.getByRole("alert").filter({hasText:"Enter a valid scheduled date"}).waitFor();
@@ -349,6 +349,16 @@ async function assertFitsViewport(page) {
         await page.getByLabel("Start time",{exact:true}).fill("09:00");
         await page.getByLabel("End time",{exact:true}).fill("12:00");
         await page.getByLabel("Special instructions (optional)",{exact:true}).fill("<img src=x onerror=window.__injected=true>");
+        assert.equal(await page.getByRole("table",{name:"Recipient search results",exact:true}).isVisible(),false);
+        await page.getByRole("button",{name:"Change recipient",exact:true}).click();
+        assert.equal(await page.locator("#delivery-recipient-search").evaluate(node=>node===document.activeElement),true);
+        assert.equal(await page.getByLabel("Scheduled date",{exact:true}).inputValue(),"2020-01-02");
+        assert.equal(await page.getByLabel("Special instructions (optional)",{exact:true}).inputValue(),"<img src=x onerror=window.__injected=true>");
+        assert.equal(await page.getByRole("button",{name:"Create delivery",exact:true}).isDisabled(),true);
+        await page.getByRole("table",{name:"Recipient search results",exact:true}).getByRole("button").first().click();
+        await page.getByRole("group",{name:"Selected delivery recipient",exact:true}).waitFor();
+        assert.equal(await page.locator("#delivery-create").evaluate(node=>node===document.activeElement),true);
+
         await page.setViewportSize({width:1440,height:1000});
         await page.locator("#delivery-create").evaluate(node=>node.scrollIntoView({block:"start"}));
         await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
@@ -384,7 +394,7 @@ async function assertFitsViewport(page) {
         await page.screenshot({path:artifact("react-delivery-card-mobile.png"),clip:{x:0,y:0,width:375,height:900}});
         await page.setViewportSize({width:1280,height:900});
 
-        await page.locator(".delivery-recipient-list button").first().click();
+        await page.getByRole("table",{name:"Recipient search results",exact:true}).getByRole("button").first().click();
         await page.getByText(/Selected recipient:/).waitFor();
         await page.getByLabel("Scheduled date",{exact:true}).fill("2020-01-02");
         await page.getByLabel("Start time",{exact:true}).fill("09:00");
