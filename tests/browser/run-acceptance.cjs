@@ -17,7 +17,8 @@ if (process.env.ACCEPTANCE_USE_CONTAINER === '1') {
 }
 const artifacts = process.env.SESSION_BROWSER_ARTIFACTS_DIR || path.resolve(__dirname, '../../.ci-artifacts/browser');
 const suites = [['test-workspace-reflow.cjs', 'reflow', 72], ['test-render-recovery.cjs', 'render-recovery', 24],
-  ['test-admin-route-directory.cjs', 'admin-route-directory', 30], ['test-generation-mobile-review.cjs', 'generation-mobile-review', 30]];
+  ['test-admin-route-directory.cjs', 'admin-route-directory', 30], ['test-generation-mobile-review.cjs', 'generation-mobile-review', 30],
+  ['test-delivery-recipient-picker.cjs', 'delivery-recipient-picker', 30]];
 fs.mkdirSync(artifacts, { recursive: true });
 const report = { complete: false, platform: process.platform, nodeVersion: process.version, playwrightVersion: require('./package-lock.json').packages['node_modules/playwright'].version, results: [] };
 const save = () => fs.writeFileSync(path.join(artifacts, 'cross-browser-results.json'), JSON.stringify(report, null, 2));
@@ -35,11 +36,11 @@ for (const engine of ['chromium', 'firefox', 'webkit']) {
     assert.equal(evidence.cases.length, count);
     assert.ok(evidence.cases.every(item => item.passed));
     if (directory === 'admin-route-directory') assert.equal(evidence.navigation, true);
-    if (directory === 'generation-mobile-review') {
+    if (['generation-mobile-review', 'delivery-recipient-picker'].includes(directory)) {
       assert.equal(evidence.keyboardCases.length, 4);
       assert.ok(evidence.keyboardCases.every(item => item.passed));
     }
     report.results.push({ engine, suite: directory, cases: count, passed: true }); save();
   }
 }
-report.complete = true; save(); console.log('Cross-browser acceptance: 12 required suites and 468 layout cases passed.');
+report.complete = true; save(); console.log(`Cross-browser acceptance: ${report.results.length} required suites and ${report.results.reduce((sum, item) => sum + item.cases, 0)} layout cases passed.`);

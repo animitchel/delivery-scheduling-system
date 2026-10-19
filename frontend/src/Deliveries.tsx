@@ -26,6 +26,8 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
   const [draft, setDraft] = useState<Draft>({ ...blank });
   const [submitted, setSubmitted] = useState(false);
   const recipientHeading = useRef<HTMLHeadingElement>(null);
+  const recipientSearchInput = useRef<HTMLInputElement>(null);
+  const focusRecipientSearch = useRef(false);
   const [pending, setPending] = useState(false); const [permissionBlocked, setPermissionBlocked] = useState(false);
   const [saveError, setSaveError] = useState(''); const [message, setMessage] = useState('');
   const [uncertain, setUncertain] = useState<Uncertain | null>(null);
@@ -74,6 +76,18 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
     return () => { alive.current = false; for (const lane of Object.values(lanes)) lane.controller?.abort(); write.current?.abort(); };
   }, [loadDirectory, loadRecipients]);
   useEffect(() => { if (details) detailsHeading.current?.focus(); }, [details]);
+  useEffect(() => {
+    if (selected) createHeading.current?.focus();
+    else if (focusRecipientSearch.current) {
+      focusRecipientSearch.current = false;
+      recipientSearchInput.current?.focus();
+    }
+  }, [selected]);
+  function changeRecipient() {
+    if (busy.current || uncertain || permissionBlocked) return;
+    focusRecipientSearch.current = true;
+    setSelected(null); setSubmitted(false); setSaveError(''); setMessage('');
+  }
   function recipientSearch(page = 0, term = query) {
     if (busy.current || uncertain) return;
     cancel('selection'); setSelecting(false); setRecipientLoading(true); setRecipients(null); setRecipientError('');
@@ -83,7 +97,7 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
     if (busy.current || uncertain) return;
     setSubmitted(false); setSelecting(true); setSelected(null); setRecipientError(''); setSaveError(''); setMessage('');
     void run('selection', signal => recipientClient.read(id, signal), result => {
-      setSelected(result.recipient); setSelecting(false); createHeading.current?.focus();
+      setSelected(result.recipient); setSelecting(false);
     }, () => { setSelecting(false); setRecipientError('The selected recipient could not be loaded. Search or reload before choosing again.'); });
   }
   function showDirectory(page = 0, criteria = filters, review = false) {
@@ -142,7 +156,7 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
   const dateError = submitted && !validDate(draft.scheduledDate) ? 'Enter a valid scheduled date between years 1000 and 9999.' : '';
   const windowError = submitted ? inputError({ ...draft, recipientId: 1, scheduledDate: '2000-01-01', priorityLevel: 'MEDIUM', specialInstructions: '' }) : null;
   const filtered = Boolean(filters.scheduledDate || filters.status || filters.recipientId !== null);
-  function prepare() { if (busy.current || frozen || permissionBlocked) return; recipientHeading.current?.focus(); recipientHeading.current?.scrollIntoView?.({ block: 'start' }); }
+  function prepare() { if (busy.current || frozen || permissionBlocked) return; const target = selected ? createHeading.current : recipientHeading.current; target?.focus(); target?.scrollIntoView?.({ block: 'start' }); }
   function clearRecipientSearch() { if (busy.current || uncertain) return; setSearch(''); setQuery(''); recipientSearch(0, ''); }
   return <div className="deliveries-page">
     <section className="page-intro delivery-page-heading"><div><p className="eyebrow">Delivery preparation</p><h1>Deliveries</h1><p className="intro-text">Prepare upcoming work and keep every saved delivery in view.</p></div><button className="button" disabled={frozen || permissionBlocked} onClick={prepare}><span aria-hidden="true">＋</span>Prepare delivery</button></section>
@@ -154,22 +168,26 @@ export function Deliveries({ client = deliveriesApi, recipientClient = recipient
       <button className="button secondary" disabled={!reviewReady || directoryLoading} onClick={() => { setUncertain(null); setReviewReady(false); setSaveError('Review completed. Another submission will create a new delivery.'); }}>I reviewed results; allow another submission</button>
     </section>}
     <section className="recipient-panel delivery-panel delivery-picker" aria-labelledby="choose-recipient"><div className="delivery-section-heading"><span className="delivery-step" aria-hidden="true">01</span><div><h2 id="choose-recipient" ref={recipientHeading} tabIndex={-1}>Choose a recipient</h2><p>Find the contact and confirm their current delivery address.</p></div></div>
+      {selected && <div className="delivery-selected" role="group" aria-label="Selected delivery recipient"><div><strong>Selected recipient: {selected.firstName} {selected.lastName}</strong><p>{selected.address}</p><span>Recipient #{selected.recipientId}</span></div><button type="button" className="button secondary" disabled={frozen || permissionBlocked} onClick={changeRecipient}>Change recipient</button></div>}
+      <div id="delivery-recipient-picker" hidden={selected !== null}>
       <form className="delivery-search-toolbar" role="search" aria-label="Find a delivery recipient" onSubmit={event => { event.preventDefault(); if (frozen) return; setQuery(search.trim()); recipientSearch(0, search.trim()); }}>
-        <label htmlFor="delivery-recipient-search">Search recipient name or address<input id="delivery-recipient-search" type="search" maxLength={100} value={search} disabled={frozen} onChange={event => setSearch(event.target.value)} /></label>
+        <label htmlFor="delivery-recipient-search">Search recipient name or address<input id="delivery-recipient-search" ref={recipientSearchInput} type="search" maxLength={100} value={search} disabled={frozen} onChange={event => setSearch(event.target.value)} /></label>
         <button className="button secondary" disabled={frozen}>Search recipients</button><button type="button" className="text-button" disabled={frozen} onClick={() => recipientSearch()}>Reload recipients</button>{query && <button type="button" className="text-button" disabled={frozen} onClick={clearRecipientSearch}>Clear recipient search</button>}
       </form>
       {recipientError && <p role="alert" className="error-message">{recipientError}</p>}
       {recipientLoading ? <Loading text="Loading recipients…" /> : recipients && <>
         <p className="delivery-result-count">{recipients.totalElements} {recipients.totalElements === 1 ? 'recipient' : 'recipients'} found.{query && <> Results for “{query}”.</>}</p>
-        {recipients.recipients.length ? <ul className="delivery-recipient-list">{recipients.recipients.map(recipient => <li key={recipient.recipientId}>
-          <div><strong>{recipient.firstName} {recipient.lastName}</strong><p>{recipient.address}</p><small>Recipient #{recipient.recipientId}</small></div>
-          <button className="button secondary" disabled={frozen || selecting} onClick={() => choose(recipient.recipientId)} aria-label={`Choose ${recipient.firstName} ${recipient.lastName}, recipient ${recipient.recipientId}`} aria-pressed={selected?.recipientId === recipient.recipientId}>{selected?.recipientId === recipient.recipientId ? 'Selected' : 'Choose recipient'}</button>
-        </li>)}</ul> : <Empty title={query ? 'No recipients match your search.' : 'Start with a recipient'} text={query ? 'Try another name or address, or clear the search to see all recipients.' : 'Add a recipient in Recipients, then reload this list to prepare their first delivery.'} />}
+        {recipients.recipients.length ? <table className="delivery-recipient-results" role="table" aria-label="Recipient search results"><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Recipient</th><th scope="col" role="columnheader">Delivery address</th><th scope="col" role="columnheader">Action</th></tr></thead><tbody role="rowgroup">{recipients.recipients.map(recipient => <tr key={recipient.recipientId} role="row">
+          <th scope="row" role="rowheader"><strong>{recipient.firstName} {recipient.lastName}</strong><small>Recipient #{recipient.recipientId}</small></th>
+          <td role="cell" className="delivery-recipient-address">{recipient.address}</td>
+          <td role="cell" className="delivery-recipient-action"><button className="button secondary" disabled={frozen || selecting} onClick={() => choose(recipient.recipientId)} aria-label={`Select ${recipient.firstName} ${recipient.lastName}, recipient ${recipient.recipientId}`}>Select</button></td>
+        </tr>)}</tbody></table> : <Empty title={query ? 'No recipients match your search.' : 'Start with a recipient'} text={query ? 'Try another name or address, or clear the search to see all recipients.' : 'Add a recipient in Recipients, then reload this list to prepare their first delivery.'} />}
         {recipients.recipients.length > 0 && <Pagination page={recipients.page} total={recipients.totalPages} disabled={frozen || selecting} label="recipients" change={recipientSearch} />}
       </>}{selecting && <p role="status">Loading current recipient details…</p>}
+      </div>
     </section>
     <section className="recipient-panel delivery-panel" aria-labelledby="delivery-create"><div className="delivery-section-heading"><span className="delivery-step" aria-hidden="true">02</span><div><h2 id="delivery-create" tabIndex={-1} ref={createHeading}>Create delivery</h2><p>Set the schedule, priority and instructions before saving.</p></div></div>
-      {selected ? <div className="delivery-selected"><strong>Selected recipient: {selected.firstName} {selected.lastName}</strong><p>{selected.address}</p><span>Recipient #{selected.recipientId}</span></div> : <p>Choose a recipient from the search results above.</p>}
+      {!selected && <p>Choose a recipient from the search results above.</p>}
       <p>New deliveries are pending and unassigned. Route generation assigns operators. Past dates remain available for overdue work.</p>
       <form noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
         <fieldset disabled={frozen || permissionBlocked}><legend>Schedule</legend><div className="recipient-fields">
